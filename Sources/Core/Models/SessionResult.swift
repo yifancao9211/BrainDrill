@@ -67,6 +67,26 @@ enum ModuleMetrics: Codable, Equatable {
     case choiceRT(ChoiceRTMetrics)
     case changeDetection(ChangeDetectionMetrics)
     case visualSearch(VisualSearchMetrics)
+    case corsiBlock(CorsiBlockMetrics)
+    case stopSignal(StopSignalMetrics)
+}
+
+struct CorsiBlockMetrics: Codable, Equatable {
+    var maxSpan: Int
+    var totalTrials: Int
+    var correctTrials: Int
+    var accuracy: Double
+    var positionErrors: Int
+    var mode: CorsiBlockMode
+}
+
+struct StopSignalMetrics: Codable, Equatable {
+    var totalTrials: Int
+    var goRT: TimeInterval
+    var goAccuracy: Double
+    var inhibitionRate: Double
+    var ssrt: TimeInterval
+    var meanSSD: Double
 }
 
 struct SchulteMetrics: Codable, Equatable {
@@ -212,6 +232,16 @@ extension SessionResult {
 
     var visualSearchMetrics: VisualSearchMetrics? {
         if case let .visualSearch(m) = metrics { return m }
+        return nil
+    }
+
+    var corsiBlockMetrics: CorsiBlockMetrics? {
+        if case let .corsiBlock(m) = metrics { return m }
+        return nil
+    }
+
+    var stopSignalMetrics: StopSignalMetrics? {
+        if case let .stopSignal(m) = metrics { return m }
         return nil
     }
 }

@@ -77,6 +77,8 @@ struct RootView: View {
         case .choiceRT:        BDColor.choiceRTAccent
         case .changeDetection: BDColor.changeDetectionAccent
         case .visualSearch:    BDColor.visualSearchAccent
+        case .corsiBlock:      BDColor.corsiBlockAccent
+        case .stopSignal:      BDColor.stopSignalAccent
         case .dailyPlan:       BDColor.gold
         case .statistics:      BDColor.green
         case .history:         BDColor.warm
@@ -105,6 +107,10 @@ struct RootView: View {
             ChangeDetectionTrainingView()
         case .visualSearch:
             VisualSearchTrainingView()
+        case .corsiBlock:
+            CorsiBlockTrainingView()
+        case .stopSignal:
+            StopSignalTrainingView()
         case .history:
             ScrollView { HistoryView().padding(28) }.scrollIndicators(.hidden)
         case .statistics:

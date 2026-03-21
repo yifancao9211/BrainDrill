@@ -9,6 +9,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     case choiceRT
     case changeDetection
     case visualSearch
+    case corsiBlock
+    case stopSignal
 
     var id: String { rawValue }
 
@@ -34,9 +36,9 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var dimension: Dimension {
         switch self {
-        case .digitSpan, .nBack, .changeDetection: .memory
-        case .choiceRT, .goNoGo, .flanker:         .reaction
-        case .schulte, .visualSearch:               .visualAttention
+        case .digitSpan, .nBack, .changeDetection, .corsiBlock: .memory
+        case .choiceRT, .goNoGo, .flanker, .stopSignal:         .reaction
+        case .schulte, .visualSearch:                            .visualAttention
         }
     }
 
@@ -50,6 +52,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "选择反应时"
         case .changeDetection: "变更检测"
         case .visualSearch:    "视觉搜索"
+        case .corsiBlock:      "空间广度"
+        case .stopSignal:      "Stop-Signal"
         }
     }
 
@@ -63,6 +67,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "选择RT"
         case .changeDetection: "变更检测"
         case .visualSearch:    "视觉搜索"
+        case .corsiBlock:      "空间广度"
+        case .stopSignal:      "Stop-Signal"
         }
     }
 
@@ -76,6 +82,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "bolt.fill"
         case .changeDetection: "eye.fill"
         case .visualSearch:    "magnifyingglass"
+        case .corsiBlock:      "square.grid.3x3.topleft.filled"
+        case .stopSignal:      "stop.circle.fill"
         }
     }
 
@@ -89,6 +97,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "感知-决策-反应速度"
         case .changeDetection: "视觉工作记忆"
         case .visualSearch:    "选择性注意与搜索效率"
+        case .corsiBlock:      "视觉空间工作记忆"
+        case .stopSignal:      "动作抑制与停止控制"
         }
     }
 }

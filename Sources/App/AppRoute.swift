@@ -10,6 +10,8 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
     case choiceRT
     case changeDetection
     case visualSearch
+    case corsiBlock
+    case stopSignal
     case history
     case statistics
     case settings
@@ -27,6 +29,8 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "选择反应时"
         case .changeDetection: "变更检测"
         case .visualSearch:    "视觉搜索"
+        case .corsiBlock:      "空间广度"
+        case .stopSignal:      "Stop-Signal"
         case .history:         "历史记录"
         case .statistics:      "统计面板"
         case .settings:        "设置"
@@ -44,6 +48,8 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        "bolt.fill"
         case .changeDetection: "eye.fill"
         case .visualSearch:    "magnifyingglass"
+        case .corsiBlock:      "square.grid.3x3.topleft.filled"
+        case .stopSignal:      "stop.circle.fill"
         case .history:         "clock.arrow.circlepath"
         case .statistics:      "chart.bar.xaxis"
         case .settings:        "slider.horizontal.3"
@@ -60,14 +66,16 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .choiceRT:        .choiceRT
         case .changeDetection: .changeDetection
         case .visualSearch:    .visualSearch
+        case .corsiBlock:      .corsiBlock
+        case .stopSignal:      .stopSignal
         default:               nil
         }
     }
 
     var isModule: Bool { trainingModule != nil }
 
-    static var memoryModules: [AppRoute] { [.digitSpan, .nBack, .changeDetection] }
-    static var reactionModules: [AppRoute] { [.choiceRT, .goNoGo, .flanker] }
+    static var memoryModules: [AppRoute] { [.digitSpan, .corsiBlock, .nBack, .changeDetection] }
+    static var reactionModules: [AppRoute] { [.choiceRT, .goNoGo, .flanker, .stopSignal] }
     static var visualModules: [AppRoute] { [.schulte, .visualSearch] }
     static var tools: [AppRoute] { [.dailyPlan, .history, .statistics, .settings] }
 }

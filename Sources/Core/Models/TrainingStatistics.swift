@@ -38,6 +38,8 @@ struct TrainingStatistics {
         let crt = sessions.filter { $0.module == .choiceRT }
         let cd = sessions.filter { $0.module == .changeDetection }
         let vs = sessions.filter { $0.module == .visualSearch }
+        let cb = sessions.filter { $0.module == .corsiBlock }
+        let ss = sessions.filter { $0.module == .stopSignal }
 
         schulteCount = schulte.count
         flankerCount = flanker.count
@@ -47,6 +49,8 @@ struct TrainingStatistics {
         choiceRTCount = crt.count
         changeDetectionCount = cd.count
         visualSearchCount = vs.count
+        corsiBlockCount = cb.count
+        stopSignalCount = ss.count
 
         bestSchulteTime = schulte.map(\.duration).min()
         latestSchulteTime = schulte.first?.duration
@@ -87,7 +91,15 @@ struct TrainingStatistics {
         bestChoiceRTMedian = crt.compactMap { $0.choiceRTMetrics?.medianRT }.filter { $0 > 0 }.min()
         bestChangeDetectionDPrime = cd.compactMap { $0.changeDetectionMetrics?.dPrime }.max()
         bestVisualSearchSlope = vs.compactMap { $0.visualSearchMetrics?.searchSlope }.filter { $0 > 0 }.min()
+
+        bestCorsiSpan = cb.compactMap { $0.corsiBlockMetrics?.maxSpan }.max()
+        bestSSRT = ss.compactMap { $0.stopSignalMetrics?.ssrt }.filter { $0 > 0 }.min()
     }
+
+    let corsiBlockCount: Int
+    let stopSignalCount: Int
+    let bestCorsiSpan: Int?
+    let bestSSRT: TimeInterval?
 
     func count(for module: TrainingModule) -> Int {
         switch module {
@@ -99,6 +111,8 @@ struct TrainingStatistics {
         case .choiceRT:        choiceRTCount
         case .changeDetection: changeDetectionCount
         case .visualSearch:    visualSearchCount
+        case .corsiBlock:      corsiBlockCount
+        case .stopSignal:      stopSignalCount
         }
     }
 }

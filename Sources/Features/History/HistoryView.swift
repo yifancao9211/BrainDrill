@@ -60,6 +60,8 @@ struct HistoryView: View {
         case let .choiceRT(m):        " RT\(Int(m.medianRT * 1000))ms"
         case let .changeDetection(m): " d'\(String(format: "%.1f", m.dPrime))"
         case let .visualSearch(m):    " 斜率\(Int(m.searchSlope * 1000))ms"
+        case let .corsiBlock(m):      " 广度\(m.maxSpan)"
+        case let .stopSignal(m):      " SSRT\(Int(m.ssrt * 1000))ms"
         }
     }
 
@@ -73,6 +75,8 @@ struct HistoryView: View {
         case .choiceRT:        BDColor.choiceRTAccent
         case .changeDetection: BDColor.changeDetectionAccent
         case .visualSearch:    BDColor.visualSearchAccent
+        case .corsiBlock:      BDColor.corsiBlockAccent
+        case .stopSignal:      BDColor.stopSignalAccent
         }
     }
 }

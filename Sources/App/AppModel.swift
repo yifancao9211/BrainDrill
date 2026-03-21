@@ -16,6 +16,8 @@ final class AppModel {
     let choiceRT: ChoiceRTCoordinator
     let changeDetection: ChangeDetectionCoordinator
     let visualSearch: VisualSearchCoordinator
+    let corsiBlock: CorsiBlockCoordinator
+    let stopSignal: StopSignalCoordinator
 
     @ObservationIgnored private let store: any TrainingStore
 
@@ -29,6 +31,8 @@ final class AppModel {
         self.choiceRT = ChoiceRTCoordinator()
         self.changeDetection = ChangeDetectionCoordinator()
         self.visualSearch = VisualSearchCoordinator()
+        self.corsiBlock = CorsiBlockCoordinator()
+        self.stopSignal = StopSignalCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
         self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
     }
@@ -44,6 +48,11 @@ final class AppModel {
     var isAnyModuleActive: Bool {
         schulte.isTrainingActive || flanker.isActive || goNoGo.isActive || nBack.isActive
             || digitSpan.isActive || choiceRT.isActive || changeDetection.isActive || visualSearch.isActive
+            || corsiBlock.isActive || stopSignal.isActive
+    }
+
+    var cognitiveProfile: CognitiveProfile {
+        CognitiveProfile.compute(from: sessions)
     }
 
     var schulteSessions: [SessionResult] {
@@ -292,6 +301,82 @@ final class AppModel {
 
     func dismissVisualSearchResult() {
         visualSearch.lastResult = nil
+    }
+
+    // MARK: - CorsiBlock delegation
+
+    func startCorsiBlockSession(mode: CorsiBlockMode = .forward) {
+        corsiBlock.startSession(mode: mode)
+    }
+
+    func recordCorsiBlockResult(_ result: SessionResult) {
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelCorsiBlockSession() {
+        corsiBlock.cancelSession()
+    }
+
+    func dismissCorsiBlockResult() {
+        corsiBlock.lastResult = nil
+    }
+
+    // MARK: - StopSignal delegation
+
+    func startStopSignalSession() {
+        stopSignal.startSession()
+    }
+
+    func handleStopSignalResponse(_ direction: StopSignalDirection, at date: Date = Date()) -> SessionResult? {
+        if let result = stopSignal.handleResponse(direction, at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+            return result
+        }
+        return nil
+    }
+
+    func handleStopSignalStopTimeout() {
+        stopSignal.handleStopTimeout()
+    }
+
+    func handleStopSignalGoTimeout() {
+        stopSignal.handleGoTimeout()
+    }
+
+    func finalizeStopSignalIfComplete() {
+        guard let engine = stopSignal.engine, engine.isComplete else { return }
+        let metrics = engine.computeMetrics()
+        let now = Date()
+        let result = SessionResult(
+            module: .stopSignal,
+            startedAt: engine.startedAt,
+            endedAt: now,
+            duration: now.timeIntervalSince(engine.startedAt),
+            metrics: .stopSignal(metrics)
+        )
+        stopSignal.lastResult = result
+        stopSignal.engine = nil
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelStopSignalSession() {
+        stopSignal.cancelSession()
+    }
+
+    func dismissStopSignalResult() {
+        stopSignal.lastResult = nil
+    }
+
+    // MARK: - Data Export
+
+    func exportSessionsCSV() -> String {
+        TrialExporter.exportCSV(sessions: sessions)
     }
 
     // MARK: - Settings

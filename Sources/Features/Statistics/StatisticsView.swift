@@ -134,6 +134,8 @@ struct StatisticsView: View {
         case .choiceRT:        BDColor.choiceRTAccent
         case .changeDetection: BDColor.changeDetectionAccent
         case .visualSearch:    BDColor.visualSearchAccent
+        case .corsiBlock:      BDColor.corsiBlockAccent
+        case .stopSignal:      BDColor.stopSignalAccent
         }
     }
 }

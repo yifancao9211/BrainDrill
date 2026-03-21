@@ -71,11 +71,13 @@ struct DailyPlanView: View {
     private var dailyModules: [DailyItem] {
         [
             DailyItem(route: .digitSpan, subtitle: "短时记忆与工作记忆", duration: "~3 min", color: BDColor.digitSpanAccent),
+            DailyItem(route: .corsiBlock, subtitle: "视觉空间工作记忆", duration: "~3 min", color: BDColor.corsiBlockAccent),
             DailyItem(route: .nBack, subtitle: "工作记忆更新", duration: "~5 min", color: BDColor.nBackAccent),
             DailyItem(route: .changeDetection, subtitle: "视觉工作记忆", duration: "~4 min", color: BDColor.changeDetectionAccent),
             DailyItem(route: .choiceRT, subtitle: "感知-决策-反应速度", duration: "~3 min", color: BDColor.choiceRTAccent),
             DailyItem(route: .goNoGo, subtitle: "反应抑制 · 冲动控制", duration: "~3 min", color: BDColor.goNoGoAccent),
             DailyItem(route: .flanker, subtitle: "选择性注意力 · 抑制控制", duration: "~4 min", color: BDColor.flankerAccent),
+            DailyItem(route: .stopSignal, subtitle: "动作抑制与停止控制", duration: "~4 min", color: BDColor.stopSignalAccent),
             DailyItem(route: .schulte, subtitle: "视觉注意力训练", duration: "~8 min", color: BDColor.primaryBlue),
             DailyItem(route: .visualSearch, subtitle: "选择性注意与搜索效率", duration: "~5 min", color: BDColor.visualSearchAccent),
         ]

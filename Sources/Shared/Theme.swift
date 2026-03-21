@@ -69,6 +69,12 @@ enum BDColor {
     static let visualSearchAccent = Color(light: .init(red: 0.62, green: 0.28, blue: 0.55),
                                           dark: .init(red: 0.78, green: 0.45, blue: 0.72))
 
+    static let corsiBlockAccent = Color(light: .init(red: 0.18, green: 0.48, blue: 0.65),
+                                        dark: .init(red: 0.35, green: 0.65, blue: 0.82))
+
+    static let stopSignalAccent = Color(light: .init(red: 0.75, green: 0.28, blue: 0.28),
+                                        dark: .init(red: 0.90, green: 0.42, blue: 0.42))
+
     static let distractionColors: [Color] = [
         Color(light: .init(red: 0.90, green: 0.42, blue: 0.38), dark: .init(red: 0.85, green: 0.40, blue: 0.35)),
         Color(light: .init(red: 0.30, green: 0.65, blue: 0.85), dark: .init(red: 0.35, green: 0.60, blue: 0.80)),
