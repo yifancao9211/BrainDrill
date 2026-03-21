@@ -11,6 +11,7 @@
 		02F55D2997B1FFE261CCF15E /* PerformanceAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256F13CD5F32401B4D955566 /* PerformanceAnalyticsTests.swift */; };
 		03331846248F277FF95EA51F /* DigitSpanTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E487B164CF461201130B378 /* DigitSpanTrainingView.swift */; };
 		05AA19B326C83526EF5EFC3F /* DigitSpanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 708ADE897227D785DA66A6AC /* DigitSpanModels.swift */; };
+		06D3EA191C8D1166704FD988 /* ModuleFlowIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4944CABF706A8FF8063424 /* ModuleFlowIntegrationTests.swift */; };
 		095BC080679B1900F0B2A656 /* AppRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CF4487F0A97973C4F1EDAB /* AppRoute.swift */; };
 		12653B214489421A0661D672 /* FlankerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A49062F8F34EF00C330096 /* FlankerEngineTests.swift */; };
 		13EDC3ECBAED51E457E302C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA9ABBAB83BD9B07A49998D /* SettingsView.swift */; };
@@ -145,6 +146,7 @@
 		41D3120C07FF226C5990CB82 /* DigitSpanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitSpanEngine.swift; sourceTree = "<group>"; };
 		441CA910432DBE3FDB9F9F9D /* BrainDrill.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrainDrill.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		45E20FAA1BC6A14CFE442031 /* SurfaceComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceComponents.swift; sourceTree = "<group>"; };
+		4B4944CABF706A8FF8063424 /* ModuleFlowIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleFlowIntegrationTests.swift; sourceTree = "<group>"; };
 		5000C17D50280A5A526D5373 /* TrainingSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettings.swift; sourceTree = "<group>"; };
 		502A7FB9F9F45ED2A8662383 /* GoNoGoTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoNoGoTrainingView.swift; sourceTree = "<group>"; };
 		505BED6FD60D9E4F54FB85ED /* SchulteEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchulteEngineTests.swift; sourceTree = "<group>"; };
@@ -432,6 +434,7 @@
 				6772339D4BCE2F89DA745716 /* GoNoGoEngineTests.swift */,
 				61B771D0D1DB2C65C9B961D6 /* LocalTrainingStoreTests.swift */,
 				394DC5F4346B3A8B862B789D /* MetricsCalculatorTests.swift */,
+				4B4944CABF706A8FF8063424 /* ModuleFlowIntegrationTests.swift */,
 				365065A29DB8DF240F44F5CD /* NBackEngineTests.swift */,
 				256F13CD5F32401B4D955566 /* PerformanceAnalyticsTests.swift */,
 				7D41A0937210B5B92216B20B /* PracticeTrialTests.swift */,
@@ -643,6 +646,7 @@
 				2989A14C9DBC649B82B1FE24 /* GoNoGoEngineTests.swift in Sources */,
 				FE91AF85136E89DDA6C20E12 /* LocalTrainingStoreTests.swift in Sources */,
 				D54FFC9D67261E2F1A43382C /* MetricsCalculatorTests.swift in Sources */,
+				06D3EA191C8D1166704FD988 /* ModuleFlowIntegrationTests.swift in Sources */,
 				8E4AA83E16C5CA29134A73D3 /* NBackEngineTests.swift in Sources */,
 				02F55D2997B1FFE261CCF15E /* PerformanceAnalyticsTests.swift in Sources */,
 				6CA814C0F7FA76D9F33D8A27 /* PracticeTrialTests.swift in Sources */,
