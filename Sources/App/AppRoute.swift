@@ -1,7 +1,15 @@
 import Foundation
 
 enum AppRoute: String, CaseIterable, Identifiable, Hashable {
-    case training
+    case dailyPlan
+    case schulte
+    case flanker
+    case goNoGo
+    case nBack
+    case digitSpan
+    case choiceRT
+    case changeDetection
+    case visualSearch
     case history
     case statistics
     case settings
@@ -10,40 +18,56 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .training:
-            "开始训练"
-        case .history:
-            "历史记录"
-        case .statistics:
-            "统计面板"
-        case .settings:
-            "设置"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .training:
-            "专注完成一轮舒尔特方格训练"
-        case .history:
-            "回看最近的训练表现"
-        case .statistics:
-            "观察趋势、最佳成绩与练习密度"
-        case .settings:
-            "管理默认难度与训练偏好"
+        case .dailyPlan:       "今日训练"
+        case .schulte:         "舒尔特方格"
+        case .flanker:         "Flanker 反应力"
+        case .goNoGo:          "Go/No-Go 抑制力"
+        case .nBack:           "N-Back 记忆"
+        case .digitSpan:       "数字广度"
+        case .choiceRT:        "选择反应时"
+        case .changeDetection: "变更检测"
+        case .visualSearch:    "视觉搜索"
+        case .history:         "历史记录"
+        case .statistics:      "统计面板"
+        case .settings:        "设置"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .training:
-            "square.grid.3x3.fill"
-        case .history:
-            "clock.arrow.circlepath"
-        case .statistics:
-            "chart.bar.xaxis"
-        case .settings:
-            "slider.horizontal.3"
+        case .dailyPlan:       "calendar.badge.clock"
+        case .schulte:         "square.grid.3x3.fill"
+        case .flanker:         "arrow.left.arrow.right"
+        case .goNoGo:          "hand.raised.fill"
+        case .nBack:           "number.square.fill"
+        case .digitSpan:       "brain"
+        case .choiceRT:        "bolt.fill"
+        case .changeDetection: "eye.fill"
+        case .visualSearch:    "magnifyingglass"
+        case .history:         "clock.arrow.circlepath"
+        case .statistics:      "chart.bar.xaxis"
+        case .settings:        "slider.horizontal.3"
         }
     }
+
+    var trainingModule: TrainingModule? {
+        switch self {
+        case .schulte:         .schulte
+        case .flanker:         .flanker
+        case .goNoGo:          .goNoGo
+        case .nBack:           .nBack
+        case .digitSpan:       .digitSpan
+        case .choiceRT:        .choiceRT
+        case .changeDetection: .changeDetection
+        case .visualSearch:    .visualSearch
+        default:               nil
+        }
+    }
+
+    var isModule: Bool { trainingModule != nil }
+
+    static var memoryModules: [AppRoute] { [.digitSpan, .nBack, .changeDetection] }
+    static var reactionModules: [AppRoute] { [.choiceRT, .goNoGo, .flanker] }
+    static var visualModules: [AppRoute] { [.schulte, .visualSearch] }
+    static var tools: [AppRoute] { [.dailyPlan, .history, .statistics, .settings] }
 }

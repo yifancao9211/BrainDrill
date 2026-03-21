@@ -32,7 +32,7 @@ struct SurfaceCard<Content: View>: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                        .stroke(BDColor.cardStroke, lineWidth: 1)
                 )
         )
     }

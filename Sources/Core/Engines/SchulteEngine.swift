@@ -23,6 +23,13 @@ final class SchulteEngine {
     private(set) var nextExpectedNumber: Int = 1
     private(set) var completedNumbers: Set<Int> = []
     private(set) var mistakeCount: Int = 0
+    private(set) var perNumberDurations: [TimeInterval] = []
+
+    /// Maps tile number → distraction color index (nil = no distraction).
+    /// Reshuffled each time the player advances to keep them from memorizing.
+    private(set) var distractionMap: [Int: Int] = [:]
+
+    private var lastCorrectTapTime: Date?
 
     init(
         config: SchulteSessionConfig,
@@ -32,6 +39,8 @@ final class SchulteEngine {
         self.config = config
         self.startedAt = startedAt
         self.tiles = tiles ?? (1...config.difficulty.totalTiles).shuffled().map { SchulteTile(number: $0) }
+        self.lastCorrectTapTime = startedAt
+        reshuffleDistractions()
     }
 
     var totalTiles: Int {
@@ -59,6 +68,12 @@ final class SchulteEngine {
         completedNumbers.insert(number)
         nextExpectedNumber += 1
 
+        let interval = (lastCorrectTapTime.map { date.timeIntervalSince($0) }) ?? date.timeIntervalSince(startedAt)
+        perNumberDurations.append(interval)
+        lastCorrectTapTime = date
+
+        reshuffleDistractions()
+
         if completedNumbers.count == totalTiles {
             let finishedAt = max(date, startedAt)
             let result = SchulteSessionResult(
@@ -66,11 +81,32 @@ final class SchulteEngine {
                 endedAt: finishedAt,
                 duration: finishedAt.timeIntervalSince(startedAt),
                 difficulty: config.difficulty,
-                mistakeCount: mistakeCount
+                mistakeCount: mistakeCount,
+                perNumberDurations: perNumberDurations
             )
             return .completed(result)
         }
 
         return .correct(nextNumber: nextExpectedNumber)
+    }
+
+    private func reshuffleDistractions() {
+        let intensity = config.difficulty.distractionIntensity
+        guard intensity > 0 else {
+            distractionMap = [:]
+            return
+        }
+
+        var newMap: [Int: Int] = [:]
+        let candidates = tiles
+            .map(\.number)
+            .filter { !completedNumbers.contains($0) && $0 != nextExpectedNumber }
+        let count = max(1, Int(Double(candidates.count) * intensity))
+        let chosen = Set(candidates.shuffled().prefix(count))
+        let colorCount = 6
+        for num in chosen {
+            newMap[num] = Int.random(in: 0..<colorCount)
+        }
+        distractionMap = newMap
     }
 }

@@ -8,7 +8,6 @@ struct SchulteEngineTests {
         let engine = SchulteEngine(
             config: SchulteSessionConfig(difficulty: .challenge5x5, showHints: true, startMode: .manual)
         )
-
         #expect(engine.tiles.count == 25)
         #expect(Set(engine.tiles.map(\.number)).count == 25)
         #expect(engine.tiles.map(\.number).sorted() == Array(1...25))
@@ -60,5 +59,14 @@ struct SchulteEngineTests {
 
         #expect(engine.mistakeCount == 1)
         #expect(engine.nextExpectedNumber == 1)
+    }
+
+    @Test
+    func generates8x8and9x9Tiles() {
+        let e8 = SchulteEngine(config: SchulteSessionConfig(difficulty: .elite8x8, showHints: false, startMode: .manual))
+        #expect(e8.tiles.count == 64)
+
+        let e9 = SchulteEngine(config: SchulteSessionConfig(difficulty: .legend9x9, showHints: false, startMode: .manual))
+        #expect(e9.tiles.count == 81)
     }
 }

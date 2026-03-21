@@ -8,14 +8,14 @@ struct BrainDrillApp: App {
         WindowGroup {
             RootView()
                 .environment(appModel)
-                .frame(minWidth: 980, minHeight: 680)
+                .frame(minWidth: 1060, minHeight: 720)
         }
         .windowResizability(.contentMinSize)
 
         Settings {
             SettingsView()
                 .environment(appModel)
-                .frame(width: 480, height: 360)
+                .frame(width: 520, height: 480)
         }
     }
 }

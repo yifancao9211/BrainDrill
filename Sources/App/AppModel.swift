@@ -3,78 +3,298 @@ import Observation
 
 @Observable
 final class AppModel {
-    var selectedRoute: AppRoute = .training
+    var selectedRoute: AppRoute = .dailyPlan
     var settings: TrainingSettings
-    var history: [SchulteSessionResult]
-    var activeEngine: SchulteEngine?
-    var statusMessage: String
-    var lastCompletedSummary: CompletedSessionSummary?
+    var sessions: [SessionResult]
     var lastPersistenceError: String?
+
+    let schulte: SchulteCoordinator
+    let flanker: FlankerCoordinator
+    let goNoGo: GoNoGoCoordinator
+    let nBack: NBackCoordinator
+    let digitSpan: DigitSpanCoordinator
+    let choiceRT: ChoiceRTCoordinator
+    let changeDetection: ChangeDetectionCoordinator
+    let visualSearch: VisualSearchCoordinator
 
     @ObservationIgnored private let store: any TrainingStore
 
     init(store: any TrainingStore) {
         self.store = store
+        self.schulte = SchulteCoordinator()
+        self.flanker = FlankerCoordinator()
+        self.goNoGo = GoNoGoCoordinator()
+        self.nBack = NBackCoordinator()
+        self.digitSpan = DigitSpanCoordinator()
+        self.choiceRT = ChoiceRTCoordinator()
+        self.changeDetection = ChangeDetectionCoordinator()
+        self.visualSearch = VisualSearchCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
-        self.history = ((try? store.loadResults()) ?? []).sorted { $0.endedAt > $1.endedAt }
-        self.statusMessage = "选择难度后开始一轮舒尔特训练。"
+        self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
     }
 
     var statistics: TrainingStatistics {
-        TrainingStatistics(results: history)
-    }
-
-    var recentResults: [SchulteSessionResult] {
-        Array(history.prefix(8))
+        TrainingStatistics(sessions: sessions)
     }
 
     var storageLocationDescription: String {
         store.storageURL.path
     }
 
-    var isTrainingActive: Bool {
-        activeEngine != nil
+    var isAnyModuleActive: Bool {
+        schulte.isTrainingActive || flanker.isActive || goNoGo.isActive || nBack.isActive
+            || digitSpan.isActive || choiceRT.isActive || changeDetection.isActive || visualSearch.isActive
     }
 
-    func startSession() {
-        let config = SchulteSessionConfig(
-            difficulty: settings.preferredDifficulty,
-            showHints: settings.showHints,
-            startMode: .manual
-        )
-
-        activeEngine = SchulteEngine(config: config)
-        lastCompletedSummary = nil
-        selectedRoute = .training
-        statusMessage = "按顺序点击 1 到 \(config.difficulty.totalTiles)。"
+    var schulteSessions: [SessionResult] {
+        sessions.filter { $0.module == .schulte }
     }
 
-    func cancelSession() {
-        activeEngine = nil
-        statusMessage = "已取消当前训练。"
+    // MARK: - Schulte delegation
+
+    func startSchulteSession() {
+        schulte.startSession(settings: settings)
     }
 
-    func handleTileTap(_ number: Int, at date: Date = Date()) {
-        guard let activeEngine else { return }
+    func cancelSchulteSession() {
+        schulte.cancelSession()
+    }
 
-        switch activeEngine.handleTap(number, at: date) {
-        case let .correct(nextNumber):
-            statusMessage = "正确，继续找 \(nextNumber)。"
-        case let .incorrect(expected):
-            statusMessage = "当前应点击 \(expected)。"
-        case let .completed(result):
-            history.insert(result, at: 0)
-            history.sort { $0.endedAt > $1.endedAt }
-            persistResults()
-            let summary = CompletedSessionSummary(result: result, historyAfterSave: history)
-            lastCompletedSummary = summary
-            self.activeEngine = nil
-            statusMessage = summary.didSetPersonalBest ? "刷新个人最佳。" : "本轮训练已完成。"
-            selectedRoute = .statistics
-        case .ignored:
+    func handleSchulteTileTap(_ number: Int, at date: Date = Date()) {
+        switch schulte.handleTileTap(number, at: date) {
+        case .continued:
             break
+        case let .repCompleted(result):
+            let sessionResult = result.toSessionResult(setIndex: schulte.currentSet, repIndex: schulte.currentRep)
+            sessions.insert(sessionResult, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+            _ = schulte.finishRep(result: result, schulteHistory: schulteSessions, settings: settings)
         }
     }
+
+    func acceptSchulteDifficultyRecommendation(_ difficulty: SchulteDifficulty) {
+        settings.preferredDifficulty = difficulty
+        persistSettings()
+    }
+
+    func dismissSchulteResult() {
+        schulte.lastCompletedSummary = nil
+    }
+
+    // MARK: - Flanker delegation
+
+    func startFlankerSession() {
+        flanker.startSession(settings: settings)
+    }
+
+    func handleFlankerResponse(_ direction: FlankerDirection, at date: Date = Date()) {
+        if let result = flanker.handleResponse(direction, at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+        }
+    }
+
+    func cancelFlankerSession() {
+        flanker.cancelSession()
+    }
+
+    func dismissFlankerResult() {
+        flanker.lastResult = nil
+    }
+
+    // MARK: - GoNoGo delegation
+
+    func startGoNoGoSession() {
+        goNoGo.startSession(settings: settings)
+    }
+
+    func handleGoNoGoTap(at date: Date = Date()) {
+        if let result = goNoGo.handleTap(at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+        }
+    }
+
+    func cancelGoNoGoSession() {
+        goNoGo.cancelSession()
+    }
+
+    func dismissGoNoGoResult() {
+        goNoGo.lastResult = nil
+    }
+
+    // MARK: - NBack delegation
+
+    func startNBackSession() {
+        nBack.startSession(settings: settings)
+    }
+
+    func handleNBackMatch(at date: Date = Date()) {
+        if let result = nBack.handleMatch(at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+        }
+    }
+
+    func cancelNBackSession() {
+        nBack.cancelSession()
+    }
+
+    func dismissNBackResult() {
+        nBack.lastResult = nil
+    }
+
+    // MARK: - DigitSpan delegation
+
+    func startDigitSpanSession(mode: DigitSpanMode = .forward) {
+        digitSpan.startSession(settings: settings, mode: mode)
+    }
+
+    func recordDigitSpanResult(_ result: SessionResult) {
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelDigitSpanSession() {
+        digitSpan.cancelSession()
+    }
+
+    func dismissDigitSpanResult() {
+        digitSpan.lastResult = nil
+    }
+
+    // MARK: - ChoiceRT delegation
+
+    func startChoiceRTSession() {
+        choiceRT.startSession(settings: settings)
+    }
+
+    func handleChoiceRTResponse(_ responseIndex: Int, at date: Date = Date()) -> SessionResult? {
+        if let result = choiceRT.handleResponse(responseIndex, at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+            return result
+        }
+        return nil
+    }
+
+    func finalizeChoiceRTIfComplete() {
+        guard let engine = choiceRT.engine, engine.isComplete else { return }
+        let metrics = engine.computeMetrics()
+        let now = Date()
+        let result = SessionResult(
+            module: .choiceRT,
+            startedAt: engine.startedAt,
+            endedAt: now,
+            duration: now.timeIntervalSince(engine.startedAt),
+            metrics: .choiceRT(metrics)
+        )
+        choiceRT.lastResult = result
+        choiceRT.engine = nil
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelChoiceRTSession() {
+        choiceRT.cancelSession()
+    }
+
+    func dismissChoiceRTResult() {
+        choiceRT.lastResult = nil
+    }
+
+    // MARK: - ChangeDetection delegation
+
+    func startChangeDetectionSession() {
+        changeDetection.startSession(settings: settings)
+    }
+
+    func handleChangeDetectionResponse(changed: Bool, at date: Date = Date()) -> SessionResult? {
+        if let result = changeDetection.handleResponse(userSaidChanged: changed, at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+            return result
+        }
+        return nil
+    }
+
+    func finalizeChangeDetectionIfComplete() {
+        guard let engine = changeDetection.engine, engine.isComplete else { return }
+        let metrics = engine.computeMetrics()
+        let now = Date()
+        let result = SessionResult(
+            module: .changeDetection,
+            startedAt: engine.startedAt,
+            endedAt: now,
+            duration: now.timeIntervalSince(engine.startedAt),
+            metrics: .changeDetection(metrics)
+        )
+        changeDetection.lastResult = result
+        changeDetection.engine = nil
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelChangeDetectionSession() {
+        changeDetection.cancelSession()
+    }
+
+    func dismissChangeDetectionResult() {
+        changeDetection.lastResult = nil
+    }
+
+    // MARK: - VisualSearch delegation
+
+    func startVisualSearchSession() {
+        visualSearch.startSession(settings: settings)
+    }
+
+    func handleVisualSearchResponse(present: Bool, at date: Date = Date()) -> SessionResult? {
+        if let result = visualSearch.handleResponse(userSaidPresent: present, at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+            return result
+        }
+        return nil
+    }
+
+    func finalizeVisualSearchIfComplete() {
+        guard let engine = visualSearch.engine, engine.isComplete else { return }
+        let metrics = engine.computeMetrics()
+        let now = Date()
+        let result = SessionResult(
+            module: .visualSearch,
+            startedAt: engine.startedAt,
+            endedAt: now,
+            duration: now.timeIntervalSince(engine.startedAt),
+            metrics: .visualSearch(metrics)
+        )
+        visualSearch.lastResult = result
+        visualSearch.engine = nil
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
+    func cancelVisualSearchSession() {
+        visualSearch.cancelSession()
+    }
+
+    func dismissVisualSearchResult() {
+        visualSearch.lastResult = nil
+    }
+
+    // MARK: - Settings
 
     func updateShowHints(_ isEnabled: Bool) {
         settings.showHints = isEnabled
@@ -91,10 +311,17 @@ final class AppModel {
         persistSettings()
     }
 
-    func elapsedTimeString(at date: Date) -> String {
-        guard let activeEngine else { return "--" }
-        return DurationFormatter.training.string(from: activeEngine.elapsedDuration(at: date)) ?? "00:00"
+    func updateAdaptiveDifficulty(_ enabled: Bool) {
+        settings.adaptiveDifficultyEnabled = enabled
+        persistSettings()
     }
+
+    func updateShowFixationDot(_ show: Bool) {
+        settings.showFixationDot = show
+        persistSettings()
+    }
+
+    // MARK: - Formatting
 
     func formattedDuration(_ duration: TimeInterval) -> String {
         DurationFormatter.training.string(from: duration) ?? "00:00"
@@ -104,21 +331,27 @@ final class AppModel {
         DateFormatter.trainingTimestamp.string(from: date)
     }
 
-    private func persistResults() {
+    func formattedMs(_ ms: Int) -> String {
+        "\(ms)ms"
+    }
+
+    // MARK: - Persistence
+
+    private func persistSessions() {
         do {
-            try store.saveResults(history)
+            try store.saveSessions(sessions)
             lastPersistenceError = nil
         } catch {
-            lastPersistenceError = "记录保存失败：\(error.localizedDescription)"
+            lastPersistenceError = "保存失败：\(error.localizedDescription)"
         }
     }
 
-    private func persistSettings() {
+    func persistSettings() {
         do {
             try store.saveSettings(settings)
             lastPersistenceError = nil
         } catch {
-            lastPersistenceError = "设置保存失败：\(error.localizedDescription)"
+            lastPersistenceError = "保存失败：\(error.localizedDescription)"
         }
     }
 }

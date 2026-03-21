@@ -2,133 +2,130 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var appModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationSplitView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("训练空间")
-                            .font(.system(.caption, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.secondary)
-
-                        ForEach(AppRoute.allCases) { route in
-                            Button {
-                                appModel.selectedRoute = route
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: route.systemImage)
-                                        .frame(width: 20)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(route.title)
-                                        Text(route.subtitle)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                }
-                                .font(.system(.body, design: .rounded, weight: .medium))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(appModel.selectedRoute == route ? Color.white.opacity(0.72) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("更多训练")
-                            .font(.system(.caption, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.secondary)
-
-                        PlaceholderModuleRow(title: "反应力训练", subtitle: "即将加入", systemImage: "bolt.fill")
-                        PlaceholderModuleRow(title: "数字记忆", subtitle: "即将加入", systemImage: "number.square.fill")
-                        PlaceholderModuleRow(title: "视觉搜索", subtitle: "即将加入", systemImage: "eye.fill")
-                    }
-                }
-                .padding(18)
-            }
-            .navigationSplitViewColumnWidth(min: 240, ideal: 260)
-            .background(sidebarBackground)
+            sidebar
+                .navigationSplitViewColumnWidth(min: 240, ideal: 260)
+                .background(colorScheme == .dark ? BDGradient.sidebarDark : BDGradient.sidebarLight)
         } detail: {
             ZStack {
                 detailBackground
-                ScrollView {
-                    routeView(for: appModel.selectedRoute)
-                        .padding(28)
-                }
-                .scrollIndicators(.hidden)
+                detailContent
             }
         }
         .navigationTitle("BrainDrill")
     }
 
-    @ViewBuilder
-    private func routeView(for route: AppRoute) -> some View {
-        switch route {
-        case .training:
-            TrainingView()
-        case .history:
-            HistoryView()
-        case .statistics:
-            StatisticsView()
-        case .settings:
-            SettingsView()
+    private var sidebar: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                sidebarSection(title: "记忆力", routes: AppRoute.memoryModules)
+                sidebarSection(title: "反应力", routes: AppRoute.reactionModules)
+                sidebarSection(title: "视觉注意", routes: AppRoute.visualModules)
+                sidebarSection(title: "工具", routes: AppRoute.tools)
+            }
+            .padding(18)
+        }
+        .allowsHitTesting(!appModel.isAnyModuleActive)
+        .opacity(appModel.isAnyModuleActive ? 0.4 : 1)
+        .animation(.easeInOut(duration: 0.2), value: appModel.isAnyModuleActive)
+    }
+
+    private func sidebarSection(title: String, routes: [AppRoute]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+
+            ForEach(routes) { route in
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        appModel.selectedRoute = route
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: route.systemImage)
+                            .foregroundStyle(accentColor(for: route))
+                            .frame(width: 20)
+                        Text(route.title)
+                        Spacer()
+                    }
+                    .font(.system(.callout, design: .rounded, weight: appModel.selectedRoute == route ? .semibold : .regular))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(appModel.selectedRoute == route ? BDColor.sidebarSelected : Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
-    private var sidebarBackground: some View {
-        LinearGradient(
-            colors: [Color(red: 0.95, green: 0.93, blue: 0.89), Color(red: 0.88, green: 0.90, blue: 0.94)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+    private func accentColor(for route: AppRoute) -> Color {
+        switch route {
+        case .schulte:         BDColor.primaryBlue
+        case .flanker:         BDColor.flankerAccent
+        case .goNoGo:          BDColor.goNoGoAccent
+        case .nBack:           BDColor.nBackAccent
+        case .digitSpan:       BDColor.digitSpanAccent
+        case .choiceRT:        BDColor.choiceRTAccent
+        case .changeDetection: BDColor.changeDetectionAccent
+        case .visualSearch:    BDColor.visualSearchAccent
+        case .dailyPlan:       BDColor.gold
+        case .statistics:      BDColor.green
+        case .history:         BDColor.warm
+        case .settings:        .secondary
+        }
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
+        switch appModel.selectedRoute {
+        case .dailyPlan:
+            ScrollView { DailyPlanView().padding(28) }.scrollIndicators(.hidden)
+        case .schulte:
+            SchulteTrainingView()
+        case .flanker:
+            FlankerTrainingView()
+        case .goNoGo:
+            GoNoGoTrainingView()
+        case .nBack:
+            NBackTrainingView()
+        case .digitSpan:
+            DigitSpanTrainingView()
+        case .choiceRT:
+            ChoiceRTTrainingView()
+        case .changeDetection:
+            ChangeDetectionTrainingView()
+        case .visualSearch:
+            VisualSearchTrainingView()
+        case .history:
+            ScrollView { HistoryView().padding(28) }.scrollIndicators(.hidden)
+        case .statistics:
+            ScrollView { StatisticsView().padding(28) }.scrollIndicators(.hidden)
+        case .settings:
+            ScrollView { SettingsView().padding(28) }.scrollIndicators(.hidden)
+        }
     }
 
     private var detailBackground: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.98, green: 0.97, blue: 0.94), Color(red: 0.91, green: 0.94, blue: 0.97)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
+            (colorScheme == .dark ? BDGradient.detailDark : BDGradient.detailLight)
             Circle()
-                .fill(Color(red: 0.82, green: 0.87, blue: 0.94).opacity(0.32))
+                .fill(BDColor.primaryBlue.opacity(colorScheme == .dark ? 0.06 : 0.12))
                 .frame(width: 320, height: 320)
                 .offset(x: 220, y: -220)
-
             Circle()
-                .fill(Color(red: 0.93, green: 0.84, blue: 0.74).opacity(0.22))
+                .fill(BDColor.warm.opacity(colorScheme == .dark ? 0.04 : 0.08))
                 .frame(width: 280, height: 280)
                 .offset(x: -260, y: 260)
         }
         .ignoresSafeArea()
-    }
-}
-
-private struct PlaceholderModuleRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .font(.system(.body, design: .rounded))
-        .padding(.vertical, 6)
-        .foregroundStyle(.secondary)
     }
 }
