@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class AppModel {
     var selectedRoute: AppRoute = .dailyPlan
@@ -19,7 +20,13 @@ final class AppModel {
     let corsiBlock: CorsiBlockCoordinator
     let stopSignal: StopSignalCoordinator
 
+    // AI Chat
+    var chatMessages: [ChatMessage] = []
+    var isChatLoading = false
+    var isChatPanelOpen = false
+
     @ObservationIgnored private let store: any TrainingStore
+    @ObservationIgnored private var aiService: AIAnalystService!
 
     init(store: any TrainingStore) {
         self.store = store
@@ -35,6 +42,8 @@ final class AppModel {
         self.stopSignal = StopSignalCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
         self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
+        self.aiService = AIAnalystService(baseURL: settings.aiBaseURL, apiKey: settings.aiAPIKey)
+        self.chatMessages = (try? store.loadChatHistory().messages) ?? []
     }
 
     var statistics: TrainingStatistics {
@@ -393,6 +402,59 @@ final class AppModel {
 
     func dismissStopSignalResult() {
         stopSignal.lastResult = nil
+    }
+
+    // MARK: - AI Chat
+
+    func sendChatMessage(_ text: String) {
+        let userMsg = ChatMessage(role: .user, content: text)
+        chatMessages.append(userMsg)
+        isChatLoading = true
+        persistChat()
+
+        let service = aiService!
+        let currentSessions = Array(sessions)
+        Task {
+            let response: String
+            do {
+                response = try await service.sendMessage(text, sessions: currentSessions)
+            } catch {
+                response = "抱歉，出错了：\(error.localizedDescription)"
+            }
+            chatMessages.append(ChatMessage(role: .assistant, content: response))
+            isChatLoading = false
+            persistChat()
+        }
+    }
+
+    func sendQuickAnalysis() {
+        sendChatMessage("请分析我的整体训练表现，包括各维度强弱项、近期趋势、和具体建议。")
+    }
+
+    func sendWeeklyReport() {
+        sendChatMessage("请生成我的本周训练周报，对比上周的变化，给出下周建议。")
+    }
+
+    func clearChat() {
+        chatMessages = []
+        aiService.clearHistory()
+        persistChat()
+    }
+
+    func updateAIConfig(baseURL: String, apiKey: String) {
+        settings.aiBaseURL = baseURL
+        settings.aiAPIKey = apiKey
+        persistSettings()
+        aiService.updateProvider(baseURL: baseURL, apiKey: apiKey)
+    }
+
+    private func persistChat() {
+        var history = ChatHistory(messages: chatMessages)
+        do {
+            try store.saveChatHistory(history)
+        } catch {
+            lastPersistenceError = "聊天保存失败：\(error.localizedDescription)"
+        }
     }
 
     // MARK: - Data Export

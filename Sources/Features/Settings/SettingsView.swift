@@ -105,6 +105,20 @@ struct SettingsView: View {
                     ), in: 5...20)
                 }
 
+                Section("AI 教练") {
+                    TextField("API 地址", text: Binding(
+                        get: { appModel.settings.aiBaseURL },
+                        set: { appModel.updateAIConfig(baseURL: $0, apiKey: appModel.settings.aiAPIKey) }
+                    ))
+                    .font(.system(.caption, design: .monospaced))
+
+                    SecureField("API Key", text: Binding(
+                        get: { appModel.settings.aiAPIKey },
+                        set: { appModel.updateAIConfig(baseURL: appModel.settings.aiBaseURL, apiKey: $0) }
+                    ))
+                    .font(.system(.caption, design: .monospaced))
+                }
+
                 Section("数据") {
                     LabeledContent("存储位置") {
                         Text(appModel.storageLocationDescription)

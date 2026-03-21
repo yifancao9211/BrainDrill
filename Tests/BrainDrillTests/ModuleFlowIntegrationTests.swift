@@ -385,22 +385,23 @@ struct CoordinatorFlowTests {
     }
 
     @Test func goNoGoCoordinatorFullCycle() {
-        let coord = GoNoGoCoordinator()
-        coord.startSession(settings: .default)
+        let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
+        let engine = GoNoGoEngine(config: config)
 
-        let engine = coord.engine!
         for trial in engine.trials {
             engine.beginTrial()
             engine.showStimulus()
             if trial.stimulusType == .go {
-                _ = coord.handleTap(at: Date())
+                _ = engine.recordTap(at: Date())
             } else {
                 engine.recordTimeout()
-                engine.advanceToNext()
             }
+            engine.advanceToNext()
         }
 
-        #expect(coord.engine == nil || coord.lastResult != nil)
+        #expect(engine.isComplete)
+        let m = engine.computeMetrics()
+        #expect(m.totalTrials == 10)
     }
 
     @Test func flankerCoordinatorFullCycle() {

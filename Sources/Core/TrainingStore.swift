@@ -6,6 +6,8 @@ protocol TrainingStore {
     func saveSessions(_ sessions: [SessionResult]) throws
     func loadSettings() throws -> TrainingSettings
     func saveSettings(_ settings: TrainingSettings) throws
+    func loadChatHistory() throws -> ChatHistory
+    func saveChatHistory(_ history: ChatHistory) throws
 }
 
 final class LocalTrainingStore: TrainingStore {
@@ -114,6 +116,23 @@ final class LocalTrainingStore: TrainingStore {
         }
 
         return PersistedStateV2()
+    }
+
+    private var chatURL: URL {
+        storageURL.deletingLastPathComponent().appendingPathComponent("chat-history.json")
+    }
+
+    func loadChatHistory() throws -> ChatHistory {
+        guard fileManager.fileExists(atPath: chatURL.path) else { return ChatHistory() }
+        let data = try Data(contentsOf: chatURL)
+        return try decoder.decode(ChatHistory.self, from: data)
+    }
+
+    func saveChatHistory(_ history: ChatHistory) throws {
+        let directoryURL = chatURL.deletingLastPathComponent()
+        try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        let data = try encoder.encode(history)
+        try data.write(to: chatURL, options: .atomic)
     }
 
     private func writeState(_ state: PersistedStateV2) throws {

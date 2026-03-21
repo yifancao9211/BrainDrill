@@ -33,6 +33,10 @@ struct TrainingSettings: Codable, Equatable {
     var visualSearchSetSizes: [Int]
     var visualSearchTrialsPerSize: Int
 
+    // AI
+    var aiBaseURL: String
+    var aiAPIKey: String
+
     // General
     var dailyPlanEnabled: Bool
 
@@ -55,6 +59,8 @@ struct TrainingSettings: Codable, Equatable {
         changeDetectionRetentionMs: Int,
         visualSearchSetSizes: [Int],
         visualSearchTrialsPerSize: Int,
+        aiBaseURL: String = "https://litellm.qa.domio.so",
+        aiAPIKey: String = "sk-3AXEzLuCihLJH9gDIXV6Lw",
         dailyPlanEnabled: Bool
     ) {
         self.showHints = showHints
@@ -75,6 +81,8 @@ struct TrainingSettings: Codable, Equatable {
         self.changeDetectionRetentionMs = changeDetectionRetentionMs
         self.visualSearchSetSizes = visualSearchSetSizes
         self.visualSearchTrialsPerSize = visualSearchTrialsPerSize
+        self.aiBaseURL = aiBaseURL
+        self.aiAPIKey = aiAPIKey
         self.dailyPlanEnabled = dailyPlanEnabled
     }
 
@@ -98,6 +106,8 @@ struct TrainingSettings: Codable, Equatable {
         changeDetectionRetentionMs = try c.decodeIfPresent(Int.self, forKey: .changeDetectionRetentionMs) ?? 900
         visualSearchSetSizes = try c.decodeIfPresent([Int].self, forKey: .visualSearchSetSizes) ?? [8, 16, 24]
         visualSearchTrialsPerSize = try c.decodeIfPresent(Int.self, forKey: .visualSearchTrialsPerSize) ?? 10
+        aiBaseURL = try c.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? "https://litellm.qa.domio.so"
+        aiAPIKey = try c.decodeIfPresent(String.self, forKey: .aiAPIKey) ?? "sk-3AXEzLuCihLJH9gDIXV6Lw"
         dailyPlanEnabled = try c.decodeIfPresent(Bool.self, forKey: .dailyPlanEnabled) ?? true
     }
 

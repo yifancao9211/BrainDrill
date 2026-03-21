@@ -10,12 +10,34 @@ struct RootView: View {
                 .navigationSplitViewColumnWidth(min: 240, ideal: 260)
                 .background(colorScheme == .dark ? BDGradient.sidebarDark : BDGradient.sidebarLight)
         } detail: {
-            ZStack {
-                detailBackground
-                detailContent
+            HStack(spacing: 0) {
+                ZStack {
+                    detailBackground
+                    detailContent
+                }
+                .frame(maxWidth: .infinity)
+
+                AIChatPanel(isOpen: Binding(
+                    get: { appModel.isChatPanelOpen },
+                    set: { appModel.isChatPanelOpen = $0 }
+                ))
             }
         }
         .navigationTitle("BrainDrill")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        appModel.isChatPanelOpen.toggle()
+                    }
+                } label: {
+                    Image(systemName: appModel.isChatPanelOpen ? "sparkles" : "sparkles")
+                        .foregroundStyle(appModel.isChatPanelOpen ? BDColor.teal : .secondary)
+                        .symbolEffect(.bounce, value: appModel.isChatPanelOpen)
+                }
+                .help("AI 教练")
+            }
+        }
     }
 
     private var sidebar: some View {

@@ -1,109 +1,68 @@
 import Foundation
 
-struct AIAnalysisResult: Equatable {
-    let content: String
-    let generatedAt: Date
-}
+final class AIAnalystService: @unchecked Sendable {
+    private var provider: LiteLLMProvider
+    private var conversationMessages: [[String: Any]] = []
+    private let queue = DispatchQueue(label: "ai.analyst.sync")
 
-protocol AIProvider: Sendable {
-    func complete(prompt: String) async throws -> String
-}
+    private let systemPrompt = """
+    你是 BrainDrill 的 AI 认知训练教练。你可以通过工具查询用户的训练数据，给出专业、具体的分析和建议。
 
-actor AIAnalystService {
-    private let provider: (any AIProvider)?
+    你的能力：
+    - 分析用户的认知画像（5个维度：记忆容量、反应速度、抑制控制、视觉搜索、视觉工作记忆）
+    - 查看各模块的训练历史和趋势
+    - 检测异常表现和疲劳状态
+    - 推荐最适合的训练计划
+    - 分析最佳训练时段
 
-    init(provider: (any AIProvider)? = nil) {
-        self.provider = provider
+    注意：
+    - 用中文回答
+    - 给出具体数据支撑的建议，不要空泛
+    - 如果数据不足，如实说明
+    - 不要宣称能提升智力，只说改善特定认知能力
+    """
+
+    init(baseURL: String = "https://litellm.qa.domio.so", apiKey: String = "sk-3AXEzLuCihLJH9gDIXV6Lw") {
+        self.provider = LiteLLMProvider(baseURL: baseURL, apiKey: apiKey)
     }
 
-    func analyzePerformance(sessions: [SessionResult]) async throws -> AIAnalysisResult {
-        let profile = CognitiveProfile.compute(from: sessions)
-        let prompt = AIPromptBuilder.buildAnalysisPrompt(sessions: sessions, profile: profile)
-
-        guard let provider else {
-            let localInsights = PerformanceInsightExtractor.extract(from: sessions)
-            let fallback = buildLocalAnalysis(insights: localInsights, profile: profile)
-            return AIAnalysisResult(content: fallback, generatedAt: Date())
-        }
-
-        let p = provider
-        let response = try await p.complete(prompt: prompt)
-        return AIAnalysisResult(content: response, generatedAt: Date())
+    func updateProvider(baseURL: String, apiKey: String) {
+        queue.sync { provider = LiteLLMProvider(baseURL: baseURL, apiKey: apiKey) }
     }
 
-    func generateWeeklyReport(sessions: [SessionResult]) async throws -> AIAnalysisResult {
-        let profile = CognitiveProfile.compute(from: sessions)
-        let prompt = AIPromptBuilder.buildWeeklyReportPrompt(sessions: sessions, profile: profile)
-
-        guard let provider else {
-            let fallback = buildLocalWeeklyReport(sessions: sessions, profile: profile)
-            return AIAnalysisResult(content: fallback, generatedAt: Date())
-        }
-
-        let p = provider
-        let response = try await p.complete(prompt: prompt)
-        return AIAnalysisResult(content: response, generatedAt: Date())
-    }
-
-    private func buildLocalAnalysis(insights: [PerformanceInsight], profile: CognitiveProfile) -> String {
-        var lines: [String] = ["## 训练分析（本地生成）", ""]
-
-        lines.append("### 认知画像")
-        for dim in profile.dimensions {
-            let bar = String(repeating: "█", count: Int(dim.score / 10))
-            lines.append("- \(dim.name): \(bar) \(String(format: "%.0f", dim.score))")
-        }
-
-        if !insights.isEmpty {
-            lines.append("")
-            lines.append("### 洞察")
-            for insight in insights {
-                let icon: String
-                switch insight.type {
-                case .improving: icon = "↑"
-                case .declining: icon = "↓"
-                case .plateau:   icon = "→"
-                case .newBest:   icon = "★"
-                case .anomaly:   icon = "!"
-                }
-                lines.append("- \(icon) \(insight.message)")
+    func sendMessage(_ text: String, sessions: [SessionResult]) async throws -> String {
+        let (messagesToSend, p) = queue.sync { () -> ([[String: Any]], LiteLLMProvider) in
+            if conversationMessages.isEmpty {
+                conversationMessages.append(["role": "system", "content": systemPrompt])
             }
+            conversationMessages.append(["role": "user", "content": text])
+            return (conversationMessages, provider)
         }
 
-        let scheduler = TrainingScheduler.recommend(sessions: [], allModules: TrainingModule.allCases, maxCount: 3)
-        if !scheduler.isEmpty {
-            lines.append("")
-            lines.append("### 训练建议")
-            for rec in scheduler {
-                lines.append("- \(rec.module.displayName): \(rec.reason)")
-            }
+        let (response, updatedMessages) = try await p.chatWithTools(
+            messages: messagesToSend,
+            sessions: sessions
+        )
+
+        queue.sync {
+            conversationMessages = updatedMessages
+            conversationMessages.append(["role": "assistant", "content": response])
+            trimHistory()
         }
 
-        return lines.joined(separator: "\n")
+        return response
     }
 
-    private func buildLocalWeeklyReport(sessions: [SessionResult], profile: CognitiveProfile) -> String {
-        let weekAgo = Date().addingTimeInterval(-7 * 86400)
-        let thisWeek = sessions.filter { $0.startedAt >= weekAgo }
-        let byModule = Dictionary(grouping: thisWeek) { $0.module }
+    func clearHistory() {
+        queue.sync { conversationMessages = [] }
+    }
 
-        var lines: [String] = ["## 本周训练周报", ""]
-        lines.append("本周完成 \(thisWeek.count) 次训练，涵盖 \(byModule.count) 个模块。")
-        lines.append("")
-
-        for (module, ms) in byModule.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
-            lines.append("- \(module.displayName): \(ms.count) 次")
+    private func trimHistory() {
+        let nonSystem = conversationMessages.filter { ($0["role"] as? String) != "system" }
+        if nonSystem.count > 40 {
+            let system = conversationMessages.first { ($0["role"] as? String) == "system" }
+            let recent = Array(nonSystem.suffix(30))
+            conversationMessages = (system.map { [$0] } ?? []) + recent
         }
-
-        let insights = PerformanceInsightExtractor.extract(from: sessions)
-        if !insights.isEmpty {
-            lines.append("")
-            lines.append("### 趋势")
-            for insight in insights.prefix(5) {
-                lines.append("- \(insight.message)")
-            }
-        }
-
-        return lines.joined(separator: "\n")
     }
 }
