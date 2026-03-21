@@ -1,0 +1,543 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		095BC080679B1900F0B2A656 /* AppRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CF4487F0A97973C4F1EDAB /* AppRoute.swift */; };
+		13EDC3ECBAED51E457E302C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA9ABBAB83BD9B07A49998D /* SettingsView.swift */; };
+		15262F4E4339F3D8FE9AFD85 /* TrainingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 491B0E7426A0C0E7942906A7 /* TrainingModels.swift */; };
+		169FF765A22A13394CFD3982 /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D76D823392E80532ED2806 /* TrainingView.swift */; };
+		25E6F0190F4C9BD8FDF89D1D /* TrainingStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3C842B59D0C9D962CE06B3 /* TrainingStatisticsTests.swift */; };
+		2ADCD82D6FEA2410EEAFEDC5 /* SurfaceComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E20FAA1BC6A14CFE442031 /* SurfaceComponents.swift */; };
+		2CC19BBACEB573F8718A67A6 /* SchulteEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505BED6FD60D9E4F54FB85ED /* SchulteEngineTests.swift */; };
+		7A2BA87647D66D855B7F4E2E /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70A53B6B17ACE1639E29F718 /* Formatters.swift */; };
+		89A76F649B67E9C26D382466 /* TrainingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4CBAA70A83CE4EBD5F9729C /* TrainingStore.swift */; };
+		90C03F44DF13FFE5D8E8B292 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A98AC98AC6D7C62FC650B6B /* StatisticsView.swift */; };
+		9123B1D720B6A2943CFCF205 /* BrainDrillApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7AC0B934CC1B8E94961CBD9 /* BrainDrillApp.swift */; };
+		BE5A36BC52378B792A8C4475 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E159DA49C25987133D07CCA /* RootView.swift */; };
+		C387D4C921A923F7D6C504A8 /* SchulteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8AD4D2252A9BC9D9838640A /* SchulteEngine.swift */; };
+		CA75157614D0E4050C8B0033 /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = ED9AED894169E0E0E6B2A696 /* Resources */; };
+		E76AEC262423F0BC8EA41750 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2214E0CB4B855833949379F /* AppModel.swift */; };
+		EE35195AC5874230710767F8 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 759FBA1F256D781ED292C311 /* HistoryView.swift */; };
+		FE91AF85136E89DDA6C20E12 /* LocalTrainingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B771D0D1DB2C65C9B961D6 /* LocalTrainingStoreTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7768FB76BA16AA2222D02EF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BCEB43CAC48A06BE18BA4443 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E049CCEC1E6B63769B56B6E9;
+			remoteInfo = BrainDrill;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		35CF4487F0A97973C4F1EDAB /* AppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoute.swift; sourceTree = "<group>"; };
+		3E159DA49C25987133D07CCA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		441CA910432DBE3FDB9F9F9D /* BrainDrill.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrainDrill.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		45E20FAA1BC6A14CFE442031 /* SurfaceComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceComponents.swift; sourceTree = "<group>"; };
+		491B0E7426A0C0E7942906A7 /* TrainingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingModels.swift; sourceTree = "<group>"; };
+		505BED6FD60D9E4F54FB85ED /* SchulteEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchulteEngineTests.swift; sourceTree = "<group>"; };
+		61B771D0D1DB2C65C9B961D6 /* LocalTrainingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTrainingStoreTests.swift; sourceTree = "<group>"; };
+		70A53B6B17ACE1639E29F718 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
+		759FBA1F256D781ED292C311 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		8A98AC98AC6D7C62FC650B6B /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		9BA9ABBAB83BD9B07A49998D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A9D76D823392E80532ED2806 /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
+		C47D39E817097BEE51837940 /* BrainDrillTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BrainDrillTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD3C842B59D0C9D962CE06B3 /* TrainingStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingStatisticsTests.swift; sourceTree = "<group>"; };
+		D2214E0CB4B855833949379F /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		D8AD4D2252A9BC9D9838640A /* SchulteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchulteEngine.swift; sourceTree = "<group>"; };
+		E7AC0B934CC1B8E94961CBD9 /* BrainDrillApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrainDrillApp.swift; sourceTree = "<group>"; };
+		ED9AED894169E0E0E6B2A696 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = SOURCE_ROOT; };
+		F4CBAA70A83CE4EBD5F9729C /* TrainingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		08F24886487DB66DEEF8D4B0 /* Training */ = {
+			isa = PBXGroup;
+			children = (
+				A9D76D823392E80532ED2806 /* TrainingView.swift */,
+			);
+			path = Training;
+			sourceTree = "<group>";
+		};
+		125391056B98F96774DC0D24 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				D2214E0CB4B855833949379F /* AppModel.swift */,
+				35CF4487F0A97973C4F1EDAB /* AppRoute.swift */,
+				E7AC0B934CC1B8E94961CBD9 /* BrainDrillApp.swift */,
+				3E159DA49C25987133D07CCA /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		2194A975A347A94D7E6A7289 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				8A98AC98AC6D7C62FC650B6B /* StatisticsView.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		361931B2268201EAA31694E6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				441CA910432DBE3FDB9F9F9D /* BrainDrill.app */,
+				C47D39E817097BEE51837940 /* BrainDrillTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		39EA4A5DD769CAB93ED98EAA /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				B7968A18CB0BFB6379B5A36E /* BrainDrillTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		65892B905B4E8FD060D0FA8F /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				9BA9ABBAB83BD9B07A49998D /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		9B79F2C7E5DFD84177DE259E = {
+			isa = PBXGroup;
+			children = (
+				ED9AED894169E0E0E6B2A696 /* Resources */,
+				BC2A870D27FC41AC3D96248B /* Sources */,
+				39EA4A5DD769CAB93ED98EAA /* Tests */,
+				361931B2268201EAA31694E6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A9CDB8A8C3E0E394F91ADBD9 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				70A53B6B17ACE1639E29F718 /* Formatters.swift */,
+				D8AD4D2252A9BC9D9838640A /* SchulteEngine.swift */,
+				491B0E7426A0C0E7942906A7 /* TrainingModels.swift */,
+				F4CBAA70A83CE4EBD5F9729C /* TrainingStore.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		B7968A18CB0BFB6379B5A36E /* BrainDrillTests */ = {
+			isa = PBXGroup;
+			children = (
+				61B771D0D1DB2C65C9B961D6 /* LocalTrainingStoreTests.swift */,
+				505BED6FD60D9E4F54FB85ED /* SchulteEngineTests.swift */,
+				CD3C842B59D0C9D962CE06B3 /* TrainingStatisticsTests.swift */,
+			);
+			path = BrainDrillTests;
+			sourceTree = "<group>";
+		};
+		B7AA0538F791BAB906432143 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				45E20FAA1BC6A14CFE442031 /* SurfaceComponents.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		BC2A870D27FC41AC3D96248B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				125391056B98F96774DC0D24 /* App */,
+				A9CDB8A8C3E0E394F91ADBD9 /* Core */,
+				BC91713D7B887A325E2CBDD1 /* Features */,
+				B7AA0538F791BAB906432143 /* Shared */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		BC91713D7B887A325E2CBDD1 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				ECEF7152393B797E8D9ECDF2 /* History */,
+				65892B905B4E8FD060D0FA8F /* Settings */,
+				2194A975A347A94D7E6A7289 /* Statistics */,
+				08F24886487DB66DEEF8D4B0 /* Training */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		ECEF7152393B797E8D9ECDF2 /* History */ = {
+			isa = PBXGroup;
+			children = (
+				759FBA1F256D781ED292C311 /* HistoryView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		99186CD7DDA3306F919993E0 /* BrainDrillTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0482ACB455876F5E1AEDF32 /* Build configuration list for PBXNativeTarget "BrainDrillTests" */;
+			buildPhases = (
+				04EF4FEF9FC8143E76797502 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AEA81BC17491BD72827604C5 /* PBXTargetDependency */,
+			);
+			name = BrainDrillTests;
+			packageProductDependencies = (
+			);
+			productName = BrainDrillTests;
+			productReference = C47D39E817097BEE51837940 /* BrainDrillTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E049CCEC1E6B63769B56B6E9 /* BrainDrill */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1C794B1A8F32EC0D8667F55C /* Build configuration list for PBXNativeTarget "BrainDrill" */;
+			buildPhases = (
+				8EF705B2AC37B0C6A8E52E62 /* Sources */,
+				6E46040E086BD72F7FDE8DBD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BrainDrill;
+			packageProductDependencies = (
+			);
+			productName = BrainDrill;
+			productReference = 441CA910432DBE3FDB9F9F9D /* BrainDrill.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BCEB43CAC48A06BE18BA4443 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					E049CCEC1E6B63769B56B6E9 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 24DB2D70D2E0D98B6A028E8F /* Build configuration list for PBXProject "BrainDrill" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 9B79F2C7E5DFD84177DE259E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 361931B2268201EAA31694E6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E049CCEC1E6B63769B56B6E9 /* BrainDrill */,
+				99186CD7DDA3306F919993E0 /* BrainDrillTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6E46040E086BD72F7FDE8DBD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA75157614D0E4050C8B0033 /* Resources in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		04EF4FEF9FC8143E76797502 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE91AF85136E89DDA6C20E12 /* LocalTrainingStoreTests.swift in Sources */,
+				2CC19BBACEB573F8718A67A6 /* SchulteEngineTests.swift in Sources */,
+				25E6F0190F4C9BD8FDF89D1D /* TrainingStatisticsTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8EF705B2AC37B0C6A8E52E62 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E76AEC262423F0BC8EA41750 /* AppModel.swift in Sources */,
+				095BC080679B1900F0B2A656 /* AppRoute.swift in Sources */,
+				9123B1D720B6A2943CFCF205 /* BrainDrillApp.swift in Sources */,
+				7A2BA87647D66D855B7F4E2E /* Formatters.swift in Sources */,
+				EE35195AC5874230710767F8 /* HistoryView.swift in Sources */,
+				BE5A36BC52378B792A8C4475 /* RootView.swift in Sources */,
+				C387D4C921A923F7D6C504A8 /* SchulteEngine.swift in Sources */,
+				13EDC3ECBAED51E457E302C7 /* SettingsView.swift in Sources */,
+				90C03F44DF13FFE5D8E8B292 /* StatisticsView.swift in Sources */,
+				2ADCD82D6FEA2410EEAFEDC5 /* SurfaceComponents.swift in Sources */,
+				15262F4E4339F3D8FE9AFD85 /* TrainingModels.swift in Sources */,
+				89A76F649B67E9C26D382466 /* TrainingStore.swift in Sources */,
+				169FF765A22A13394CFD3982 /* TrainingView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AEA81BC17491BD72827604C5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E049CCEC1E6B63769B56B6E9 /* BrainDrill */;
+			targetProxy = 7768FB76BA16AA2222D02EF9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		058820FBAA6AF76BBEEDCF43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yifancao.BrainDrillTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BrainDrill.app/Contents/MacOS/BrainDrill";
+			};
+			name = Debug;
+		};
+		373FD2705694DE9E3604753C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		7B1D2AB82FB377111367C16A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BrainDrill;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yifancao.BrainDrill;
+				PRODUCT_NAME = BrainDrill;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		98F80607CD45281399C834F8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yifancao.BrainDrillTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BrainDrill.app/Contents/MacOS/BrainDrill";
+			};
+			name = Release;
+		};
+		AC35B58CD32E79FE0A078B34 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BrainDrill;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yifancao.BrainDrill;
+				PRODUCT_NAME = BrainDrill;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EDD1C609C754E61A6E34E17D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1C794B1A8F32EC0D8667F55C /* Build configuration list for PBXNativeTarget "BrainDrill" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC35B58CD32E79FE0A078B34 /* Debug */,
+				7B1D2AB82FB377111367C16A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		24DB2D70D2E0D98B6A028E8F /* Build configuration list for PBXProject "BrainDrill" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDD1C609C754E61A6E34E17D /* Debug */,
+				373FD2705694DE9E3604753C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C0482ACB455876F5E1AEDF32 /* Build configuration list for PBXNativeTarget "BrainDrillTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				058820FBAA6AF76BBEEDCF43 /* Debug */,
+				98F80607CD45281399C834F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BCEB43CAC48A06BE18BA4443 /* Project object */;
+}
