@@ -9,10 +9,25 @@ final class StopSignalCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession() {
         let config = StopSignalSessionConfig()
         engine = StopSignalEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            hintsEnabled: false,
+            feedbackEnabled: true,
+            adaptiveEnabled: true,
+            customParameters: [
+                "trialsPerBlock": "\(config.trialsPerBlock)",
+                "blockCount": "\(config.blockCount)",
+                "stopRatio": "\(config.stopRatio)",
+                "initialSSD": "\(config.initialSSD)",
+                "ssdStepMs": "\(config.ssdStepMs)",
+                "responseWindowMs": "\(config.responseWindowMs)"
+            ]
+        )
         statusMessage = "看到箭头按方向键，听到停止信号忍住不按"
     }
 
@@ -52,7 +67,8 @@ final class StopSignalCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .stopSignal(metrics)
+            metrics: .stopSignal(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "Stop-Signal 完成 — SSRT \(String(format: "%.0f", metrics.ssrt * 1000))ms"

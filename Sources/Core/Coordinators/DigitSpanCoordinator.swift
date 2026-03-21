@@ -9,6 +9,8 @@ final class DigitSpanCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings, mode: DigitSpanMode = .forward) {
         let config = DigitSpanSessionConfig(
             startingLength: settings.digitSpanStartingLength,
@@ -17,6 +19,17 @@ final class DigitSpanCoordinator {
         )
         engine = DigitSpanEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            hintsEnabled: false,
+            feedbackEnabled: true,
+            adaptiveEnabled: true,
+            customParameters: [
+                "mode": config.mode.rawValue,
+                "startingLength": "\(config.startingLength)",
+                "maxLength": "\(config.maxLength)",
+                "presentationMs": "\(config.presentationMs)"
+            ]
+        )
         statusMessage = mode == .forward ? "记住数字顺序并正序复述" : "记住数字顺序并倒序复述"
         engine?.beginNextTrial()
     }
@@ -51,7 +64,8 @@ final class DigitSpanCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .digitSpan(metrics)
+            metrics: .digitSpan(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "数字广度完成 — 最大广度 \(span)"

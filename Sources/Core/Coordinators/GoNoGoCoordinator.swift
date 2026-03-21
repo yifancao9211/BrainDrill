@@ -9,10 +9,13 @@ final class GoNoGoCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings) {
         let config = GoNoGoSessionConfig()
         engine = GoNoGoEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(feedbackEnabled: true, adaptiveEnabled: false)
         statusMessage = "绿色 → 点击，红色 → 不动"
     }
 
@@ -24,6 +27,11 @@ final class GoNoGoCoordinator {
             return buildResult()
         }
         return nil
+    }
+
+    func finalizeIfComplete() -> SessionResult? {
+        guard let engine, engine.isComplete else { return nil }
+        return buildResult()
     }
 
     func cancelSession() {
@@ -40,7 +48,8 @@ final class GoNoGoCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .goNoGo(metrics)
+            metrics: .goNoGo(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "Go/No-Go 完成 — d' \(String(format: "%.2f", metrics.dPrime))"

@@ -9,6 +9,8 @@ final class ChoiceRTCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings) {
         let config = ChoiceRTSessionConfig(
             choiceCount: settings.choiceRTChoiceCount,
@@ -16,6 +18,11 @@ final class ChoiceRTCoordinator {
         )
         engine = ChoiceRTEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            feedbackEnabled: true,
+            adaptiveEnabled: false,
+            customParameters: ["choiceCount": "\(settings.choiceRTChoiceCount)"]
+        )
         statusMessage = "注视中央，看到颜色后快速按对应键"
     }
 
@@ -49,7 +56,8 @@ final class ChoiceRTCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .choiceRT(metrics)
+            metrics: .choiceRT(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "选择反应时完成 — 中位 RT \(String(format: "%.0f", metrics.medianRT * 1000))ms"

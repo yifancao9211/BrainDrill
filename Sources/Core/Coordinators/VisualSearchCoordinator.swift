@@ -9,6 +9,8 @@ final class VisualSearchCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings) {
         let config = VisualSearchSessionConfig(
             setSizes: settings.visualSearchSetSizes,
@@ -16,6 +18,18 @@ final class VisualSearchCoordinator {
         )
         engine = VisualSearchEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            hintsEnabled: false,
+            feedbackEnabled: true,
+            adaptiveEnabled: false,
+            customParameters: [
+                "setSizes": config.setSizes.map(String.init).joined(separator: ","),
+                "trialsPerSize": "\(config.trialsPerSize)",
+                "targetPresentRatio": "\(config.targetPresentRatio)",
+                "fixationMs": "\(config.fixationMs)",
+                "feedbackMs": "\(config.feedbackMs)"
+            ]
+        )
         if let target = engine?.target {
             statusMessage = "找到 \(colorName(target.color))\(shapeName(target.shape))"
         }
@@ -45,7 +59,8 @@ final class VisualSearchCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .visualSearch(metrics)
+            metrics: .visualSearch(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "视觉搜索完成 — 搜索斜率 \(String(format: "%.0f", metrics.searchSlope * 1000))ms/项"

@@ -9,12 +9,19 @@ final class FlankerCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings) {
         let config = FlankerSessionConfig(
             stimulusDurationMs: settings.flankerStimulusDurationMs
         )
         engine = FlankerEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            feedbackEnabled: true,
+            adaptiveEnabled: false,
+            customParameters: ["stimulusDurationMs": "\(settings.flankerStimulusDurationMs)"]
+        )
         statusMessage = "注视中央 + 号，快速判断中间箭头方向"
     }
 
@@ -28,6 +35,11 @@ final class FlankerCoordinator {
             return buildResult()
         }
         return nil
+    }
+
+    func finalizeIfComplete() -> SessionResult? {
+        guard let engine, engine.isComplete else { return nil }
+        return buildResult()
     }
 
     func cancelSession() {
@@ -44,7 +56,8 @@ final class FlankerCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .flanker(metrics)
+            metrics: .flanker(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "Flanker 完成 — 冲突代价 \(String(format: "%.0f", metrics.conflictCost * 1000))ms"

@@ -105,6 +105,14 @@ final class AppModel {
         }
     }
 
+    func finalizeFlankerIfComplete() {
+        if let result = flanker.finalizeIfComplete() {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+        }
+    }
+
     func cancelFlankerSession() {
         flanker.cancelSession()
     }
@@ -121,6 +129,14 @@ final class AppModel {
 
     func handleGoNoGoTap(at date: Date = Date()) {
         if let result = goNoGo.handleTap(at: date) {
+            sessions.insert(result, at: 0)
+            sessions.sort { $0.endedAt > $1.endedAt }
+            persistSessions()
+        }
+    }
+
+    func finalizeGoNoGoIfComplete() {
+        if let result = goNoGo.finalizeIfComplete() {
             sessions.insert(result, at: 0)
             sessions.sort { $0.endedAt > $1.endedAt }
             persistSessions()

@@ -81,6 +81,7 @@ struct RootView: View {
         case .stopSignal:      BDColor.stopSignalAccent
         case .dailyPlan:       BDColor.gold
         case .statistics:      BDColor.green
+        case .aiAnalyst:       BDColor.teal
         case .history:         BDColor.warm
         case .settings:        .secondary
         }
@@ -115,6 +116,8 @@ struct RootView: View {
             ScrollView { HistoryView().padding(28) }.scrollIndicators(.hidden)
         case .statistics:
             ScrollView { StatisticsView().padding(28) }.scrollIndicators(.hidden)
+        case .aiAnalyst:
+            ScrollView { AIAnalystView().padding(28) }.scrollIndicators(.hidden)
         case .settings:
             ScrollView { SettingsView().padding(28) }.scrollIndicators(.hidden)
         }

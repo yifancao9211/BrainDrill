@@ -9,6 +9,8 @@ final class ChangeDetectionCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
+    private var sessionConditions = SessionConditions()
+
     func startSession(settings: TrainingSettings) {
         let config = ChangeDetectionSessionConfig(
             initialSetSize: settings.changeDetectionInitialSetSize,
@@ -17,6 +19,20 @@ final class ChangeDetectionCoordinator {
         )
         engine = ChangeDetectionEngine(config: config)
         lastResult = nil
+        sessionConditions = SessionConditions(
+            hintsEnabled: false,
+            feedbackEnabled: true,
+            adaptiveEnabled: true,
+            customParameters: [
+                "initialSetSize": "\(config.initialSetSize)",
+                "maxSetSize": "\(config.maxSetSize)",
+                "encodingMs": "\(config.encodingMs)",
+                "retentionMs": "\(config.retentionMs)",
+                "trialsPerBlock": "\(config.trialsPerBlock)",
+                "blockCount": "\(config.blockCount)",
+                "changeRatio": "\(config.changeRatio)"
+            ]
+        )
         statusMessage = "记住颜色方块的位置和颜色"
     }
 
@@ -44,7 +60,8 @@ final class ChangeDetectionCoordinator {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .changeDetection(metrics)
+            metrics: .changeDetection(metrics),
+            conditions: sessionConditions
         )
         lastResult = result
         statusMessage = "变更检测完成 — d' \(String(format: "%.2f", metrics.dPrime))"

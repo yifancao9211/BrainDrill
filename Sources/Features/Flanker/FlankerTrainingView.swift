@@ -123,6 +123,7 @@ struct FlankerTrainingView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canRespond)
+                .keyboardShortcut(.leftArrow, modifiers: [])
 
                 Button { appModel.handleFlankerResponse(.right) } label: {
                     Image(systemName: "arrow.right")
@@ -133,6 +134,7 @@ struct FlankerTrainingView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canRespond)
+                .keyboardShortcut(.rightArrow, modifiers: [])
             }
 
             ProgressView(value: engine.completionFraction)
@@ -149,17 +151,7 @@ struct FlankerTrainingView: View {
     private func handleFlankerAdvance(engine: FlankerEngine) {
         engine.advanceToNext()
         if engine.isComplete {
-            let metrics = engine.computeMetrics()
-            let now = Date()
-            let result = SessionResult(
-                module: .flanker,
-                startedAt: engine.startedAt,
-                endedAt: now,
-                duration: now.timeIntervalSince(engine.startedAt),
-                metrics: .flanker(metrics)
-            )
-            appModel.flanker.lastResult = result
-            appModel.flanker.engine = nil
+            appModel.finalizeFlankerIfComplete()
         }
     }
 

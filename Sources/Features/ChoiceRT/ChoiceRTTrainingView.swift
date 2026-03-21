@@ -128,6 +128,7 @@ struct ChoiceRTTrainingView: View {
 
             HStack(spacing: 12) {
                 ForEach(0..<engine.config.choiceCount, id: \.self) { i in
+                    let keyboardKeys: [KeyEquivalent] = ["1", "2", "3", "4"]
                     Button {
                         _ = appModel.handleChoiceRTResponse(i)
                     } label: {
@@ -141,6 +142,7 @@ struct ChoiceRTTrainingView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(engine.phase != .stimulus)
+                    .keyboardShortcut(i < keyboardKeys.count ? keyboardKeys[i] : "0", modifiers: [])
                 }
             }
 

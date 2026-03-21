@@ -87,6 +87,7 @@ struct GoNoGoTrainingView: View {
                         }
                         .buttonStyle(.plain)
                         .transition(.scale.combined(with: .opacity))
+                        .keyboardShortcut(.space, modifiers: [])
                         .onAppear {
                             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
                                 guard engine.phase == .stimulus else { return }
@@ -133,17 +134,7 @@ struct GoNoGoTrainingView: View {
     private func handleGoNoGoAdvance(engine: GoNoGoEngine) {
         engine.advanceToNext()
         if engine.isComplete {
-            let metrics = engine.computeMetrics()
-            let now = Date()
-            let result = SessionResult(
-                module: .goNoGo,
-                startedAt: engine.startedAt,
-                endedAt: now,
-                duration: now.timeIntervalSince(engine.startedAt),
-                metrics: .goNoGo(metrics)
-            )
-            appModel.goNoGo.lastResult = result
-            appModel.goNoGo.engine = nil
+            appModel.finalizeGoNoGoIfComplete()
         }
     }
 

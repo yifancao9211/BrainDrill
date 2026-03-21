@@ -14,6 +14,7 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
     case stopSignal
     case history
     case statistics
+    case aiAnalyst
     case settings
 
     var id: String { rawValue }
@@ -33,6 +34,7 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .stopSignal:      "Stop-Signal"
         case .history:         "历史记录"
         case .statistics:      "统计面板"
+        case .aiAnalyst:       "AI 分析"
         case .settings:        "设置"
         }
     }
@@ -52,6 +54,7 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .stopSignal:      "stop.circle.fill"
         case .history:         "clock.arrow.circlepath"
         case .statistics:      "chart.bar.xaxis"
+        case .aiAnalyst:       "sparkles"
         case .settings:        "slider.horizontal.3"
         }
     }
@@ -77,5 +80,5 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
     static var memoryModules: [AppRoute] { [.digitSpan, .corsiBlock, .nBack, .changeDetection] }
     static var reactionModules: [AppRoute] { [.choiceRT, .goNoGo, .flanker, .stopSignal] }
     static var visualModules: [AppRoute] { [.schulte, .visualSearch] }
-    static var tools: [AppRoute] { [.dailyPlan, .history, .statistics, .settings] }
+    static var tools: [AppRoute] { [.dailyPlan, .history, .statistics, .aiAnalyst, .settings] }
 }
