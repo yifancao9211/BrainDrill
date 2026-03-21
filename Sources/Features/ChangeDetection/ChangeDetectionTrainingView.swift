@@ -67,63 +67,9 @@ struct ChangeDetectionTrainingView: View {
                     .fill(Color.primary.opacity(0.03))
                     .frame(width: 300, height: 300)
 
-                switch engine.phase {
-                case .encoding:
-                    if let trial = engine.currentTrial {
-                        colorGridView(colors: trial.originalColors, positions: trial.positions)
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.encodingMs)) {
-                                    guard engine.phase == .encoding else { return }
-                                    engine.startRetention()
-                                }
-                            }
-                    }
-                case .retention:
-                    Text("+")
-                        .font(.system(size: 36, weight: .light, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.retentionMs)) {
-                                guard engine.phase == .retention else { return }
-                                engine.showProbe()
-                            }
-                        }
-                case .probe:
-                    if let trial = engine.currentTrial {
-                        colorGridView(colors: trial.probeColors, positions: trial.positions)
-                    }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
-                                engine.advanceToNext()
-                                if !engine.isComplete {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                        engine.beginTrial()
-                                    }
-                                } else {
-                                    appModel.finalizeChangeDetectionIfComplete()
-                                }
-                            }
-                        }
-                case .iti:
-                    Color.clear
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                engine.beginTrial()
-                            }
-                        }
-                default:
-                    EmptyView()
-                        .onAppear {
-                            engine.beginTrial()
-                        }
-                }
+                phaseContent(engine: engine)
             }
             .frame(width: 300, height: 300)
-            .animation(.easeInOut(duration: 0.15), value: engine.phase)
 
             if engine.phase == .probe {
                 HStack(spacing: 20) {
@@ -137,6 +83,7 @@ struct ChangeDetectionTrainingView: View {
                             .background(Capsule().fill(BDColor.teal))
                     }
                     .buttonStyle(.plain)
+                    .keyboardShortcut("1", modifiers: [])
 
                     Button {
                         _ = appModel.handleChangeDetectionResponse(changed: true)
@@ -148,6 +95,7 @@ struct ChangeDetectionTrainingView: View {
                             .background(Capsule().fill(BDColor.choiceRTAccent))
                     }
                     .buttonStyle(.plain)
+                    .keyboardShortcut("2", modifiers: [])
                 }
             }
 
@@ -160,6 +108,62 @@ struct ChangeDetectionTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+    }
+
+    @ViewBuilder
+    private func phaseContent(engine: ChangeDetectionEngine) -> some View {
+        switch engine.phase {
+        case .encoding:
+            if let trial = engine.currentTrial {
+                colorGridView(colors: trial.originalColors, positions: trial.positions)
+            }
+        case .retention:
+            Text("+")
+                .font(.system(size: 36, weight: .light, design: .rounded))
+                .foregroundStyle(.secondary)
+        case .probe:
+            if let trial = engine.currentTrial {
+                colorGridView(colors: trial.probeColors, positions: trial.positions)
+            }
+        case .feedback(let correct):
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: ChangeDetectionEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .encoding:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.encodingMs)) {
+                guard engine.phase == .encoding else { return }
+                engine.startRetention()
+            }
+        case .retention:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.retentionMs)) {
+                guard engine.phase == .retention else { return }
+                engine.showProbe()
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeChangeDetectionIfComplete()
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+                engine.beginTrial()
+            }
+        default:
+            break
+        }
     }
 
     private func colorGridView(colors: [Int], positions: [CGPoint]) -> some View {
@@ -170,10 +174,7 @@ struct ChangeDetectionTrainingView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(colorPalette[safeColorIdx])
                     .frame(width: 44, height: 44)
-                    .position(
-                        x: pos.x * geo.size.width,
-                        y: pos.y * geo.size.height
-                    )
+                    .position(x: pos.x * geo.size.width, y: pos.y * geo.size.height)
             }
         }
     }

@@ -29,7 +29,7 @@ struct StopSignalTrainingView: View {
                 .foregroundStyle(BDColor.stopSignalAccent.opacity(0.6))
             Text("Stop-Signal 训练")
                 .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("看到箭头按方向键，出现红色停止信号时忍住不按")
+            Text("看到箭头按方向键 ←→，出现红点时忍住不按")
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -59,69 +59,11 @@ struct StopSignalTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Group {
-                switch engine.phase {
-                case .fixation:
-                    Text("+")
-                        .font(.system(size: 48, weight: .light, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
-                                guard engine.phase == .fixation else { return }
-                                engine.showStimulus()
-                                scheduleStopOrTimeout(engine: engine)
-                            }
-                        }
-                case .stimulus:
-                    if let trial = engine.currentTrial {
-                        Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
-                            .font(.system(size: 64, weight: .bold))
-                            .foregroundStyle(BDColor.primaryBlue)
-                    }
-                case .stopSignalShown:
-                    ZStack {
-                        if let trial = engine.currentTrial {
-                            Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
-                                .font(.system(size: 64, weight: .bold))
-                                .foregroundStyle(BDColor.primaryBlue)
-                        }
-                        Circle()
-                            .fill(BDColor.stopSignalAccent)
-                            .frame(width: 30, height: 30)
-                            .offset(y: -40)
-                    }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                engine.advanceToNext()
-                                if engine.isComplete {
-                                    appModel.finalizeStopSignalIfComplete()
-                                } else {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                        engine.beginTrial()
-                                    }
-                                }
-                            }
-                        }
-                case .iti:
-                    Color.clear.frame(height: 80)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                engine.beginTrial()
-                            }
-                        }
-                default:
-                    EmptyView()
-                        .onAppear { engine.beginTrial() }
-                }
-            }
-            .frame(height: 100)
+            phaseContent(engine: engine)
+                .frame(height: 100)
 
+            let canRespond = engine.phase == .stimulus || engine.phase == .stopSignalShown
             HStack(spacing: 40) {
-                let canRespond = engine.phase == .stimulus || engine.phase == .stopSignalShown
                 Button { _ = appModel.handleStopSignalResponse(.left) } label: {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 28, weight: .bold))
@@ -154,9 +96,71 @@ struct StopSignalTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
     }
 
-    private func scheduleStopOrTimeout(engine: StopSignalEngine) {
+    @ViewBuilder
+    private func phaseContent(engine: StopSignalEngine) -> some View {
+        switch engine.phase {
+        case .fixation:
+            Text("+")
+                .font(.system(size: 48, weight: .light, design: .rounded))
+                .foregroundStyle(.secondary)
+        case .stimulus:
+            if let trial = engine.currentTrial {
+                Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
+                    .font(.system(size: 64, weight: .bold))
+                    .foregroundStyle(BDColor.primaryBlue)
+            }
+        case .stopSignalShown:
+            ZStack {
+                if let trial = engine.currentTrial {
+                    Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
+                        .font(.system(size: 64, weight: .bold))
+                        .foregroundStyle(BDColor.primaryBlue)
+                }
+                Circle()
+                    .fill(BDColor.stopSignalAccent)
+                    .frame(width: 30, height: 30)
+                    .offset(y: -40)
+            }
+        case .feedback(let correct):
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: StopSignalEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .fixation:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
+                guard engine.phase == .fixation else { return }
+                engine.showStimulus()
+                scheduleStopOrTimeout(engine)
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeStopSignalIfComplete()
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
+                engine.beginTrial()
+            }
+        default:
+            break
+        }
+    }
+
+    private func scheduleStopOrTimeout(_ engine: StopSignalEngine) {
         guard let trial = engine.currentTrial else { return }
 
         if trial.hasStopSignal {

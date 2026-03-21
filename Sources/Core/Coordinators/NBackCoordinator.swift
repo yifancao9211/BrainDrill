@@ -42,6 +42,11 @@ final class NBackCoordinator {
         return nil
     }
 
+    func buildResultIfComplete() -> SessionResult? {
+        guard let engine, engine.isComplete else { return nil }
+        return buildResult()
+    }
+
     func cancelSession() {
         engine = nil
         statusMessage = "已取消 N-Back 训练。"

@@ -29,7 +29,7 @@ struct FlankerTrainingView: View {
                 .foregroundStyle(BDColor.flankerAccent.opacity(0.6))
             Text("Flanker 反应力训练")
                 .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("快速判断中间箭头方向，忽略两侧干扰箭头")
+            Text("快速判断中间箭头方向（键盘 ←→），忽略两侧干扰")
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -59,58 +59,8 @@ struct FlankerTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Group {
-                switch engine.phase {
-                case .fixation:
-                    Text("+")
-                        .font(.system(size: 48, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
-                                guard engine.phase == .fixation else { return }
-                                engine.showStimulus()
-                            }
-                        }
-                case .stimulus, .waitingForResponse:
-                    if let trial = engine.currentTrial {
-                        Text(trial.arrows)
-                            .font(.system(size: 56, weight: .bold, design: .monospaced))
-                            .transition(.scale.combined(with: .opacity))
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.stimulusDurationMs)) {
-                                    guard engine.phase == .stimulus else { return }
-                                    engine.enterResponseWindow()
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
-                                    guard engine.phase == .stimulus || engine.phase == .waitingForResponse else { return }
-                                    engine.recordTimeout()
-                                    handleFlankerAdvance(engine: engine)
-                                }
-                            }
-                    }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                handleFlankerAdvance(engine: engine)
-                            }
-                        }
-                case .iti:
-                    Color.clear.frame(height: 60)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                engine.beginTrial()
-                            }
-                        }
-                default:
-                    EmptyView()
-                        .onAppear { engine.beginTrial() }
-                }
-            }
-            .frame(height: 80)
-            .animation(.easeInOut(duration: 0.15), value: engine.phase)
+            phaseContent(engine: engine)
+                .frame(height: 80)
 
             let canRespond = engine.phase == .stimulus || engine.phase == .waitingForResponse
             HStack(spacing: 40) {
@@ -146,12 +96,62 @@ struct FlankerTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
     }
 
-    private func handleFlankerAdvance(engine: FlankerEngine) {
-        engine.advanceToNext()
-        if engine.isComplete {
-            appModel.finalizeFlankerIfComplete()
+    @ViewBuilder
+    private func phaseContent(engine: FlankerEngine) -> some View {
+        switch engine.phase {
+        case .fixation:
+            Text("+")
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+        case .stimulus, .waitingForResponse:
+            if let trial = engine.currentTrial {
+                Text(trial.arrows)
+                    .font(.system(size: 56, weight: .bold, design: .monospaced))
+            }
+        case .feedback(let correct):
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: FlankerEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .fixation:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+                guard engine.phase == .fixation else { return }
+                engine.showStimulus()
+            }
+        case .stimulus:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.stimulusDurationMs)) {
+                guard engine.phase == .stimulus else { return }
+                engine.enterResponseWindow()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
+                guard engine.phase == .stimulus || engine.phase == .waitingForResponse else { return }
+                engine.recordTimeout()
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeFlankerIfComplete()
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
+                engine.beginTrial()
+            }
+        default:
+            break
         }
     }
 
@@ -160,9 +160,9 @@ struct FlankerTrainingView: View {
             Text("Flanker 完成")
                 .font(.system(.title2, design: .rounded, weight: .bold))
             HStack(spacing: 16) {
-                ResultCard(label: "冲突代价", value: "\(Int(metrics.conflictCost * 1000))ms", color: BDColor.flankerAccent)
-                ResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                ResultCard(label: "试次", value: "\(metrics.totalTrials)", color: BDColor.warm)
+                FResultCard(label: "冲突代价", value: "\(Int(metrics.conflictCost * 1000))ms", color: BDColor.flankerAccent)
+                FResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
+                FResultCard(label: "试次", value: "\(metrics.totalTrials)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -172,7 +172,7 @@ struct FlankerTrainingView: View {
     }
 }
 
-private struct ResultCard: View {
+private struct FResultCard: View {
     let label: String; let value: String; let color: Color
     var body: some View {
         VStack(spacing: 6) {

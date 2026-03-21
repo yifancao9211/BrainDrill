@@ -31,7 +31,7 @@ struct ChoiceRTTrainingView: View {
                 .foregroundStyle(BDColor.choiceRTAccent.opacity(0.6))
             Text("选择反应时训练")
                 .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("看到颜色后，快速按对应按键")
+            Text("看到颜色后，快速按对应按键（键盘 1/2/3/4）")
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(.secondary)
             Text("核心指标：中位反应时 (RT)")
@@ -74,58 +74,10 @@ struct ChoiceRTTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Group {
-                switch engine.phase {
-                case .fixation:
-                    Text("+")
-                        .font(.system(size: 64, weight: .light, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
-                                guard engine.phase == .fixation else { return }
-                                engine.showStimulus()
-                            }
-                        }
-                case .stimulus:
-                    if let trial = engine.currentTrial {
-                        Circle()
-                            .fill(stimulusColors[trial.stimulus.colorIndex])
-                            .frame(width: 100, height: 100)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                engine.advanceToNext()
-                                if !engine.isComplete {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                        engine.beginTrial()
-                                    }
-                                } else {
-                                    appModel.finalizeChoiceRTIfComplete()
-                                }
-                            }
-                        }
-                case .iti:
-                    Color.clear.frame(height: 100)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                engine.beginTrial()
-                            }
-                        }
-                default:
-                    EmptyView()
-                        .onAppear {
-                            engine.beginTrial()
-                        }
-                }
-            }
-            .frame(height: 120)
-            .animation(.easeInOut(duration: 0.15), value: engine.phase)
+            phaseContent(engine: engine)
+                .frame(height: 120)
 
+            let canRespond = engine.phase == .stimulus
             HStack(spacing: 12) {
                 ForEach(0..<engine.config.choiceCount, id: \.self) { i in
                     let keyboardKeys: [KeyEquivalent] = ["1", "2", "3", "4"]
@@ -141,7 +93,7 @@ struct ChoiceRTTrainingView: View {
                                 .fill(i < stimulusColors.count ? stimulusColors[palette[i].colorIndex] : .gray))
                     }
                     .buttonStyle(.plain)
-                    .disabled(engine.phase != .stimulus)
+                    .disabled(!canRespond)
                     .keyboardShortcut(i < keyboardKeys.count ? keyboardKeys[i] : "0", modifiers: [])
                 }
             }
@@ -154,6 +106,57 @@ struct ChoiceRTTrainingView: View {
                 .font(.system(.callout, design: .rounded, weight: .medium))
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
+        }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+    }
+
+    @ViewBuilder
+    private func phaseContent(engine: ChoiceRTEngine) -> some View {
+        switch engine.phase {
+        case .fixation:
+            Text("+")
+                .font(.system(size: 64, weight: .light, design: .rounded))
+                .foregroundStyle(.secondary)
+        case .stimulus:
+            if let trial = engine.currentTrial {
+                Circle()
+                    .fill(stimulusColors[trial.stimulus.colorIndex])
+                    .frame(width: 100, height: 100)
+            }
+        case .feedback(let correct):
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: ChoiceRTEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .fixation:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
+                guard engine.phase == .fixation else { return }
+                engine.showStimulus()
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeChoiceRTIfComplete()
+                } else {
+                    schedulePhase(engine)
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
+                engine.beginTrial()
+            }
+        default:
+            break
         }
     }
 

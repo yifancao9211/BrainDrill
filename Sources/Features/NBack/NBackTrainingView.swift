@@ -59,17 +59,8 @@ struct NBackTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            if let stimulus = engine.currentStimulus {
-                Text("\(stimulus)")
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
-                    .foregroundStyle(BDColor.nBackAccent)
-                    .frame(width: 140, height: 140)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(BDColor.nBackAccent.opacity(0.1))
-                    )
-                    .transition(.scale.combined(with: .opacity))
-            }
+            phaseContent(engine: engine)
+                .frame(height: 150)
 
             Button {
                 appModel.handleNBackMatch()
@@ -78,9 +69,11 @@ struct NBackTrainingView: View {
                     .font(.system(.title3, design: .rounded, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 48).padding(.vertical, 14)
-                    .background(Capsule().fill(BDColor.nBackAccent))
+                    .background(Capsule().fill(engine.phase == .stimulus ? BDColor.nBackAccent : BDColor.nBackAccent.opacity(0.3)))
             }
             .buttonStyle(.plain)
+            .disabled(engine.phase != .stimulus)
+            .keyboardShortcut(.space, modifiers: [])
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.nBackAccent)
@@ -91,6 +84,59 @@ struct NBackTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+    }
+
+    @ViewBuilder
+    private func phaseContent(engine: NBackEngine) -> some View {
+        switch engine.phase {
+        case .stimulus:
+            if let stimulus = engine.currentStimulus {
+                Text("\(stimulus)")
+                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                    .foregroundStyle(BDColor.nBackAccent)
+                    .frame(width: 140, height: 140)
+                    .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(BDColor.nBackAccent.opacity(0.1)))
+            }
+        case .isi:
+            Text("+")
+                .font(.system(size: 36, weight: .light, design: .rounded))
+                .foregroundStyle(.secondary)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: NBackEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.showStimulus()
+        case .stimulus:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.stimulusDurationMs)) {
+                guard engine.phase == .stimulus else { return }
+                engine.enterISI()
+            }
+        case .isi:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.isiMs)) {
+                guard engine.phase == .isi else { return }
+                engine.advanceToNext()
+                if !engine.isComplete {
+                    engine.showStimulus()
+                } else {
+                    if let result = coordinator.buildResultIfComplete() {
+                        appModel.recordNBackResult(result)
+                    }
+                }
+            }
+        case let .blockBreak(_, nextN):
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(3)) {
+                engine.startNextBlock(n: nextN)
+                engine.showStimulus()
+            }
+        default:
+            break
+        }
     }
 
     private func resultView(metrics: NBackMetrics) -> some View {
@@ -98,9 +144,9 @@ struct NBackTrainingView: View {
             Text("N-Back 完成")
                 .font(.system(.title2, design: .rounded, weight: .bold))
             HStack(spacing: 16) {
-                ResultCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
-                ResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
-                ResultCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
+                NResultCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
+                NResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
+                NResultCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -110,7 +156,7 @@ struct NBackTrainingView: View {
     }
 }
 
-private struct ResultCard: View {
+private struct NResultCard: View {
     let label: String; let value: String; let color: Color
     var body: some View {
         VStack(spacing: 6) {

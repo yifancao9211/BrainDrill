@@ -13,7 +13,7 @@ final class VisualSearchEngine {
     private(set) var phase: Phase = .idle
     private(set) var displayOnsetTime: Date?
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case fixation
         case display

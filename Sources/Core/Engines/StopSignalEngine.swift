@@ -13,7 +13,7 @@ final class StopSignalEngine {
     private(set) var stimulusOnsetTime: Date?
     private(set) var currentSSD: Int
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case fixation
         case stimulus

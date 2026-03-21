@@ -12,7 +12,7 @@ final class GoNoGoEngine {
     private(set) var phase: Phase = .idle
     private(set) var stimulusOnsetTime: Date?
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case fixation
         case stimulus

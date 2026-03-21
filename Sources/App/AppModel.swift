@@ -169,6 +169,12 @@ final class AppModel {
         nBack.cancelSession()
     }
 
+    func recordNBackResult(_ result: SessionResult) {
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        persistSessions()
+    }
+
     func dismissNBackResult() {
         nBack.lastResult = nil
     }

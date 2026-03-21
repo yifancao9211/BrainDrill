@@ -17,7 +17,7 @@ final class DigitSpanEngine {
     private var consecutiveCorrect: Int = 0
     private var consecutiveWrong: Int = 0
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case presenting
         case recalling

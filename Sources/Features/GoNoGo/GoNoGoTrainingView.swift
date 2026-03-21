@@ -29,7 +29,7 @@ struct GoNoGoTrainingView: View {
                 .foregroundStyle(BDColor.goNoGoAccent.opacity(0.6))
             Text("Go/No-Go 抑制力训练")
                 .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("绿色圆形 → 快速点击    红色方形 → 忍住不动")
+            Text("绿色圆形 → 按空格键    红色方形 → 忍住不动")
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -59,66 +59,20 @@ struct GoNoGoTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Group {
-                switch engine.phase {
-                case .fixation:
-                    Text("+")
-                        .font(.system(size: 48, weight: .light, design: .rounded))
+            phaseContent(engine: engine)
+                .frame(height: 130)
+
+            if engine.phase == .stimulus {
+                Button {
+                    appModel.handleGoNoGoTap()
+                } label: {
+                    Text("按空格或点击")
+                        .font(.system(.callout, design: .rounded, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
-                                guard engine.phase == .fixation else { return }
-                                engine.showStimulus()
-                            }
-                        }
-                case .stimulus:
-                    if let trial = engine.currentTrial {
-                        Button {
-                            appModel.handleGoNoGoTap()
-                        } label: {
-                            Group {
-                                if trial.stimulusType == .go {
-                                    Circle().fill(BDColor.green).frame(width: 120, height: 120)
-                                } else {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(BDColor.error).frame(width: 120, height: 120)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.scale.combined(with: .opacity))
-                        .keyboardShortcut(.space, modifiers: [])
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
-                                guard engine.phase == .stimulus else { return }
-                                engine.recordTimeout()
-                                handleGoNoGoAdvance(engine: engine)
-                            }
-                        }
-                    }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                                handleGoNoGoAdvance(engine: engine)
-                            }
-                        }
-                case .iti:
-                    Color.clear.frame(height: 120)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                engine.beginTrial()
-                            }
-                        }
-                default:
-                    EmptyView()
-                        .onAppear { engine.beginTrial() }
                 }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.space, modifiers: [])
             }
-            .frame(height: 130)
-            .animation(.easeInOut(duration: 0.15), value: engine.phase)
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.goNoGoAccent)
@@ -129,12 +83,62 @@ struct GoNoGoTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
     }
 
-    private func handleGoNoGoAdvance(engine: GoNoGoEngine) {
-        engine.advanceToNext()
-        if engine.isComplete {
-            appModel.finalizeGoNoGoIfComplete()
+    @ViewBuilder
+    private func phaseContent(engine: GoNoGoEngine) -> some View {
+        switch engine.phase {
+        case .fixation:
+            Text("+")
+                .font(.system(size: 48, weight: .light, design: .rounded))
+                .foregroundStyle(.secondary)
+        case .stimulus:
+            if let trial = engine.currentTrial {
+                if trial.stimulusType == .go {
+                    Circle().fill(BDColor.green).frame(width: 120, height: 120)
+                } else {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(BDColor.error).frame(width: 120, height: 120)
+                }
+            }
+        case .feedback(let correct):
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+        default:
+            Color.clear.frame(height: 1)
+        }
+    }
+
+    private func schedulePhase(_ engine: GoNoGoEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .fixation:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+                guard engine.phase == .fixation else { return }
+                engine.showStimulus()
+            }
+        case .stimulus:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
+                guard engine.phase == .stimulus else { return }
+                engine.recordTimeout()
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeGoNoGoIfComplete()
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
+                engine.beginTrial()
+            }
+        default:
+            break
         }
     }
 

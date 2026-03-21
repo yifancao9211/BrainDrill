@@ -17,7 +17,7 @@ final class ChangeDetectionEngine {
     private var consecutiveWrong: Int = 0
     private var totalTrials: Int
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case encoding
         case retention

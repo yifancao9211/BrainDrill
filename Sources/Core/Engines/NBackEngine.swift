@@ -15,7 +15,7 @@ final class NBackEngine {
     private(set) var stimulusOnsetTime: Date?
     private(set) var respondedThisTrial: Bool = false
 
-    enum Phase: Equatable {
+    enum Phase: Equatable, Hashable {
         case idle
         case stimulus
         case isi

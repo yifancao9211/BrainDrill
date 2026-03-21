@@ -81,12 +81,6 @@ struct VisualSearchTrainingView: View {
                     Text("+")
                         .font(.system(size: 36, weight: .light, design: .rounded))
                         .foregroundStyle(.secondary)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
-                                guard engine.phase == .fixation else { return }
-                                engine.showDisplay()
-                            }
-                        }
                 case .display:
                     if let trial = engine.currentTrial {
                         searchFieldView(trial: trial)
@@ -95,32 +89,11 @@ struct VisualSearchTrainingView: View {
                     Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .font(.system(size: 48))
                         .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.feedbackMs)) {
-                                engine.advanceToNext()
-                                if !engine.isComplete {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                        engine.beginTrial()
-                                    }
-                                } else {
-                                    appModel.finalizeVisualSearchIfComplete()
-                                }
-                            }
-                        }
-                case .iti:
-                    Color.clear
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
-                                engine.beginTrial()
-                            }
-                        }
                 default:
-                    EmptyView()
-                        .onAppear { engine.beginTrial() }
+                    Color.clear.frame(height: 1)
                 }
             }
             .frame(width: 400, height: 400)
-            .animation(.easeInOut(duration: 0.1), value: engine.phase)
 
             if engine.phase == .display {
                 HStack(spacing: 20) {
@@ -134,6 +107,7 @@ struct VisualSearchTrainingView: View {
                             .background(Capsule().fill(BDColor.teal))
                     }
                     .buttonStyle(.plain)
+                    .keyboardShortcut("1", modifiers: [])
 
                     Button {
                         _ = appModel.handleVisualSearchResponse(present: true)
@@ -145,6 +119,7 @@ struct VisualSearchTrainingView: View {
                             .background(Capsule().fill(BDColor.visualSearchAccent))
                     }
                     .buttonStyle(.plain)
+                    .keyboardShortcut("2", modifiers: [])
                 }
             }
 
@@ -157,6 +132,33 @@ struct VisualSearchTrainingView: View {
                 .foregroundStyle(BDColor.error)
                 .buttonStyle(.plain)
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+    }
+
+    private func schedulePhase(_ engine: VisualSearchEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .fixation:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
+                guard engine.phase == .fixation else { return }
+                engine.showDisplay()
+            }
+        case .feedback:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.feedbackMs)) {
+                engine.advanceToNext()
+                if engine.isComplete {
+                    appModel.finalizeVisualSearchIfComplete()
+                }
+            }
+        case .iti:
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
+                engine.beginTrial()
+            }
+        default:
+            break
+        }
     }
 
     private func searchFieldView(trial: VisualSearchTrial) -> some View {
@@ -164,10 +166,7 @@ struct VisualSearchTrainingView: View {
             ForEach(trial.items) { item in
                 shapeView(shape: item.shape, color: item.color)
                     .frame(width: 24, height: 24)
-                    .position(
-                        x: item.position.x * geo.size.width,
-                        y: item.position.y * geo.size.height
-                    )
+                    .position(x: item.position.x * geo.size.width, y: item.position.y * geo.size.height)
             }
         }
     }
@@ -176,36 +175,27 @@ struct VisualSearchTrainingView: View {
     private func shapeView(shape: SearchShape, color: SearchColor) -> some View {
         let fillColor = searchColor(color)
         switch shape {
-        case .circle:
-            Circle().fill(fillColor)
-        case .square:
-            Rectangle().fill(fillColor)
-        case .triangle:
-            TriangleShape().fill(fillColor)
+        case .circle:   Circle().fill(fillColor)
+        case .square:   Rectangle().fill(fillColor)
+        case .triangle: TriangleShape().fill(fillColor)
         }
     }
 
     private func searchColor(_ color: SearchColor) -> Color {
         switch color {
-        case .red:   .red
-        case .blue:  .blue
-        case .green: .green
+        case .red: .red; case .blue: .blue; case .green: .green
         }
     }
 
     private func colorName(_ color: SearchColor) -> String {
         switch color {
-        case .red:   "红色"
-        case .blue:  "蓝色"
-        case .green: "绿色"
+        case .red: "红色"; case .blue: "蓝色"; case .green: "绿色"
         }
     }
 
     private func shapeName(_ shape: SearchShape) -> String {
         switch shape {
-        case .circle:   "圆形"
-        case .square:   "方块"
-        case .triangle: "三角"
+        case .circle: "圆形"; case .square: "方块"; case .triangle: "三角"
         }
     }
 
