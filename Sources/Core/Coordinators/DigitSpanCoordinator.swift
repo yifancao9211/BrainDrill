@@ -9,11 +9,12 @@ final class DigitSpanCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
-    private var sessionConditions = SessionConditions()
+    private(set) var sessionConditions = SessionConditions()
 
-    func startSession(settings: TrainingSettings, mode: DigitSpanMode = .forward) {
+    func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState = .default(for: .digitSpan), mode: DigitSpanMode = .forward) {
+        let startingLength = settings.adaptiveDifficultyEnabled ? min(max(adaptiveState.recommendedStartLevel, 2), 8) : settings.digitSpanStartingLength
         let config = DigitSpanSessionConfig(
-            startingLength: settings.digitSpanStartingLength,
+            startingLength: startingLength,
             presentationMs: settings.digitSpanPresentationMs,
             mode: mode
         )

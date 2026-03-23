@@ -16,10 +16,11 @@ struct NBackTrialResult: Codable, Equatable {
 struct NBackSessionConfig: Equatable {
     var startingN: Int = 1
     var maxN: Int = 9
-    var trialsPerBlock: Int = 20
-    var blockCount: Int = 3
-    var stimulusDurationMs: Int = 500
-    var isiMs: Int = 2500
+    var trialsPerBlock: Int = 12
+    var blockCount: Int = 2
+    var stimulusDurationMs: Int = 800
+    var isiMs: Int = 1400
+    var internalSkillScore: Double = 35
     var targetRatio: Double = 0.30
     var promoteThreshold: Double = 0.80
     var demoteThreshold: Double = 0.50

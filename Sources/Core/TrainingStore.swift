@@ -6,8 +6,8 @@ protocol TrainingStore {
     func saveSessions(_ sessions: [SessionResult]) throws
     func loadSettings() throws -> TrainingSettings
     func saveSettings(_ settings: TrainingSettings) throws
-    func loadChatHistory() throws -> ChatHistory
-    func saveChatHistory(_ history: ChatHistory) throws
+    func loadAdaptiveStates() throws -> [TrainingModule: ModuleAdaptiveState]
+    func saveAdaptiveStates(_ states: [TrainingModule: ModuleAdaptiveState]) throws
 }
 
 final class LocalTrainingStore: TrainingStore {
@@ -15,6 +15,7 @@ final class LocalTrainingStore: TrainingStore {
         var version: Int = 2
         var sessions: [SessionResult] = []
         var settings: TrainingSettings = .default
+        var adaptiveStates: [String: ModuleAdaptiveState] = [:]
     }
 
     private struct LegacyState: Codable {
@@ -23,7 +24,6 @@ final class LocalTrainingStore: TrainingStore {
 
         struct LegacySettings: Codable {
             var showHints: Bool
-            var enableSoundFeedback: Bool
             var preferredDifficulty: SchulteDifficulty
             var adaptiveDifficultyEnabled: Bool
             var adaptiveConfig: AdaptiveDifficulty.Config
@@ -72,6 +72,22 @@ final class LocalTrainingStore: TrainingStore {
         try writeState(state)
     }
 
+    func loadAdaptiveStates() throws -> [TrainingModule: ModuleAdaptiveState] {
+        let rawStates = try readState().adaptiveStates
+        return rawStates.reduce(into: [TrainingModule: ModuleAdaptiveState]()) { partial, item in
+            guard let module = TrainingModule(rawValue: item.key) else { return }
+            partial[module] = item.value
+        }
+    }
+
+    func saveAdaptiveStates(_ states: [TrainingModule: ModuleAdaptiveState]) throws {
+        var state = try readState()
+        state.adaptiveStates = states.reduce(into: [String: ModuleAdaptiveState]()) { partial, item in
+            partial[item.key.rawValue] = item.value
+        }
+        try writeState(state)
+    }
+
     private func readState() throws -> PersistedStateV2 {
         guard fileManager.fileExists(atPath: storageURL.path) else {
             return PersistedStateV2()
@@ -89,50 +105,18 @@ final class LocalTrainingStore: TrainingStore {
                 state.sessions = results.map { SessionResult.fromLegacy($0) }
             }
             if let ls = legacy.settings {
-                state.settings = TrainingSettings(
-                    showHints: ls.showHints,
-                    enableSoundFeedback: ls.enableSoundFeedback,
-                    preferredDifficulty: ls.preferredDifficulty,
-                    adaptiveDifficultyEnabled: ls.adaptiveDifficultyEnabled,
-                    adaptiveConfig: ls.adaptiveConfig,
-                    schulteSetRep: .init(),
-                    showFixationDot: true,
-                    flankerStimulusDurationMs: 200,
-                    nBackStartingN: 1,
-                    digitSpanStartingLength: 3,
-                    digitSpanPresentationMs: 1000,
-                    choiceRTChoiceCount: 2,
-                    choiceRTTrialsPerBlock: 30,
-                    changeDetectionInitialSetSize: 3,
-                    changeDetectionEncodingMs: 500,
-                    changeDetectionRetentionMs: 900,
-                    visualSearchSetSizes: [8, 16, 24],
-                    visualSearchTrialsPerSize: 10,
-                    dailyPlanEnabled: true
-                )
+                var settings = TrainingSettings.default
+                settings.showHints = ls.showHints
+                settings.preferredDifficulty = ls.preferredDifficulty
+                settings.adaptiveDifficultyEnabled = ls.adaptiveDifficultyEnabled
+                settings.adaptiveConfig = ls.adaptiveConfig
+                state.settings = settings
             }
             try writeState(state)
             return state
         }
 
         return PersistedStateV2()
-    }
-
-    private var chatURL: URL {
-        storageURL.deletingLastPathComponent().appendingPathComponent("chat-history.json")
-    }
-
-    func loadChatHistory() throws -> ChatHistory {
-        guard fileManager.fileExists(atPath: chatURL.path) else { return ChatHistory() }
-        let data = try Data(contentsOf: chatURL)
-        return try decoder.decode(ChatHistory.self, from: data)
-    }
-
-    func saveChatHistory(_ history: ChatHistory) throws {
-        let directoryURL = chatURL.deletingLastPathComponent()
-        try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-        let data = try encoder.encode(history)
-        try data.write(to: chatURL, options: .atomic)
     }
 
     private func writeState(_ state: PersistedStateV2) throws {

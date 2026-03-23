@@ -36,6 +36,11 @@ struct FlankerTrainingView: View {
             Text("核心指标：冲突代价 = 反向RT - 同向RT")
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
+            if appModel.settings.adaptiveDifficultyEnabled {
+                Text("当前推荐档位 L\(appModel.adaptiveState(for: .flanker).recommendedStartLevel) · 每局 2 个 block")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
 
             Button {
                 appModel.startFlankerSession()
@@ -55,12 +60,21 @@ struct FlankerTrainingView: View {
 
     private func activeView(engine: FlankerEngine) -> some View {
         VStack(spacing: 24) {
-            Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+                Text("L\(engine.currentLevel) · Block \(engine.currentBlock + 1)/\(engine.totalBlocks)")
+                    .font(.system(.caption2, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
 
-            phaseContent(engine: engine)
-                .frame(height: 80)
+                BDFeedbackNote(text: feedbackText(engine), color: BDColor.flankerAccent)
+            }
+
+            BDTrainingStage(accent: BDColor.flankerAccent) {
+                phaseContent(engine: engine)
+                    .frame(height: 120)
+            }
 
             let canRespond = engine.phase == .stimulus || engine.phase == .waitingForResponse
             HStack(spacing: 40) {
@@ -113,9 +127,14 @@ struct FlankerTrainingView: View {
                     .font(.system(size: 56, weight: .bold, design: .monospaced))
             }
         case .feedback(let correct):
-            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+            VStack(spacing: 8) {
+                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
+                Text(correct ? "抓住了中间目标" : "注意只判断中间箭头")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
         default:
             Color.clear.frame(height: 1)
         }
@@ -126,21 +145,21 @@ struct FlankerTrainingView: View {
         case .idle:
             engine.beginTrial()
         case .fixation:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentSpec.fixationDurationMs)) {
                 guard engine.phase == .fixation else { return }
                 engine.showStimulus()
             }
         case .stimulus:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.stimulusDurationMs)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentSpec.stimulusDurationMs)) {
                 guard engine.phase == .stimulus else { return }
                 engine.enterResponseWindow()
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.responseWindowMs)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentSpec.responseWindowMs)) {
                 guard engine.phase == .stimulus || engine.phase == .waitingForResponse else { return }
                 engine.recordTimeout()
             }
         case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
                 engine.advanceToNext()
                 if engine.isComplete {
                     appModel.finalizeFlankerIfComplete()
@@ -150,15 +169,18 @@ struct FlankerTrainingView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
                 engine.beginTrial()
             }
+        case let .blockBreak(_, _, nextLevel):
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(550)) {
+                guard case .blockBreak = engine.phase else { return }
+                engine.startNextBlock(level: nextLevel)
+            }
         default:
             break
         }
     }
 
     private func resultView(metrics: FlankerMetrics) -> some View {
-        VStack(spacing: 20) {
-            Text("Flanker 完成")
-                .font(.system(.title2, design: .rounded, weight: .bold))
+        BDResultPanel(title: "Flanker 完成", accent: BDColor.flankerAccent) {
             HStack(spacing: 16) {
                 FResultCard(label: "冲突代价", value: "\(Int(metrics.conflictCost * 1000))ms", color: BDColor.flankerAccent)
                 FResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -168,6 +190,31 @@ struct FlankerTrainingView: View {
 
             Button("关闭") { appModel.dismissFlankerResult() }
                 .buttonStyle(.bordered)
+        }
+    }
+
+    private func feedbackText(_ engine: FlankerEngine) -> String {
+        switch engine.phase {
+        case .fixation:
+            return "保持注视，准备响应中央目标"
+        case .stimulus, .waitingForResponse:
+            if let trial = engine.currentTrial, trial.type == .incongruent {
+                return "忽略两侧干扰箭头，只看中间"
+            }
+            return "快速判断中间箭头方向"
+        case .feedback(let correct):
+            return correct ? "正确聚焦目标" : "被干扰项影响了判断"
+        case let .blockBreak(_, outcome, nextLevel):
+            switch outcome {
+            case .promote:
+                return "本 block 升到 L\(nextLevel)"
+            case .demote:
+                return "本 block 调整到 L\(nextLevel)"
+            case .stay:
+                return "本 block 保持 L\(nextLevel)"
+            }
+        default:
+            return coordinator.statusMessage
         }
     }
 }

@@ -9,13 +9,17 @@ final class ChangeDetectionCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
-    private var sessionConditions = SessionConditions()
+    private(set) var sessionConditions = SessionConditions()
 
-    func startSession(settings: TrainingSettings) {
+    func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState = .default(for: .changeDetection)) {
+        let initialSetSize = settings.adaptiveDifficultyEnabled
+            ? min(max(adaptiveState.recommendedStartLevel + 1, 2), 6)
+            : settings.changeDetectionInitialSetSize
         let config = ChangeDetectionSessionConfig(
-            initialSetSize: settings.changeDetectionInitialSetSize,
+            initialSetSize: initialSetSize,
             encodingMs: settings.changeDetectionEncodingMs,
-            retentionMs: settings.changeDetectionRetentionMs
+            retentionMs: settings.changeDetectionRetentionMs,
+            trialsPerBlock: 12
         )
         engine = ChangeDetectionEngine(config: config)
         lastResult = nil

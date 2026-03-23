@@ -76,6 +76,9 @@ enum TrainingScheduler {
 
     private static func performanceScore(_ session: SessionResult) -> Double {
         switch session.metrics {
+        case let .mainIdea(m):        return m.isCorrect ? 1.0 : 0.0
+        case let .evidenceMap(m):     return m.accuracy
+        case let .delayedRecall(m):   return m.accuracy
         case let .choiceRT(m):        return m.accuracy * (1.0 - m.medianRT)
         case let .goNoGo(m):          return m.dPrime / 4.0
         case let .flanker(m):         return m.accuracy * (1.0 - m.conflictCost)

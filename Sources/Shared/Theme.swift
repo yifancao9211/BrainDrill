@@ -3,6 +3,42 @@ import SwiftUI
 enum BDColor {
     static let accent = Color("Accent", bundle: nil)
 
+    static let appBackground = Color(light: .init(red: 0.955, green: 0.959, blue: 0.968),
+                                     dark: .init(red: 0.105, green: 0.113, blue: 0.125))
+
+    static let sidebarBackground = Color(light: .init(red: 0.940, green: 0.945, blue: 0.955),
+                                         dark: .init(red: 0.115, green: 0.123, blue: 0.136))
+
+    static let contentBackground = Color(light: .init(red: 0.968, green: 0.972, blue: 0.978),
+                                         dark: .init(red: 0.095, green: 0.102, blue: 0.113))
+
+    static let panelFill = Color(light: .white.opacity(0.70),
+                                 dark: .white.opacity(0.055))
+
+    static let panelSecondaryFill = Color(light: .white.opacity(0.48),
+                                          dark: .white.opacity(0.032))
+
+    static let stageFill = Color(light: .white.opacity(0.82),
+                                 dark: .white.opacity(0.040))
+
+    static let overlayFill = Color(light: .white.opacity(0.86),
+                                   dark: .init(red: 0.145, green: 0.153, blue: 0.167).opacity(0.92))
+
+    static let borderSubtle = Color(light: .black.opacity(0.08),
+                                    dark: .white.opacity(0.10))
+
+    static let borderStrong = Color(light: .black.opacity(0.14),
+                                    dark: .white.opacity(0.16))
+
+    static let textPrimary = Color(light: .init(red: 0.12, green: 0.14, blue: 0.18),
+                                   dark: .init(red: 0.92, green: 0.94, blue: 0.97))
+
+    static let textSecondary = Color(light: .init(red: 0.36, green: 0.40, blue: 0.48),
+                                     dark: .init(red: 0.66, green: 0.70, blue: 0.77))
+
+    static let textTertiary = Color(light: .init(red: 0.50, green: 0.54, blue: 0.60),
+                                    dark: .init(red: 0.50, green: 0.56, blue: 0.64))
+
     static let primaryBlue = Color(light: .init(red: 0.17, green: 0.41, blue: 0.72),
                                    dark: .init(red: 0.40, green: 0.62, blue: 0.95))
 
@@ -35,6 +71,9 @@ enum BDColor {
 
     static let sidebarSelected = Color(light: .white.opacity(0.72),
                                        dark: .white.opacity(0.12))
+
+    static let sidebarHover = Color(light: .black.opacity(0.040),
+                                    dark: .white.opacity(0.045))
 
     static let historyRow = Color(light: .white.opacity(0.56),
                                   dark: .white.opacity(0.08))
@@ -93,25 +132,25 @@ enum BDGradient {
     )
 
     static let sidebarLight = LinearGradient(
-        colors: [Color(red: 0.95, green: 0.93, blue: 0.89), Color(red: 0.88, green: 0.90, blue: 0.94)],
+        colors: [BDColor.sidebarBackground, BDColor.sidebarBackground.opacity(0.96)],
         startPoint: .top,
         endPoint: .bottom
     )
 
     static let sidebarDark = LinearGradient(
-        colors: [Color(red: 0.10, green: 0.10, blue: 0.12), Color(red: 0.12, green: 0.13, blue: 0.16)],
+        colors: [BDColor.sidebarBackground, BDColor.sidebarBackground.opacity(0.96)],
         startPoint: .top,
         endPoint: .bottom
     )
 
     static let detailLight = LinearGradient(
-        colors: [Color(red: 0.98, green: 0.97, blue: 0.94), Color(red: 0.91, green: 0.94, blue: 0.97)],
+        colors: [BDColor.contentBackground, BDColor.appBackground],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     static let detailDark = LinearGradient(
-        colors: [Color(red: 0.08, green: 0.08, blue: 0.10), Color(red: 0.11, green: 0.12, blue: 0.15)],
+        colors: [BDColor.contentBackground, BDColor.appBackground],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

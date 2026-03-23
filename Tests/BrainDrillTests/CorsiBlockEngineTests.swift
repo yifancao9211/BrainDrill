@@ -28,14 +28,12 @@ struct CorsiBlockEngineTests {
         }
     }
 
-    @Test func noConsecutiveDuplicatePositions() {
+    @Test func sequenceDoesNotRepeatPositions() {
         let config = CorsiBlockSessionConfig(startingLength: 7, gridSize: 9)
         let engine = CorsiBlockEngine(config: config)
         engine.beginNextTrial()
         let seq = engine.currentTrial!.sequence
-        for i in 1..<seq.count {
-            #expect(seq[i] != seq[i - 1])
-        }
+        #expect(Set(seq).count == seq.count)
     }
 
     @Test func correctForwardResponse() {

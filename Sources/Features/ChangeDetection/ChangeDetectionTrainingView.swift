@@ -39,6 +39,9 @@ struct ChangeDetectionTrainingView: View {
             Text("核心指标：d' 与集合大小")
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
+            Text("起始集合 \(appModel.settings.changeDetectionInitialSetSize)，正确率稳定后本局内会提高集合大小。")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(BDColor.textSecondary)
 
             Button {
                 appModel.startChangeDetectionSession()
@@ -58,15 +61,15 @@ struct ChangeDetectionTrainingView: View {
 
     private func activeView(engine: ChangeDetectionEngine) -> some View {
         VStack(spacing: 24) {
-            Text("集合大小 \(engine.currentSetSize)  •  试次 \(engine.currentTrialIndex + 1)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                Text("集合大小 \(engine.currentSetSize)  •  试次 \(engine.currentTrialIndex + 1)")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.primary.opacity(0.03))
-                    .frame(width: 300, height: 300)
+                BDFeedbackNote(text: feedbackText(engine), color: BDColor.changeDetectionAccent)
+            }
 
+            BDTrainingStage(accent: BDColor.changeDetectionAccent) {
                 phaseContent(engine: engine)
             }
             .frame(width: 300, height: 300)
@@ -128,9 +131,14 @@ struct ChangeDetectionTrainingView: View {
                 colorGridView(colors: trial.probeColors, positions: trial.positions)
             }
         case .feedback(let correct):
-            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+            VStack(spacing: 8) {
+                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
+                Text(correct ? "变化判断正确" : "重新检查变化是否出现")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
         default:
             Color.clear.frame(height: 1)
         }
@@ -151,14 +159,14 @@ struct ChangeDetectionTrainingView: View {
                 engine.showProbe()
             }
         case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(350)) {
                 engine.advanceToNext()
                 if engine.isComplete {
                     appModel.finalizeChangeDetectionIfComplete()
                 }
             }
         case .iti:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
                 engine.beginTrial()
             }
         default:
@@ -180,9 +188,7 @@ struct ChangeDetectionTrainingView: View {
     }
 
     private func resultView(metrics: ChangeDetectionMetrics) -> some View {
-        VStack(spacing: 20) {
-            Text("变更检测完成")
-                .font(.system(.title2, design: .rounded, weight: .bold))
+        BDResultPanel(title: "变更检测完成", accent: BDColor.changeDetectionAccent) {
             HStack(spacing: 16) {
                 CDResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.changeDetectionAccent)
                 CDResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -190,8 +196,35 @@ struct ChangeDetectionTrainingView: View {
             }
             .frame(maxWidth: 400)
 
+            if appModel.settings.adaptiveDifficultyEnabled {
+                Text("下次训练将从集合大小 \(appModel.settings.changeDetectionInitialSetSize) 开始。")
+                    .font(.system(.callout, design: .rounded))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
+
             Button("关闭") { appModel.dismissChangeDetectionResult() }
                 .buttonStyle(.bordered)
+        }
+    }
+
+    private func feedbackText(_ engine: ChangeDetectionEngine) -> String {
+        switch engine.phase {
+        case .encoding:
+            return "编码颜色与位置"
+        case .retention:
+            return "保持刚才的颜色布局"
+        case .probe:
+            return "判断是否出现变化"
+        case .feedback(let correct):
+            guard let trial = engine.currentTrial else {
+                return correct ? "正确" : "错误"
+            }
+            if correct {
+                return trial.isChangePresent ? "变化被正确识别" : "无变化被正确确认"
+            }
+            return trial.isChangePresent ? "本轮实际上发生了变化" : "本轮实际上没有变化"
+        default:
+            return coordinator.statusMessage
         }
     }
 }

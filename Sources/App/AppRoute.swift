@@ -1,84 +1,84 @@
-import Foundation
+import SwiftUI
 
 enum AppRoute: String, CaseIterable, Identifiable, Hashable {
-    case dailyPlan
+    case home
+    case mainIdea
+    case evidenceMap
+    case delayedRecall
     case schulte
-    case flanker
-    case goNoGo
-    case nBack
-    case digitSpan
-    case choiceRT
-    case changeDetection
     case visualSearch
-    case corsiBlock
-    case stopSignal
+    case nBack
     case history
-    case statistics
-    case aiAnalyst
     case settings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .dailyPlan:       "今日训练"
-        case .schulte:         "舒尔特方格"
-        case .flanker:         "Flanker 反应力"
-        case .goNoGo:          "Go/No-Go 抑制力"
-        case .nBack:           "N-Back 记忆"
-        case .digitSpan:       "数字广度"
-        case .choiceRT:        "选择反应时"
-        case .changeDetection: "变更检测"
-        case .visualSearch:    "视觉搜索"
-        case .corsiBlock:      "空间广度"
-        case .stopSignal:      "Stop-Signal"
-        case .history:         "历史记录"
-        case .statistics:      "统计面板"
-        case .aiAnalyst:       "AI 分析"
-        case .settings:        "设置"
+        case .home:          "首页"
+        case .mainIdea:      "主旨提取"
+        case .evidenceMap:   "结构证据"
+        case .delayedRecall: "延迟回忆"
+        case .schulte:       "舒尔特方格"
+        case .visualSearch:  "视觉搜索"
+        case .nBack:         "N-Back 记忆"
+        case .history:       "历史记录"
+        case .settings:      "设置"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .dailyPlan:       "calendar.badge.clock"
-        case .schulte:         "square.grid.3x3.fill"
-        case .flanker:         "arrow.left.arrow.right"
-        case .goNoGo:          "hand.raised.fill"
-        case .nBack:           "number.square.fill"
-        case .digitSpan:       "brain"
-        case .choiceRT:        "bolt.fill"
-        case .changeDetection: "eye.fill"
-        case .visualSearch:    "magnifyingglass"
-        case .corsiBlock:      "square.grid.3x3.topleft.filled"
-        case .stopSignal:      "stop.circle.fill"
-        case .history:         "clock.arrow.circlepath"
-        case .statistics:      "chart.bar.xaxis"
-        case .aiAnalyst:       "sparkles"
-        case .settings:        "slider.horizontal.3"
+        case .home:          "house"
+        case .mainIdea:      "text.alignleft"
+        case .evidenceMap:   "list.bullet.clipboard"
+        case .delayedRecall: "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .schulte:       "square.grid.3x3.fill"
+        case .visualSearch:  "magnifyingglass"
+        case .nBack:         "number.square.fill"
+        case .history:       "clock.arrow.circlepath"
+        case .settings:      "slider.horizontal.3"
         }
     }
 
     var trainingModule: TrainingModule? {
         switch self {
-        case .schulte:         .schulte
-        case .flanker:         .flanker
-        case .goNoGo:          .goNoGo
-        case .nBack:           .nBack
-        case .digitSpan:       .digitSpan
-        case .choiceRT:        .choiceRT
-        case .changeDetection: .changeDetection
-        case .visualSearch:    .visualSearch
-        case .corsiBlock:      .corsiBlock
-        case .stopSignal:      .stopSignal
-        default:               nil
+        case .mainIdea:      .mainIdea
+        case .evidenceMap:   .evidenceMap
+        case .delayedRecall: .delayedRecall
+        case .schulte:       .schulte
+        case .visualSearch:  .visualSearch
+        case .nBack:         .nBack
+        default:             nil
         }
     }
 
     var isModule: Bool { trainingModule != nil }
 
-    static var memoryModules: [AppRoute] { [.digitSpan, .corsiBlock, .nBack, .changeDetection] }
-    static var reactionModules: [AppRoute] { [.choiceRT, .goNoGo, .flanker, .stopSignal] }
-    static var visualModules: [AppRoute] { [.schulte, .visualSearch] }
-    static var tools: [AppRoute] { [.dailyPlan, .history, .statistics, .aiAnalyst, .settings] }
+    static let readingModules: [AppRoute] = [.mainIdea, .evidenceMap, .delayedRecall]
+    static let supportModules: [AppRoute] = [.schulte, .visualSearch, .nBack]
+    static let tools: [AppRoute] = [.home, .history, .settings]
+
+    var presentationProfile: ModulePresentationProfile {
+        switch self {
+        case .home:
+            ModulePresentationProfile(accent: BDColor.gold, shellMode: .workbench, tone: .analytics, subtitle: "阅读主线、建议与精简统计")
+        case .mainIdea:
+            ModulePresentationProfile(accent: BDColor.gold, shellMode: .trainingFocus, tone: .reading, subtitle: "快速抓主旨与主干")
+        case .evidenceMap:
+            ModulePresentationProfile(accent: BDColor.teal, shellMode: .trainingFocus, tone: .reading, subtitle: "定位结论、证据与限制")
+        case .delayedRecall:
+            ModulePresentationProfile(accent: BDColor.green, shellMode: .trainingFocus, tone: .reading, subtitle: "延迟提取核心信息")
+        case .schulte:
+            ModulePresentationProfile(accent: BDColor.primaryBlue, shellMode: .trainingFocus, tone: .visual, subtitle: "视觉扫描与持续注意")
+        case .visualSearch:
+            ModulePresentationProfile(accent: BDColor.visualSearchAccent, shellMode: .trainingFocus, tone: .visual, subtitle: "目标搜索与干扰抑制")
+        case .nBack:
+            ModulePresentationProfile(accent: BDColor.nBackAccent, shellMode: .trainingFocus, tone: .memory, subtitle: "动态工作记忆负荷")
+        case .history:
+            ModulePresentationProfile(accent: BDColor.warm, shellMode: .workbench, tone: .analytics, subtitle: "查看有效训练记录")
+        case .settings:
+            ModulePresentationProfile(accent: BDColor.textSecondary, shellMode: .workbench, tone: .neutral, subtitle: "基础参数与本地数据")
+        }
+    }
 }

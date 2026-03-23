@@ -52,6 +52,9 @@ enum TimeOfDayAnalyzer {
 
     private static func performanceScore(_ session: SessionResult) -> Double {
         switch session.metrics {
+        case let .mainIdea(m):        return m.isCorrect ? 1.0 : 0.0
+        case let .evidenceMap(m):     return m.accuracy
+        case let .delayedRecall(m):   return m.accuracy
         case let .choiceRT(m):        return (1.0 - m.medianRT) * m.accuracy
         case let .goNoGo(m):          return m.dPrime / 4.0
         case let .flanker(m):         return (1.0 - m.conflictCost) * m.accuracy

@@ -52,6 +52,12 @@ enum AnomalyDetector {
         var result: [(String, Double, [Double])] = []
 
         switch latest.metrics {
+        case let .mainIdea(m):
+            result.append(("主旨命中", m.isCorrect ? 1 : 0, history.compactMap { $0.mainIdeaMetrics.map { $0.isCorrect ? 1 : 0 } }))
+        case let .evidenceMap(m):
+            result.append(("结构准确率", m.accuracy, history.compactMap { $0.evidenceMapMetrics?.accuracy }))
+        case let .delayedRecall(m):
+            result.append(("回忆命中率", m.accuracy, history.compactMap { $0.delayedRecallMetrics?.accuracy }))
         case let .choiceRT(m):
             result.append(("中位RT", m.medianRT, history.compactMap { $0.choiceRTMetrics?.medianRT }))
             result.append(("正确率", m.accuracy, history.compactMap { $0.choiceRTMetrics?.accuracy }))

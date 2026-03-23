@@ -1,0 +1,534 @@
+[
+  {
+    "id": "microplastic-river",
+    "title": "河流微塑料如何进入食物链",
+    "domainTag": "环境科学",
+    "difficulty": 1,
+    "structureType": "causeEffect",
+    "body": "研究人员发现，大量微塑料并不是直接从海上活动进入海洋，而是先在城市中形成，再经排水系统进入河流。降雨会把道路磨损产生的颗粒冲入下水道，而污水处理厂虽然能拦下一部分较大的颗粒，却难以完全过滤更细小的塑料碎片。这些颗粒沿河流向下游移动，被浮游生物和小型底栖动物摄入，随后再进入更高营养级的鱼类体内。也就是说，控制城市源头排放，比只在近海做清理更能减少微塑料进入食物链。",
+    "mainIdeaOptions": [
+      "海上活动是微塑料进入食物链的主要来源。",
+      "河流中的微塑料主要来自城市源头，并沿食物链逐级累积。",
+      "污水处理厂已经能够过滤大多数微塑料。",
+      "鱼类体内的微塑料主要来自海洋清理活动。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "城市源头产生的微塑料经河流进入食物链，因此源头控制比近海清理更关键。",
+      "keywords": ["城市", "源头", "河流", "食物链", "控制"],
+      "trapNote": "如果你把污水处理厂过滤有限写成主旨，说明你抓到了证据，但还没上升到整篇结论。"
+    },
+    "claimAnchors": [
+      { "id": "micro-global", "text": "控制城市源头排放比近海清理更关键。", "scope": "global" },
+      { "id": "micro-local", "text": "微塑料会沿河流和食物链逐级传递。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "m1", "text": "降雨会把道路磨损产生的颗粒冲入下水道。", "role": "evidence", "supportsClaimID": "micro-global" },
+      { "id": "m2", "text": "控制城市源头排放比近海清理更关键。", "role": "claim", "supportsClaimID": null },
+      { "id": "m3", "text": "这些颗粒沿河流下游移动，并被低营养级生物摄入。", "role": "evidence", "supportsClaimID": "micro-local" },
+      { "id": "m4", "text": "研究者比较的是城市排放控制与近海清理两种治理思路。", "role": "background", "supportsClaimID": null }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "城市排水系统是微塑料进入河流的重要通道。", "isTarget": true },
+      { "id": "r2", "text": "近海清理比源头控制更有效。", "isTarget": false },
+      { "id": "r3", "text": "污水处理厂对细小颗粒过滤有限。", "isTarget": true },
+      { "id": "r4", "text": "微塑料可经低营养级生物进入鱼类体内。", "isTarget": true },
+      { "id": "r5", "text": "研究证明微塑料主要来自渔网破损。", "isTarget": false }
+    ],
+    "recallKeywords": ["城市", "排水", "过滤", "河流", "鱼类"]
+  },
+  {
+    "id": "tree-heat-island",
+    "title": "树荫为何能缓解城市热岛",
+    "domainTag": "城市气候",
+    "difficulty": 1,
+    "structureType": "mechanism",
+    "body": "很多人以为树木降温只是因为它挡住了阳光。实际上，树荫和蒸腾作用会同时发挥作用。树冠可以减少地表直接吸收太阳辐射，而叶片蒸腾会把一部分热量转移到水分蒸发过程中。相比之下，单纯把地面刷成浅色虽然也能减少吸热，却不能像植物那样持续改变周围空气的热量交换。因此，在高温街道上增加连续树荫，往往比零散设置遮阳棚更能稳定降低体感温度。",
+    "mainIdeaOptions": [
+      "树木缓解热岛只靠遮挡阳光。",
+      "树木通过树荫和蒸腾共同降温，因此连续树荫比零散遮阳更有效。",
+      "浅色路面一定比树荫更能降低体感温度。",
+      "城市热岛问题主要来自遮阳棚不足。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "树木通过遮阴和蒸腾共同降低热负荷，所以连续树荫对缓解街道热岛更有效。",
+      "keywords": ["树荫", "蒸腾", "降温", "连续", "街道"],
+      "trapNote": "如果你只写遮阳，说明你忽略了机制中的蒸腾作用。"
+    },
+    "claimAnchors": [
+      { "id": "tree-global", "text": "连续树荫往往比零散遮阳更能稳定降低体感温度。", "scope": "global" },
+      { "id": "tree-local", "text": "树木降温同时依赖遮阴和蒸腾。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "t1", "text": "树冠可以减少地表直接吸收太阳辐射。", "role": "evidence", "supportsClaimID": "tree-local" },
+      { "id": "t2", "text": "叶片蒸腾会把一部分热量转移到水分蒸发过程中。", "role": "evidence", "supportsClaimID": "tree-local" },
+      { "id": "t3", "text": "连续树荫往往比零散遮阳更能稳定降低体感温度。", "role": "claim", "supportsClaimID": null },
+      { "id": "t4", "text": "文章比较了植物降温与浅色地面、遮阳棚等不同方式。", "role": "background", "supportsClaimID": null }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "树木降温不只靠遮阴，还包括蒸腾作用。", "isTarget": true },
+      { "id": "r2", "text": "浅色路面和树荫的作用机制完全相同。", "isTarget": false },
+      { "id": "r3", "text": "连续树荫比零散遮阳更能稳定改善体感温度。", "isTarget": true },
+      { "id": "r4", "text": "树冠能减少地表直接吸收辐射。", "isTarget": true },
+      { "id": "r5", "text": "文章认为城市热岛与空气湿度无关。", "isTarget": false }
+    ],
+    "recallKeywords": ["树荫", "蒸腾", "辐射", "连续", "体感"]
+  },
+  {
+    "id": "cold-chain-vaccine",
+    "title": "疫苗冷链为何不能只看温度最低值",
+    "domainTag": "公共卫生",
+    "difficulty": 1,
+    "structureType": "problemSolution",
+    "body": "在疫苗运输中，很多人会把冷链理解成只要温度足够低就行。实际上，部分疫苗既怕过热，也怕反复冻结。因为一些蛋白或佐剂在经历冻融循环后可能发生结构变化，导致有效成分分布不均。相比单次短暂升温，反复波动更容易在运输过程中累积风险。因此，冷链管理不仅要看最低温度是否达标，还要监控温度波动和停留时间，避免把合格运输误判成安全运输。",
+    "mainIdeaOptions": [
+      "冷链运输只需要尽量把温度降到更低。",
+      "冷链管理要同时关注温度波动和停留时间，而不只是最低温度。",
+      "疫苗运输的主要问题是温度太高。",
+      "所有疫苗都只怕冻结，不怕升温。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "疫苗冷链不能只看最低温度，还要控制温度波动和停留时间，因为反复冻融会积累风险。",
+      "keywords": ["冷链", "波动", "停留", "冻融", "风险"],
+      "trapNote": "如果你只写疫苗怕热或怕冷，说明你抓到了条件，却没抓到管理重点。"
+    },
+    "claimAnchors": [
+      { "id": "cold-global", "text": "冷链管理要同时关注温度波动和停留时间。", "scope": "global" },
+      { "id": "cold-local", "text": "反复冻融比一次短暂升温更容易累积风险。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "c1", "text": "部分疫苗既怕过热，也怕反复冻结。", "role": "background", "supportsClaimID": null },
+      { "id": "c2", "text": "一些蛋白或佐剂在冻融循环后可能发生结构变化。", "role": "evidence", "supportsClaimID": "cold-local" },
+      { "id": "c3", "text": "冷链管理不仅要看最低温度是否达标，还要监控波动和停留时间。", "role": "claim", "supportsClaimID": null },
+      { "id": "c4", "text": "反复波动更容易在运输过程中累积风险。", "role": "evidence", "supportsClaimID": "cold-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "冷链安全不能只看最低温度。", "isTarget": true },
+      { "id": "r2", "text": "反复冻融会增加运输风险。", "isTarget": true },
+      { "id": "r3", "text": "所有疫苗越冷越安全。", "isTarget": false },
+      { "id": "r4", "text": "温度波动和停留时间都需要监控。", "isTarget": true },
+      { "id": "r5", "text": "短暂升温一定比波动更危险。", "isTarget": false }
+    ],
+    "recallKeywords": ["冷链", "波动", "停留", "冻融", "运输"]
+  },
+  {
+    "id": "fermentation-sourdough",
+    "title": "长时间发酵为何会改变面包口感",
+    "domainTag": "食品科学",
+    "difficulty": 1,
+    "structureType": "causeEffect",
+    "body": "很多人把面包是否好吃简单归因于配方，其实发酵时间也会明显改变口感。较长发酵会让酵母和乳酸菌有更多时间分解面团中的糖和蛋白，产生更多有机酸和芳香物质。这不仅会影响风味，还会改变面筋网络的状态，让气孔结构更稳定。相反，如果发酵过快，面团虽然也能膨胀，却更容易出现香气单薄、组织粗糙的问题。因此，长时间发酵的价值不在于让面包更大，而在于让风味和组织更完整。",
+    "mainIdeaOptions": [
+      "面包口感只取决于原料配方。",
+      "长时间发酵通过影响风味物质和面筋状态，让面包组织和口感更完整。",
+      "发酵越快，面包风味越丰富。",
+      "长时间发酵的主要作用只是让面包体积更大。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "长时间发酵会同时改善风味生成和组织结构，因此它提升的是面包口感完整度，而不只是体积。",
+      "keywords": ["发酵", "风味", "面筋", "组织", "完整"],
+      "trapNote": "如果你只写体积变化，说明你把结果表象误当成了核心作用。"
+    },
+    "claimAnchors": [
+      { "id": "bread-global", "text": "长时间发酵的价值在于改善风味和组织完整度。", "scope": "global" },
+      { "id": "bread-local", "text": "较长发酵会改变面筋网络和气孔结构。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "f1", "text": "较长发酵会产生更多有机酸和芳香物质。", "role": "evidence", "supportsClaimID": "bread-global" },
+      { "id": "f2", "text": "较长发酵会改变面筋网络状态，让气孔结构更稳定。", "role": "evidence", "supportsClaimID": "bread-local" },
+      { "id": "f3", "text": "长时间发酵的价值在于让风味和组织更完整。", "role": "claim", "supportsClaimID": null },
+      { "id": "f4", "text": "文章在比较长时间发酵与快速发酵的差别。", "role": "background", "supportsClaimID": null }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "长时间发酵会影响风味物质生成。", "isTarget": true },
+      { "id": "r2", "text": "长时间发酵主要只是让面包更大。", "isTarget": false },
+      { "id": "r3", "text": "面筋网络和气孔结构也会随发酵时间变化。", "isTarget": true },
+      { "id": "r4", "text": "快速发酵更容易出现组织粗糙的问题。", "isTarget": true },
+      { "id": "r5", "text": "面包口感与发酵时间没有关系。", "isTarget": false }
+    ],
+    "recallKeywords": ["发酵", "风味", "面筋", "气孔", "组织"]
+  },
+  {
+    "id": "sleep-learning",
+    "title": "睡眠如何影响概念学习",
+    "domainTag": "认知科学",
+    "difficulty": 2,
+    "structureType": "compareContrast",
+    "body": "在记忆研究中，人们常把练习时间更长和睡一觉之后表现更好混为一谈。实际上，两者作用不同。延长练习通常会提升对具体题目的熟悉度，让人更快想起做过的材料；而睡眠更像是在已有经验之间建立连接，帮助学习者抽取共性规则。在一项实验里，研究者让两组被试学习一批人造概念：一组当天反复练习，另一组在首次学习后隔夜再测试。结果显示，前者对原题识别更快，后者在遇到新题时更容易归纳出正确类别。这说明睡眠未必让人记住更多细节，却更可能提升对核心结构的把握。",
+    "mainIdeaOptions": [
+      "睡眠和延长练习都会同样增强细节记忆。",
+      "延长练习主要提升原题熟悉度，睡眠更有助于抽取概念规则。",
+      "隔夜测试的参与者在原题识别上明显更快。",
+      "概念学习的关键只是增加当天练习时长。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "延长练习更偏向提升原题熟悉度，而睡眠更有助于从经验中抽取概念规则。",
+      "keywords": ["练习", "熟悉", "睡眠", "规则", "结构"],
+      "trapNote": "如果你只写隔夜组新题更好，那还是实验结果层，没有概括到对比关系。"
+    },
+    "claimAnchors": [
+      { "id": "sleep-global", "text": "睡眠更有助于抽取概念规则和核心结构。", "scope": "global" },
+      { "id": "sleep-local", "text": "延长练习更有助于提升原题熟悉度。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "s1", "text": "延长练习通常会提升对具体题目的熟悉度。", "role": "claim", "supportsClaimID": null },
+      { "id": "s2", "text": "睡眠更可能提升对核心结构的把握。", "role": "claim", "supportsClaimID": null },
+      { "id": "s3", "text": "隔夜组在新题归类上表现更好。", "role": "evidence", "supportsClaimID": "sleep-global" },
+      { "id": "s4", "text": "当天反复练习组对原题识别更快。", "role": "evidence", "supportsClaimID": "sleep-local" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "睡眠与延长练习在概念学习中的作用并不相同。", "isTarget": true },
+      { "id": "r2", "text": "当天反复练习更有利于抽取共性规则。", "isTarget": false },
+      { "id": "r3", "text": "隔夜组在新题归类上更有优势。", "isTarget": true },
+      { "id": "r4", "text": "睡眠不一定增强细节记忆，但更利于理解结构。", "isTarget": true },
+      { "id": "r5", "text": "实验中两组对新题的表现完全一致。", "isTarget": false }
+    ],
+    "recallKeywords": ["睡眠", "练习", "新题", "规则", "结构"]
+  },
+  {
+    "id": "solar-wind-grid",
+    "title": "风电和光伏为何需要互补配置",
+    "domainTag": "能源系统",
+    "difficulty": 2,
+    "structureType": "compareContrast",
+    "body": "在可再生能源规划中，单看某一种发电方式的年总发电量并不足够。光伏往往在晴天白天输出更高，而风电在很多地区夜间和季节变化上的波动模式并不相同。如果一个电网主要依赖单一能源，就更容易在特定时段出现同时低出力的问题。相反，当风电和光伏的低谷时段错开时，系统需要的备用容量和储能压力都可能下降。因此，互补配置的价值不只是把总装机做大，而是降低同一时间段内的共同波动风险。",
+    "mainIdeaOptions": [
+      "风电和光伏的作用完全相同，因此分开建设即可。",
+      "风电和光伏应互补配置，因为它们的波动时段不同，可以降低共同低出力风险。",
+      "只要提高光伏装机，电网波动问题就会自动消失。",
+      "互补配置的主要作用只是增加年总发电量。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "风电和光伏的关键价值在于波动时段互补，从而降低系统在同一时间共同低出力的风险。",
+      "keywords": ["风电", "光伏", "互补", "波动", "风险"],
+      "trapNote": "如果你只写总发电量更高，说明你忽略了电网最在意的时段匹配。"
+    },
+    "claimAnchors": [
+      { "id": "grid-global", "text": "互补配置可以降低共同低出力风险。", "scope": "global" },
+      { "id": "grid-local", "text": "风电和光伏的高低出力时段并不完全重合。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "g1", "text": "光伏往往在晴天白天输出更高。", "role": "background", "supportsClaimID": null },
+      { "id": "g2", "text": "风电在很多地区夜间和季节变化上的波动模式并不相同。", "role": "evidence", "supportsClaimID": "grid-local" },
+      { "id": "g3", "text": "互补配置的价值在于降低同一时间段的共同波动风险。", "role": "claim", "supportsClaimID": null },
+      { "id": "g4", "text": "当低谷时段错开时，备用容量和储能压力都可能下降。", "role": "evidence", "supportsClaimID": "grid-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "互补配置关注的是同一时段的共同低出力风险。", "isTarget": true },
+      { "id": "r2", "text": "风电和光伏的波动模式往往完全相同。", "isTarget": false },
+      { "id": "r3", "text": "风电与光伏低谷错开时，系统备用压力可能下降。", "isTarget": true },
+      { "id": "r4", "text": "互补配置不只是为了提高总装机。", "isTarget": true },
+      { "id": "r5", "text": "文章主张只建设光伏，不需要风电。", "isTarget": false }
+    ],
+    "recallKeywords": ["风电", "光伏", "互补", "低谷", "储能"]
+  },
+  {
+    "id": "narrow-antibiotic",
+    "title": "为何并非所有感染都需要广谱抗生素",
+    "domainTag": "临床基础",
+    "difficulty": 2,
+    "structureType": "problemSolution",
+    "body": "在感染治疗中，广谱抗生素常被视为覆盖更全、使用更保险的选择。但覆盖范围更广并不意味着在所有情况下都更优。对病原体已经较明确的感染来说，使用更窄谱的药物往往可以在控制病原体的同时，减少对正常菌群的干扰，也更有利于降低耐药压力。广谱药物在重症、病原未明或混合感染风险高时仍然重要，只是它们更适合用作初始覆盖，而不是长期默认方案。因此，关键不是一味追求覆盖更广，而是根据证据尽快收窄治疗范围。",
+    "mainIdeaOptions": [
+      "广谱抗生素在任何感染中都更安全。",
+      "抗感染治疗应根据证据尽快收窄范围，而不是长期默认使用广谱药物。",
+      "窄谱抗生素一定比广谱药物更强。",
+      "只要病人很重，就应该一直使用广谱药。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "广谱药物有其适用场景，但治疗策略的重点是在获得证据后尽快收窄覆盖范围，以减少菌群扰动和耐药压力。",
+      "keywords": ["广谱", "收窄", "证据", "菌群", "耐药"],
+      "trapNote": "如果你只写广谱很重要，说明你抓到了起始策略，却没抓到长期治疗原则。"
+    },
+    "claimAnchors": [
+      { "id": "abx-global", "text": "关键是根据证据尽快收窄治疗范围。", "scope": "global" },
+      { "id": "abx-local", "text": "窄谱药物在病原明确时可减少菌群干扰和耐药压力。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "a1", "text": "病原体明确时，窄谱药物往往能减少对正常菌群的干扰。", "role": "evidence", "supportsClaimID": "abx-local" },
+      { "id": "a2", "text": "广谱药物在重症、病原未明或混合感染风险高时仍然重要。", "role": "background", "supportsClaimID": null },
+      { "id": "a3", "text": "关键不是一味追求覆盖更广，而是根据证据尽快收窄治疗范围。", "role": "claim", "supportsClaimID": null },
+      { "id": "a4", "text": "收窄覆盖更有利于降低耐药压力。", "role": "evidence", "supportsClaimID": "abx-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "病原明确后，治疗应尽快收窄范围。", "isTarget": true },
+      { "id": "r2", "text": "广谱药物在所有阶段都应长期默认使用。", "isTarget": false },
+      { "id": "r3", "text": "窄谱方案有助于减少菌群扰动。", "isTarget": true },
+      { "id": "r4", "text": "广谱药物仍适用于病原未明或重症的初始覆盖。", "isTarget": true },
+      { "id": "r5", "text": "文章认为收窄治疗会增加耐药。", "isTarget": false }
+    ],
+    "recallKeywords": ["广谱", "收窄", "病原", "菌群", "耐药"]
+  },
+  {
+    "id": "reef-noise-fish",
+    "title": "海洋噪声为何会影响幼鱼定居",
+    "domainTag": "海洋生态",
+    "difficulty": 2,
+    "structureType": "mechanism",
+    "body": "很多珊瑚礁鱼类在幼体阶段会随洋流漂移，随后再回到合适的礁区定居。研究发现，幼鱼并不是随机选择栖息地，它们会利用水流、气味和礁区声音等线索判断环境质量。当船只噪声或施工声覆盖了原本的礁区声景时，幼鱼更难识别安全、食物丰富的定居地点。这样的影响并不一定直接造成死亡，却可能让个体进入质量更差的栖息地，进而降低后续存活率。因此，海洋噪声的风险往往体现在破坏定居决策，而不只是惊吓动物本身。",
+    "mainIdeaOptions": [
+      "海洋噪声只会让鱼短暂受惊，不会影响栖息地选择。",
+      "海洋噪声会干扰幼鱼利用声景判断栖息地，从而影响定居决策和后续存活。",
+      "幼鱼定居完全靠视觉，与声音无关。",
+      "船只噪声的主要风险是直接造成大量死亡。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "海洋噪声通过干扰幼鱼识别礁区声景，影响其定居地点选择，并进一步影响后续存活率。",
+      "keywords": ["噪声", "幼鱼", "声景", "定居", "存活"],
+      "trapNote": "如果你只写噪声会吓到鱼，就把行为机制压扁成了情绪反应。"
+    },
+    "claimAnchors": [
+      { "id": "reef-global", "text": "海洋噪声的风险体现在破坏定居决策。", "scope": "global" },
+      { "id": "reef-local", "text": "幼鱼会利用礁区声景判断栖息地质量。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "rf1", "text": "幼鱼会利用水流、气味和礁区声音等线索判断环境质量。", "role": "evidence", "supportsClaimID": "reef-local" },
+      { "id": "rf2", "text": "船只噪声会覆盖原本的礁区声景。", "role": "evidence", "supportsClaimID": "reef-global" },
+      { "id": "rf3", "text": "海洋噪声的风险往往体现在破坏定居决策。", "role": "claim", "supportsClaimID": null },
+      { "id": "rf4", "text": "质量更差的栖息地可能进一步降低后续存活率。", "role": "evidence", "supportsClaimID": "reef-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "幼鱼会利用礁区声音判断环境质量。", "isTarget": true },
+      { "id": "r2", "text": "海洋噪声主要风险是立即造成大量死亡。", "isTarget": false },
+      { "id": "r3", "text": "噪声可能让幼鱼进入更差的定居地点。", "isTarget": true },
+      { "id": "r4", "text": "噪声风险会进一步影响后续存活率。", "isTarget": true },
+      { "id": "r5", "text": "文章认为幼鱼定居完全随机。", "isTarget": false }
+    ],
+    "recallKeywords": ["噪声", "幼鱼", "声景", "定居", "栖息地"]
+  },
+  {
+    "id": "battery-sodium",
+    "title": "钠离子电池为何适合储能",
+    "domainTag": "材料工程",
+    "difficulty": 3,
+    "structureType": "problemSolution",
+    "body": "锂离子电池在便携设备和电动车上表现出色，但在大规模电网储能上并不一定总是最优方案。原因之一是锂资源分布不均，价格波动较大，而电网储能更看重成本稳定和原材料可获得性。钠离子电池的能量密度通常低于锂电，但钠储量丰富、成本更低，而且在部分低温场景下表现并不差。因此，研究者并不是试图用钠电全面替代锂电，而是希望在对体积重量不那么敏感、却要求低成本和高可扩展性的场景中提供另一种选择。当然，钠电仍面临循环寿命和产业链成熟度不足的问题。",
+    "mainIdeaOptions": [
+      "钠离子电池将在所有场景全面替代锂离子电池。",
+      "钠离子电池能量密度更高，因此更适合便携设备。",
+      "钠离子电池适合成本和资源稳定性更重要的储能场景，但仍有限制。",
+      "电网储能的首要目标是尽量减小电池体积和重量。"
+    ],
+    "mainIdeaAnswerIndex": 2,
+    "mainIdeaRubric": {
+      "idealSummary": "钠电并非全面替代锂电，而是在更重视成本稳定和资源可得性的储能场景中提供替代方案，同时仍受寿命和产业链限制。",
+      "keywords": ["钠电", "储能", "成本", "替代", "限制"],
+      "trapNote": "如果你只抓住钠更便宜或密度更低，说明你还停在单一属性，没有抓到场景适配。"
+    },
+    "claimAnchors": [
+      { "id": "battery-global", "text": "钠电适合成本和资源稳定性更重要的储能场景。", "scope": "global" },
+      { "id": "battery-local", "text": "钠电不是为了在所有场景全面替代锂电。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "b1", "text": "锂资源分布不均且价格波动较大。", "role": "evidence", "supportsClaimID": "battery-global" },
+      { "id": "b2", "text": "研究者并不是试图用钠电全面替代锂电。", "role": "claim", "supportsClaimID": null },
+      { "id": "b3", "text": "钠电适合体积重量不敏感、重视成本稳定的储能场景。", "role": "claim", "supportsClaimID": null },
+      { "id": "b4", "text": "钠电仍面临循环寿命和产业链成熟度问题。", "role": "limitation", "supportsClaimID": "battery-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "钠离子电池的优势之一是原材料更丰富、成本更低。", "isTarget": true },
+      { "id": "r2", "text": "钠离子电池在所有性能上都超过锂电。", "isTarget": false },
+      { "id": "r3", "text": "电网储能比便携设备更重视成本稳定和可扩展性。", "isTarget": true },
+      { "id": "r4", "text": "钠电目前仍有寿命和产业链成熟度方面的限制。", "isTarget": true },
+      { "id": "r5", "text": "文章主张彻底放弃锂离子电池。", "isTarget": false }
+    ],
+    "recallKeywords": ["钠电", "储能", "成本", "可扩展", "寿命"]
+  },
+  {
+    "id": "cement-clinker-substitution",
+    "title": "降低水泥熟料比例为何能减排",
+    "domainTag": "工业减碳",
+    "difficulty": 3,
+    "structureType": "mechanism",
+    "body": "谈到水泥行业减排，很多人首先想到的是换燃料或提高窑炉效率，但熟料比例本身同样关键。传统水泥生产中，石灰石在高温煅烧时不仅消耗大量能源，还会直接释放二氧化碳，因此熟料阶段同时带来燃烧排放和工艺排放。若用矿渣、粉煤灰或煅烧黏土等材料部分替代熟料，单位水泥中的工艺排放就可能下降。不过，替代比例并不是越高越好，因为不同掺合料会影响早期强度、施工性能和区域供应稳定性。所以，降低熟料比例是一条重要减排路径，但前提是替代材料、性能要求和供应体系能够一起匹配。",
+    "mainIdeaOptions": [
+      "水泥减排只需要改善窑炉效率，不必改变配方。",
+      "降低熟料比例能减少工艺排放，但必须同时满足性能和供应约束。",
+      "掺合料比例越高越好，不存在代价。",
+      "熟料阶段只产生燃料排放，不会直接释放二氧化碳。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "降低熟料比例能通过减少高排放阶段来减排，但其可行性取决于替代材料对性能和供应的共同约束。",
+      "keywords": ["熟料", "减排", "工艺排放", "性能", "供应"],
+      "trapNote": "如果你只写熟料排放高，却没写替代比例受性能和供应限制，就少了高难度文章最关键的边界条件。"
+    },
+    "claimAnchors": [
+      { "id": "cement-global", "text": "降低熟料比例是重要减排路径，但要与性能和供应体系匹配。", "scope": "global" },
+      { "id": "cement-local", "text": "熟料阶段同时带来燃烧排放和工艺排放。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "ce1", "text": "石灰石高温煅烧既消耗大量能源，也会直接释放二氧化碳。", "role": "evidence", "supportsClaimID": "cement-local" },
+      { "id": "ce2", "text": "用矿渣、粉煤灰或煅烧黏土部分替代熟料，可降低单位水泥中的工艺排放。", "role": "evidence", "supportsClaimID": "cement-global" },
+      { "id": "ce3", "text": "降低熟料比例是一条重要减排路径。", "role": "claim", "supportsClaimID": null },
+      { "id": "ce4", "text": "不同掺合料会影响早期强度、施工性能和区域供应稳定性。", "role": "limitation", "supportsClaimID": "cement-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "熟料阶段既有燃料排放，也有工艺排放。", "isTarget": true },
+      { "id": "r2", "text": "掺合料比例越高越好，不必考虑性能。", "isTarget": false },
+      { "id": "r3", "text": "部分替代熟料可以降低单位水泥的工艺排放。", "isTarget": true },
+      { "id": "r4", "text": "性能和供应稳定性会限制替代比例。", "isTarget": true },
+      { "id": "r5", "text": "文章认为减排与配方设计无关。", "isTarget": false }
+    ],
+    "recallKeywords": ["熟料", "减排", "排放", "性能", "供应"]
+  },
+  {
+    "id": "lipid-mrna-delivery",
+    "title": "脂质纳米颗粒为何决定 mRNA 递送效果",
+    "domainTag": "生物工程",
+    "difficulty": 3,
+    "structureType": "mechanism",
+    "body": "很多人把 mRNA 疫苗或治疗药物的效果主要归因于编码序列本身，但递送系统同样关键。mRNA 分子容易降解，也难以直接穿过细胞膜，因此需要脂质纳米颗粒把它包裹并运输到目标细胞附近。颗粒既要在血液中保持相对稳定，又要在进入细胞后释放有效载荷，这意味着配方必须在保护与释放之间取得平衡。如果颗粒过于稳定，mRNA 可能难以脱离载体；如果过早解离，又会在到达目标前被清除。因此，递送效果往往不取决于单一成分，而取决于粒径、电荷、脂质组合和组织分布共同形成的系统平衡。",
+    "mainIdeaOptions": [
+      "mRNA 疗效只由编码序列决定，递送系统影响不大。",
+      "脂质纳米颗粒决定 mRNA 能否在保护与释放之间取得平衡，因此显著影响递送效果。",
+      "只要颗粒越稳定越好，递送效率就越高。",
+      "脂质纳米颗粒的唯一作用是让药物更便宜。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "mRNA 递送效果取决于脂质颗粒在体内保护、运输和细胞内释放之间的平衡，而不是仅由序列决定。",
+      "keywords": ["mRNA", "递送", "保护", "释放", "平衡"],
+      "trapNote": "如果你只写 mRNA 容易降解，那只是背景条件，还不是文章真正强调的系统平衡。"
+    },
+    "claimAnchors": [
+      { "id": "mrna-global", "text": "递送效果取决于保护与释放之间的系统平衡。", "scope": "global" },
+      { "id": "mrna-local", "text": "脂质纳米颗粒负责包裹并运输 mRNA。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "mr1", "text": "mRNA 容易降解，也难以直接穿过细胞膜。", "role": "background", "supportsClaimID": null },
+      { "id": "mr2", "text": "脂质纳米颗粒需要把 mRNA 包裹并运输到目标细胞附近。", "role": "evidence", "supportsClaimID": "mrna-local" },
+      { "id": "mr3", "text": "颗粒配方必须在保护与释放之间取得平衡。", "role": "claim", "supportsClaimID": null },
+      { "id": "mr4", "text": "粒径、电荷、脂质组合和组织分布会共同影响递送效果。", "role": "limitation", "supportsClaimID": "mrna-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "脂质颗粒需要同时兼顾体内稳定与细胞内释放。", "isTarget": true },
+      { "id": "r2", "text": "颗粒越稳定越好，不会带来释放问题。", "isTarget": false },
+      { "id": "r3", "text": "mRNA 递送不是只看编码序列。", "isTarget": true },
+      { "id": "r4", "text": "粒径、电荷和脂质组合都会影响递送结果。", "isTarget": true },
+      { "id": "r5", "text": "文章认为脂质颗粒只影响成本。", "isTarget": false }
+    ],
+    "recallKeywords": ["mRNA", "递送", "保护", "释放", "粒径"]
+  },
+  {
+    "id": "groundwater-managed-recharge",
+    "title": "人工回灌为何不能简单理解为把水灌回地下",
+    "domainTag": "水资源管理",
+    "difficulty": 3,
+    "structureType": "problemSolution",
+    "body": "在地下水超采地区，人工回灌常被视为直接补水的办法，但实际设计远比把水灌回地下复杂。不同含水层的渗透性、孔隙结构和化学环境差异很大，如果回灌水源与原有地下水成分不匹配，可能引发沉淀、堵塞或污染物迁移等问题。回灌位置和时机也很关键，因为某些区域补进去的水并不会长期停留在目标含水层，而会沿既有水力梯度迅速流失。因此，人工回灌的核心不是输入多少水，而是让水在合适地点、以合适水质进入合适的地下结构，并与抽取管理同步设计。",
+    "mainIdeaOptions": [
+      "人工回灌就是尽量把更多水灌回地下，越多越好。",
+      "人工回灌必须同时匹配水质、地层条件和抽取管理，关键不只是回灌水量。",
+      "只要地下水不足，任何地方都适合回灌。",
+      "人工回灌只需要考虑输水成本，不必考虑地下结构。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "人工回灌的成败取决于水质、地层与抽取制度是否匹配，重点不是单纯增加回灌量。",
+      "keywords": ["回灌", "水质", "地层", "抽取", "匹配"],
+      "trapNote": "如果你只写地下水超采需要补水，说明你抓到问题背景，却没抓到方案设计的约束。"
+    },
+    "claimAnchors": [
+      { "id": "recharge-global", "text": "人工回灌必须与水质、地层条件和抽取管理同步匹配。", "scope": "global" },
+      { "id": "recharge-local", "text": "不匹配的回灌水源可能引发堵塞、沉淀或污染迁移。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "gr1", "text": "不同含水层的渗透性、孔隙结构和化学环境差异很大。", "role": "background", "supportsClaimID": null },
+      { "id": "gr2", "text": "回灌水源与原有地下水成分不匹配时，可能引发堵塞或污染物迁移。", "role": "evidence", "supportsClaimID": "recharge-local" },
+      { "id": "gr3", "text": "人工回灌的核心不是输入多少水，而是多条件匹配。", "role": "claim", "supportsClaimID": null },
+      { "id": "gr4", "text": "某些区域补进去的水会沿既有水力梯度迅速流失。", "role": "limitation", "supportsClaimID": "recharge-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "人工回灌不能只看回灌水量。", "isTarget": true },
+      { "id": "r2", "text": "回灌水质与原有地下水不匹配可能产生问题。", "isTarget": true },
+      { "id": "r3", "text": "任何地方回灌的效果都差不多。", "isTarget": false },
+      { "id": "r4", "text": "回灌设计需要和抽取管理一起考虑。", "isTarget": true },
+      { "id": "r5", "text": "文章认为地下结构对回灌几乎没有影响。", "isTarget": false }
+    ],
+    "recallKeywords": ["回灌", "水质", "地层", "抽取", "含水层"]
+  },
+  {
+    "id": "screen-blue-light-sleep",
+    "title": "屏幕蓝光为何不是睡前失眠的唯一解释",
+    "domainTag": "行为科学",
+    "difficulty": 2,
+    "structureType": "compareContrast",
+    "body": "很多人把睡前玩手机导致入睡延迟全部归咎于蓝光，但真实原因更复杂。蓝光确实可能抑制褪黑素分泌，影响生理性困倦信号；不过，内容本身带来的情绪唤醒、社交互动和任务切换也会让大脑维持警觉。相比只降低屏幕亮度，减少高刺激内容和临睡前的持续互动，往往更能明显改善入睡过程。因此，蓝光管理有价值，但如果忽略内容唤醒和行为节奏，干预效果往往会被高估。",
+    "mainIdeaOptions": [
+      "睡前失眠完全由蓝光造成。",
+      "蓝光会影响睡意，但内容唤醒和互动节奏同样关键，不能只盯着光线。",
+      "只要把亮度调低，就一定能解决睡前失眠。",
+      "睡前使用手机与入睡时间无关。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "睡前手机影响睡眠既有蓝光因素，也有内容唤醒和互动节奏因素，因此不能只做单一光线干预。",
+      "keywords": ["蓝光", "内容", "唤醒", "互动", "睡眠"],
+      "trapNote": "如果你只写蓝光会抑制褪黑素，那还是局部机制，没有概括多因素框架。"
+    },
+    "claimAnchors": [
+      { "id": "screen-global", "text": "不能只盯着蓝光，还要处理内容唤醒和互动节奏。", "scope": "global" },
+      { "id": "screen-local", "text": "蓝光会影响褪黑素分泌和困倦信号。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "sc1", "text": "蓝光确实可能抑制褪黑素分泌，影响困倦信号。", "role": "evidence", "supportsClaimID": "screen-local" },
+      { "id": "sc2", "text": "情绪唤醒、社交互动和任务切换也会让大脑维持警觉。", "role": "evidence", "supportsClaimID": "screen-global" },
+      { "id": "sc3", "text": "蓝光管理有价值，但如果忽略内容唤醒和行为节奏，效果会被高估。", "role": "claim", "supportsClaimID": null },
+      { "id": "sc4", "text": "文章比较了光线因素与行为因素对睡眠的影响。", "role": "background", "supportsClaimID": null }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "蓝光并不是睡前入睡延迟的唯一因素。", "isTarget": true },
+      { "id": "r2", "text": "只要调低亮度，内容刺激就不重要了。", "isTarget": false },
+      { "id": "r3", "text": "内容唤醒和社交互动会维持警觉。", "isTarget": true },
+      { "id": "r4", "text": "蓝光可能通过影响褪黑素分泌作用于睡意。", "isTarget": true },
+      { "id": "r5", "text": "文章认为手机使用与睡眠没有关系。", "isTarget": false }
+    ],
+    "recallKeywords": ["蓝光", "内容", "唤醒", "互动", "褪黑素"]
+  },
+  {
+    "id": "urban-drainage-sponge",
+    "title": "海绵设施为何不能完全替代传统排水管网",
+    "domainTag": "城市基础设施",
+    "difficulty": 3,
+    "structureType": "problemSolution",
+    "body": "在暴雨治理讨论中，透水铺装、下沉绿地和雨水花园常被视为更自然的解决方案，有时甚至被理解成可以取代地下排水管网。实际上，海绵设施更擅长处理小到中等降雨时的就地滞蓄、下渗和削峰，而短时极端暴雨往往仍会在很短时间内产生超过土壤入渗能力的径流。若缺少足够的管网、调蓄空间和溢流路径，海绵设施本身也可能很快饱和。因此，关键并不是在自然设施和灰色基础设施之间二选一，而是让前者负责降低常态负荷、让后者承担极端条件下的兜底排放。",
+    "mainIdeaOptions": [
+      "海绵设施可以完全替代地下排水管网。",
+      "海绵设施适合削减常态雨洪负荷，但极端暴雨下仍需要传统管网兜底。",
+      "极端暴雨时，土壤入渗能力通常会变得更强。",
+      "城市暴雨治理只需要扩建管网，不必建设自然设施。"
+    ],
+    "mainIdeaAnswerIndex": 1,
+    "mainIdeaRubric": {
+      "idealSummary": "海绵设施和传统管网承担的是不同层级的任务，前者削减常态负荷，后者在极端暴雨下负责兜底。",
+      "keywords": ["海绵", "管网", "极端", "负荷", "兜底"],
+      "trapNote": "如果你只写海绵设施更自然，就把系统分工误写成了价值判断。"
+    },
+    "claimAnchors": [
+      { "id": "sponge-global", "text": "海绵设施与传统管网需要分工协同，而不是相互替代。", "scope": "global" },
+      { "id": "sponge-local", "text": "海绵设施更擅长处理小到中等降雨。", "scope": "local" }
+    ],
+    "evidenceItems": [
+      { "id": "sp1", "text": "海绵设施更擅长处理小到中等降雨时的就地滞蓄、下渗和削峰。", "role": "evidence", "supportsClaimID": "sponge-local" },
+      { "id": "sp2", "text": "短时极端暴雨会在很短时间内产生超过土壤入渗能力的径流。", "role": "evidence", "supportsClaimID": "sponge-global" },
+      { "id": "sp3", "text": "关键不是二选一，而是让两类设施分工协同。", "role": "claim", "supportsClaimID": null },
+      { "id": "sp4", "text": "若缺少足够的管网、调蓄空间和溢流路径，海绵设施也可能很快饱和。", "role": "limitation", "supportsClaimID": "sponge-global" }
+    ],
+    "recallPrompts": [
+      { "id": "r1", "text": "海绵设施更适合削减常态雨洪负荷。", "isTarget": true },
+      { "id": "r2", "text": "极端暴雨下仍需要传统管网承担兜底。", "isTarget": true },
+      { "id": "r3", "text": "海绵设施可以完全取代传统排水系统。", "isTarget": false },
+      { "id": "r4", "text": "极端暴雨可能超过土壤入渗能力。", "isTarget": true },
+      { "id": "r5", "text": "文章主张只建设灰色基础设施。", "isTarget": false }
+    ],
+    "recallKeywords": ["海绵", "管网", "极端", "入渗", "兜底"]
+  }
+]

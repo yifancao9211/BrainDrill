@@ -36,6 +36,11 @@ struct VisualSearchTrainingView: View {
             Text("核心指标：搜索斜率 (ms/项)")
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
+            if appModel.settings.adaptiveDifficultyEnabled {
+                Text("当前推荐档位 L\(appModel.adaptiveState(for: .visualSearch).recommendedStartLevel) · 每局 2 个 block")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
 
             Button {
                 appModel.startVisualSearchSession()
@@ -55,42 +60,53 @@ struct VisualSearchTrainingView: View {
 
     private func activeView(engine: VisualSearchEngine) -> some View {
         VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 4) {
-                    Text("找")
-                        .font(.system(.caption, design: .rounded))
+            VStack(spacing: 8) {
+                HStack(spacing: 16) {
+                    Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(BDColor.textSecondary)
+                    Text("L\(engine.currentLevel) · Block \(engine.currentBlock + 1)/\(engine.totalBlocks)")
+                        .font(.system(.caption2, design: .rounded, weight: .medium))
                         .foregroundStyle(.secondary)
-                    shapeView(shape: engine.target.shape, color: engine.target.color)
-                        .frame(width: 18, height: 18)
-                    Text("\(colorName(engine.target.color))\(shapeName(engine.target.shape))")
-                        .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(BDColor.visualSearchAccent)
+
+                    HStack(spacing: 4) {
+                        Text("找")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(BDColor.textSecondary)
+                        shapeView(shape: engine.target.shape, color: engine.target.color)
+                            .frame(width: 18, height: 18)
+                        Text("\(colorName(engine.target.color))\(shapeName(engine.target.shape))")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundStyle(BDColor.visualSearchAccent)
+                    }
                 }
+
+                BDFeedbackNote(text: feedbackText(engine), color: BDColor.visualSearchAccent)
             }
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.primary.opacity(0.03))
-
-                switch engine.phase {
-                case .fixation:
-                    Text("+")
-                        .font(.system(size: 36, weight: .light, design: .rounded))
-                        .foregroundStyle(.secondary)
-                case .display:
-                    if let trial = engine.currentTrial {
-                        searchFieldView(trial: trial)
+            BDTrainingStage(accent: BDColor.visualSearchAccent) {
+                ZStack {
+                    switch engine.phase {
+                    case .fixation:
+                        Text("+")
+                            .font(.system(size: 36, weight: .light, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    case .display:
+                        if let trial = engine.currentTrial {
+                            searchFieldView(trial: trial)
+                        }
+                    case .feedback(let correct):
+                        VStack(spacing: 8) {
+                            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .font(.system(size: 48))
+                                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+                            Text(correct ? "判断正确" : "重新检查目标是否存在")
+                                .font(.system(.callout, design: .rounded, weight: .medium))
+                                .foregroundStyle(BDColor.textSecondary)
+                        }
+                    default:
+                        Color.clear.frame(height: 1)
                     }
-                case .feedback(let correct):
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                default:
-                    Color.clear.frame(height: 1)
                 }
             }
             .frame(width: 400, height: 400)
@@ -141,12 +157,13 @@ struct VisualSearchTrainingView: View {
         case .idle:
             engine.beginTrial()
         case .fixation:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.fixationMs)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentSpec.fixationMs)) {
                 guard engine.phase == .fixation else { return }
                 engine.showDisplay()
             }
         case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.feedbackMs)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentSpec.feedbackMs)) {
+                guard case .feedback = engine.phase else { return }
                 engine.advanceToNext()
                 if engine.isComplete {
                     appModel.finalizeVisualSearchIfComplete()
@@ -155,6 +172,11 @@ struct VisualSearchTrainingView: View {
         case .iti:
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.randomITI())) {
                 engine.beginTrial()
+            }
+        case let .blockBreak(_, _, nextLevel):
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(550)) {
+                guard case .blockBreak = engine.phase else { return }
+                engine.startNextBlock(level: nextLevel)
             }
         default:
             break
@@ -200,18 +222,58 @@ struct VisualSearchTrainingView: View {
     }
 
     private func resultView(metrics: VisualSearchMetrics) -> some View {
-        VStack(spacing: 20) {
-            Text("视觉搜索完成")
-                .font(.system(.title2, design: .rounded, weight: .bold))
+        let feedback = resultFeedback(for: metrics)
+        return BDResultPanel(title: "视觉搜索完成", accent: BDColor.visualSearchAccent) {
             HStack(spacing: 16) {
+                VSResultCard(label: "结果", value: feedback.title, color: feedback.color)
                 VSResultCard(label: "搜索斜率", value: "\(Int(metrics.searchSlope * 1000))ms/项", color: BDColor.visualSearchAccent)
                 VSResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                VSResultCard(label: "有目标RT", value: "\(Int(metrics.presentRT * 1000))ms", color: BDColor.warm)
+                VSResultCard(label: "误报率", value: "\(Int(metrics.errorRate * 100))%", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
+            BDFeedbackNote(text: feedback.note, color: feedback.color)
+
             Button("关闭") { appModel.dismissVisualSearchResult() }
                 .buttonStyle(.bordered)
+        }
+    }
+
+    private func resultFeedback(for metrics: VisualSearchMetrics) -> (title: String, note: String, color: Color) {
+        if metrics.accuracy >= 0.85 && metrics.errorRate <= 0.15 {
+            return ("达标", "本轮搜索稳定，目标判断基本可靠。", BDColor.green)
+        }
+        if metrics.accuracy >= 0.7 && metrics.errorRate <= 0.3 {
+            return ("一般", "能找到大部分目标，但干扰抑制还不够稳。", BDColor.warm)
+        }
+        return ("失准", "这轮误判偏多，先稳住准确率再追速度。", BDColor.error)
+    }
+
+    private func feedbackText(_ engine: VisualSearchEngine) -> String {
+        switch engine.phase {
+        case .fixation:
+            return "准备进入搜索场"
+        case .display:
+            return "同时匹配颜色和形状"
+        case .feedback(let correct):
+            guard let trial = engine.currentTrial else {
+                return correct ? "正确" : "错误"
+            }
+            if correct {
+                return trial.targetPresent ? "目标存在，已正确锁定" : "目标不存在，已正确排除"
+            }
+            return trial.targetPresent ? "目标其实存在于搜索场中" : "本轮实际上没有目标"
+        case let .blockBreak(_, outcome, nextLevel):
+            switch outcome {
+            case .promote:
+                return "搜索效率提高，升到 L\(nextLevel)"
+            case .demote:
+                return "本 block 调整到 L\(nextLevel)"
+            case .stay:
+                return "本 block 保持 L\(nextLevel)"
+            }
+        default:
+            return coordinator.statusMessage
         }
     }
 }

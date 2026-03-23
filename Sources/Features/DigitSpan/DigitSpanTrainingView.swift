@@ -4,6 +4,7 @@ struct DigitSpanTrainingView: View {
     @Environment(AppModel.self) private var appModel
 
     private var coordinator: DigitSpanCoordinator { appModel.digitSpan }
+    private let feedbackDelayMs = 450
 
     @State private var userInput: [Int] = []
     @State private var selectedMode: DigitSpanMode = .forward
@@ -39,6 +40,13 @@ struct DigitSpanTrainingView: View {
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
+            VStack(spacing: 8) {
+                InfoPill(title: "起始广度 \(appModel.settings.digitSpanStartingLength)", accent: BDColor.digitSpanAccent)
+                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
+
             Picker("模式", selection: $selectedMode) {
                 ForEach(DigitSpanMode.allCases) { mode in
                     Text(mode.displayName).tag(mode)
@@ -66,24 +74,33 @@ struct DigitSpanTrainingView: View {
 
     private func activeView(engine: DigitSpanEngine) -> some View {
         VStack(spacing: 24) {
-            Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
 
-            switch engine.phase {
-            case .presenting:
-                presentingView(engine: engine)
-            case .recalling:
-                recallingView(engine: engine)
-            case .feedback(let correct):
-                feedbackView(correct: correct, engine: engine)
-            default:
-                EmptyView()
+                Text(phaseTitle(for: engine))
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+
+                Text(phaseSubtitle(for: engine))
+                    .font(.system(.callout, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
 
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.digitSpanAccent)
-                .frame(maxWidth: 300)
+            BDTrainingStage(accent: BDColor.digitSpanAccent) {
+                switch engine.phase {
+                case .presenting:
+                    presentingView(engine: engine)
+                case .recalling:
+                    recallingView(engine: engine)
+                case .feedback(let correct):
+                    feedbackView(correct: correct, engine: engine)
+                default:
+                    EmptyView()
+                }
+            }
+
+            staircaseStatus(engine: engine)
 
             Button("取消") { appModel.cancelDigitSpanSession() }
                 .font(.system(.callout, design: .rounded, weight: .medium))
@@ -94,10 +111,6 @@ struct DigitSpanTrainingView: View {
 
     private func presentingView(engine: DigitSpanEngine) -> some View {
         VStack(spacing: 16) {
-            Text("记住这些数字")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-
             if let trial = engine.currentTrial, engine.presentingDigitIndex < trial.length {
                 Text("\(trial.sequence[engine.presentingDigitIndex])")
                     .font(.system(size: 72, weight: .bold, design: .rounded))
@@ -105,21 +118,20 @@ struct DigitSpanTrainingView: View {
                     .id("digit-\(engine.presentingDigitIndex)")
                     .transition(.scale.combined(with: .opacity))
                     .animation(.easeInOut(duration: 0.2), value: engine.presentingDigitIndex)
-                    .onAppear {
-                        scheduleDigitAdvance(engine: engine)
-                    }
             }
+        }
+        .task(id: presentationTaskID(for: engine)) {
+            await scheduleDigitAdvance(engine: engine)
         }
     }
 
-    private func scheduleDigitAdvance(engine: DigitSpanEngine) {
+    private func scheduleDigitAdvance(engine: DigitSpanEngine) async {
         let ms = engine.config.presentationMs
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(ms)) {
-            guard engine.phase == .presenting else { return }
-            if !engine.advancePresentingDigit() {
-                engine.finishPresenting()
-                userInput = []
-            }
+        try? await Task.sleep(nanoseconds: UInt64(ms) * 1_000_000)
+        guard engine.phase == .presenting else { return }
+        if !engine.advancePresentingDigit() {
+            engine.finishPresenting()
+            userInput = []
         }
     }
 
@@ -127,6 +139,10 @@ struct DigitSpanTrainingView: View {
         VStack(spacing: 16) {
             Text(engine.config.mode == .forward ? "请正序输入" : "请倒序输入")
                 .font(.system(.body, design: .rounded))
+                .foregroundStyle(.secondary)
+
+            Text("已输入 \(userInput.count)/\(targetInputCount(for: engine))")
+                .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
@@ -146,7 +162,7 @@ struct DigitSpanTrainingView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
                 ForEach(0..<10, id: \.self) { digit in
                     Button {
-                        userInput.append(digit)
+                        appendDigit(digit, engine: engine)
                     } label: {
                         Text("\(digit)")
                             .font(.system(.title2, design: .rounded, weight: .semibold))
@@ -154,6 +170,7 @@ struct DigitSpanTrainingView: View {
                             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(BDColor.tileDefault))
                     }
                     .buttonStyle(.plain)
+                    .disabled(userInput.count >= targetInputCount(for: engine))
                 }
             }
             .frame(maxWidth: 300)
@@ -175,7 +192,7 @@ struct DigitSpanTrainingView: View {
                 .disabled(userInput.isEmpty)
 
                 Button {
-                    _ = coordinator.submitResponse(userInput)
+                    submitResponse(engine: engine)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark")
@@ -211,21 +228,23 @@ struct DigitSpanTrainingView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Text("将自动进入下一轮")
+                .font(.system(.caption, design: .rounded, weight: .medium))
+                .foregroundStyle(.secondary)
+
             Button("继续") {
-                userInput = []
-                if let result = coordinator.advanceAfterFeedback() {
-                    appModel.recordDigitSpanResult(result)
-                }
+                advanceAfterFeedback()
             }
             .font(.system(.callout, design: .rounded, weight: .semibold))
             .buttonStyle(.bordered)
         }
+        .task(id: feedbackTaskID(for: engine, correct: correct)) {
+            await scheduleAutoAdvanceAfterFeedback(engine: engine, correct: correct)
+        }
     }
 
     private func resultView(metrics: DigitSpanMetrics) -> some View {
-        VStack(spacing: 20) {
-            Text("数字广度完成")
-                .font(.system(.title2, design: .rounded, weight: .bold))
+        BDResultPanel(title: "数字广度完成", accent: BDColor.digitSpanAccent) {
             HStack(spacing: 16) {
                 DSResultCard(label: "最大广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.digitSpanAccent)
                 DSResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -233,10 +252,114 @@ struct DigitSpanTrainingView: View {
             }
             .frame(maxWidth: 400)
 
+            if appModel.settings.adaptiveDifficultyEnabled {
+                Text("下次训练将从广度 \(appModel.settings.digitSpanStartingLength) 开始。")
+                    .font(.system(.callout, design: .rounded))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
+
             Button("关闭") { appModel.dismissDigitSpanResult() }
                 .buttonStyle(.bordered)
         }
     }
+
+    private func staircaseStatus(engine: DigitSpanEngine) -> some View {
+        HStack(spacing: 12) {
+            staircaseBadge(
+                title: "升级进度",
+                value: "\(engine.consecutiveCorrectCount)/\(engine.advanceThreshold)",
+                color: BDColor.green
+            )
+            staircaseBadge(
+                title: "结束计数",
+                value: "\(engine.consecutiveWrongCount)/\(engine.endThreshold)",
+                color: BDColor.error
+            )
+        }
+    }
+
+    private func appendDigit(_ digit: Int, engine: DigitSpanEngine) {
+        guard engine.phase == .recalling else { return }
+        let targetCount = targetInputCount(for: engine)
+        guard userInput.count < targetCount else { return }
+        userInput.append(digit)
+        if userInput.count == targetCount {
+            submitResponse(engine: engine)
+        }
+    }
+
+    private func submitResponse(engine: DigitSpanEngine) {
+        guard engine.phase == .recalling, !userInput.isEmpty else { return }
+        _ = coordinator.submitResponse(userInput)
+    }
+
+    private func advanceAfterFeedback() {
+        userInput = []
+        if let result = coordinator.advanceAfterFeedback() {
+            appModel.recordDigitSpanResult(result)
+        }
+    }
+
+    private func scheduleAutoAdvanceAfterFeedback(engine: DigitSpanEngine, correct: Bool) async {
+        let trialIndex = engine.trialIndex
+        try? await Task.sleep(nanoseconds: UInt64(feedbackDelayMs) * 1_000_000)
+        guard engine.phase == .feedback(correct: correct), engine.trialIndex == trialIndex else { return }
+        advanceAfterFeedback()
+    }
+
+    private func targetInputCount(for engine: DigitSpanEngine) -> Int {
+        engine.currentTrial?.length ?? engine.currentLength
+    }
+
+    private func presentationTaskID(for engine: DigitSpanEngine) -> String {
+        "digit-present-\(engine.trialIndex)-\(engine.presentingDigitIndex)-\(engine.currentTrial?.id ?? -1)"
+    }
+
+    private func feedbackTaskID(for engine: DigitSpanEngine, correct: Bool) -> String {
+        "digit-feedback-\(engine.trialIndex)-\(correct)"
+    }
+
+    private func phaseTitle(for engine: DigitSpanEngine) -> String {
+        switch engine.phase {
+        case .presenting:
+            "记住序列"
+        case .recalling:
+            "开始复述"
+        case .feedback(let correct):
+            correct ? "回答正确" : "回答错误"
+        default:
+            ""
+        }
+    }
+
+    private func phaseSubtitle(for engine: DigitSpanEngine) -> String {
+        switch engine.phase {
+        case .presenting:
+            "数字会自动逐个展示"
+        case .recalling:
+            engine.config.mode == .forward ? "按原顺序输入数字" : "按倒序输入数字"
+        case .feedback(let correct):
+            correct ? "保持节奏，马上进入下一轮" : "查看答案后会自动继续"
+        default:
+            ""
+        }
+    }
+}
+
+@MainActor
+private func staircaseBadge(title: String, value: String, color: Color) -> some View {
+    VStack(spacing: 4) {
+        Text(title)
+            .font(.system(.caption2, design: .rounded, weight: .semibold))
+            .foregroundStyle(BDColor.textSecondary)
+        Text(value)
+            .font(.system(.callout, design: .rounded, weight: .bold))
+            .foregroundStyle(color)
+            .monospacedDigit()
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 10)
+    .bdPanelSurface(.secondary, cornerRadius: 14)
 }
 
 private struct DSResultCard: View {

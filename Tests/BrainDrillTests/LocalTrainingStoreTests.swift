@@ -8,27 +8,14 @@ struct LocalTrainingStoreTests {
         let tempRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = LocalTrainingStore(baseURL: tempRoot)
 
-        let settings = TrainingSettings(
-            showHints: false,
-            enableSoundFeedback: true,
-            preferredDifficulty: .challenge5x5,
-            adaptiveDifficultyEnabled: true,
-            adaptiveConfig: .init(),
-            schulteSetRep: .init(),
-            showFixationDot: true,
-            flankerStimulusDurationMs: 150,
-            nBackStartingN: 2,
-            digitSpanStartingLength: 3,
-            digitSpanPresentationMs: 1000,
-            choiceRTChoiceCount: 2,
-            choiceRTTrialsPerBlock: 30,
-            changeDetectionInitialSetSize: 3,
-            changeDetectionEncodingMs: 500,
-            changeDetectionRetentionMs: 900,
-            visualSearchSetSizes: [8, 16, 24],
-            visualSearchTrialsPerSize: 10,
-            dailyPlanEnabled: true
-        )
+        var settings = TrainingSettings.default
+        settings.showHints = false
+        settings.preferredDifficulty = .challenge5x5
+        settings.adaptiveDifficultyEnabled = true
+        settings.flankerStimulusDurationMs = 150
+        settings.nBackStartingN = 2
+        settings.nBackStimulusDurationMs = 900
+        settings.nBackISIMs = 1800
         let session = SessionResult(
             module: .schulte,
             startedAt: Date(timeIntervalSince1970: 10),

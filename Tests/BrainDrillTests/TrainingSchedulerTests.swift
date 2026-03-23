@@ -12,45 +12,60 @@ struct TrainingSchedulerTests {
     @Test func prioritizesUntrainedModules() {
         let now = Date()
         let sessions = [
-            SessionResult(module: .choiceRT, startedAt: now, endedAt: now, duration: 60,
-                          metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.35, rtStandardDeviation: 0.04, accuracy: 0.90, postErrorSlowing: 0.02, anticipationCount: 0, choiceCount: 2))),
+            SessionResult(module: .mainIdea, startedAt: now, endedAt: now, duration: 60,
+                          metrics: .mainIdea(MainIdeaMetrics(passageID: "p1", difficulty: 1, isCorrect: true, selectedIndex: 1, readingDuration: 40, responseDuration: 20))),
         ]
         let recs = TrainingScheduler.recommend(sessions: sessions, allModules: TrainingModule.allCases)
         let firstModule = recs.first?.module
-        #expect(firstModule != .choiceRT)
+        #expect(firstModule != .mainIdea)
     }
 
     @Test func prioritizesDecliningModules() {
         let now = Date()
         var sessions: [SessionResult] = []
         for i in 0..<5 {
-            let rt = 0.30 + Double(i) * 0.05
+            let isCorrect = i < 2
             sessions.append(SessionResult(
-                module: .choiceRT,
+                module: .mainIdea,
                 startedAt: now.addingTimeInterval(Double(-i) * 86400),
                 endedAt: now.addingTimeInterval(Double(-i) * 86400 + 60),
                 duration: 60,
-                metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: rt, rtStandardDeviation: 0.04, accuracy: 0.90, postErrorSlowing: 0.02, anticipationCount: 0, choiceCount: 2))
+                metrics: .mainIdea(MainIdeaMetrics(
+                    passageID: "p\(i)",
+                    difficulty: 1,
+                    isCorrect: isCorrect,
+                    selectedIndex: 0,
+                    readingDuration: 40,
+                    responseDuration: 20
+                ))
             ))
         }
         for i in 0..<5 {
             sessions.append(SessionResult(
-                module: .goNoGo,
+                module: .evidenceMap,
                 startedAt: now.addingTimeInterval(Double(-i) * 86400),
                 endedAt: now.addingTimeInterval(Double(-i) * 86400 + 90),
                 duration: 90,
-                metrics: .goNoGo(GoNoGoMetrics(totalTrials: 60, goRT: 0.35, goAccuracy: 0.95, noGoAccuracy: 0.85, dPrime: 2.5))
+                metrics: .evidenceMap(EvidenceMapMetrics(
+                    passageID: "e\(i)",
+                    difficulty: 2,
+                    totalItems: 4,
+                    correctItems: 3,
+                    falseSelections: 1,
+                    accuracy: 0.75,
+                    responseDuration: 24
+                ))
             ))
         }
 
-        let recs = TrainingScheduler.recommend(sessions: sessions, allModules: [.choiceRT, .goNoGo])
-        let choiceRTPriority = recs.first { $0.module == .choiceRT }?.priority ?? 0
-        let goNoGoPriority = recs.first { $0.module == .goNoGo }?.priority ?? 0
-        #expect(choiceRTPriority >= goNoGoPriority)
+        let recs = TrainingScheduler.recommend(sessions: sessions, allModules: [.mainIdea, .evidenceMap])
+        let mainIdeaPriority = recs.first { $0.module == .mainIdea }?.priority ?? 0
+        let evidencePriority = recs.first { $0.module == .evidenceMap }?.priority ?? 0
+        #expect(mainIdeaPriority >= evidencePriority)
     }
 
     @Test func recommendationHasReason() {
-        let recs = TrainingScheduler.recommend(sessions: [], allModules: [.digitSpan])
+        let recs = TrainingScheduler.recommend(sessions: [], allModules: [.delayedRecall])
         #expect(recs.first?.reason != nil)
     }
 

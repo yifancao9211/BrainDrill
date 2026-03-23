@@ -24,6 +24,32 @@ enum TrialExporter {
 
     private static func metricsToKeyValues(_ metrics: ModuleMetrics) -> [(String, String)] {
         switch metrics {
+        case let .mainIdea(m):
+            return [
+                ("passageID", m.passageID),
+                ("difficulty", "\(m.difficulty)"),
+                ("isCorrect", m.isCorrect ? "1" : "0"),
+                ("readingDuration", String(format: "%.4f", m.readingDuration)),
+                ("responseDuration", String(format: "%.4f", m.responseDuration)),
+            ]
+        case let .evidenceMap(m):
+            return [
+                ("passageID", m.passageID),
+                ("difficulty", "\(m.difficulty)"),
+                ("correctItems", "\(m.correctItems)"),
+                ("totalItems", "\(m.totalItems)"),
+                ("accuracy", String(format: "%.4f", m.accuracy)),
+                ("falseSelections", "\(m.falseSelections)"),
+            ]
+        case let .delayedRecall(m):
+            return [
+                ("passageID", m.passageID),
+                ("difficulty", "\(m.difficulty)"),
+                ("recalledTargets", "\(m.recalledTargets)"),
+                ("totalTargets", "\(m.totalTargets)"),
+                ("accuracy", String(format: "%.4f", m.accuracy)),
+                ("intrusionCount", "\(m.intrusionCount)"),
+            ]
         case let .schulte(m):
             return [
                 ("difficulty", m.difficulty.rawValue),

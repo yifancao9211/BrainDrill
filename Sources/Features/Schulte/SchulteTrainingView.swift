@@ -5,6 +5,14 @@ struct SchulteTrainingView: View {
 
     private var coordinator: SchulteCoordinator { appModel.schulte }
 
+    private var recommendedDifficulty: SchulteDifficulty {
+        if appModel.settings.adaptiveDifficultyEnabled {
+            let level = min(max(appModel.adaptiveState(for: .schulte).recommendedStartLevel, 1), SchulteDifficulty.allCases.count)
+            return SchulteDifficulty.allCases[level - 1]
+        }
+        return appModel.settings.preferredDifficulty
+    }
+
     var body: some View {
         ZStack {
             if let engine = coordinator.activeEngine {
@@ -30,59 +38,51 @@ struct SchulteTrainingView: View {
     // MARK: - Idle
 
     private var idleView: some View {
-        VStack(spacing: 28) {
+        VStack {
             Spacer()
 
-            VStack(spacing: 16) {
-                Image(systemName: "square.grid.3x3.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(BDColor.primaryBlue.opacity(0.6))
+            BDTrainingStage(accent: BDColor.primaryBlue) {
+                VStack(spacing: 18) {
+                    Image(systemName: "square.grid.3x3.fill")
+                        .font(.system(size: 42))
+                        .foregroundStyle(BDColor.primaryBlue)
 
-                Text("舒尔特方格训练")
-                    .font(.system(.title2, design: .rounded, weight: .semibold))
+                    VStack(spacing: 8) {
+                        Text("舒尔特方格训练")
+                            .font(.system(.title2, design: .rounded, weight: .semibold))
 
-                Text("当前难度：\(appModel.settings.preferredDifficulty.displayName)")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.secondary)
-
-                if appModel.settings.showFixationDot {
-                    HStack(spacing: 6) {
-                        Circle().fill(.red).frame(width: 8, height: 8)
-                        Text("中心凝视点已开启 — 目光锁定中心，用周边视觉找数字")
+                        Text("当前推荐难度：\(recommendedDifficulty.displayName)")
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(BDColor.textSecondary)
                     }
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(.secondary)
-                }
 
-                let cfg = appModel.settings.schulteSetRep
-                Text("\(cfg.setsPerSession)组 × \(cfg.repsPerSet)次/组")
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                if appModel.settings.adaptiveDifficultyEnabled {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                        Text("自动升级已开启")
+                    let cfg = appModel.settings.schulteSetRep
+                    HStack(spacing: 10) {
+                        InfoPill(title: "\(cfg.setsPerSession)组 × \(cfg.repsPerSet)次/组", accent: BDColor.primaryBlue)
+                        if appModel.settings.adaptiveDifficultyEnabled {
+                            InfoPill(title: "自动升级已开启", accent: BDColor.gold)
+                        }
                     }
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.gold)
-                }
-            }
 
-            Button {
-                appModel.startSchulteSession()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    if appModel.settings.showFixationDot {
+                        HStack(spacing: 8) {
+                            Circle().fill(.red).frame(width: 8, height: 8)
+                            Text("中心凝视点已开启，目光锁定中心，用周边视觉找数字。")
+                        }
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(BDColor.textSecondary)
+                    }
+
+                    Button("开始训练") {
+                        appModel.startSchulteSession()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40)
-                .padding(.vertical, 16)
-                .background(Capsule(style: .continuous).fill(BDGradient.primaryBlue))
+                .frame(maxWidth: 520)
+                .padding(.vertical, 10)
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: 720)
 
             Spacer()
         }
@@ -92,26 +92,31 @@ struct SchulteTrainingView: View {
     // MARK: - Rest
 
     private var restView: some View {
-        VStack(spacing: 24) {
+        VStack {
             Spacer()
 
-            Text("休息中")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
+            BDTrainingStage(accent: BDColor.primaryBlue) {
+                VStack(spacing: 16) {
+                    Text("休息中")
+                        .font(.system(.title2, design: .rounded, weight: .semibold))
 
-            Text("\(coordinator.restCountdown)")
-                .font(.system(size: 64, weight: .bold, design: .rounded))
-                .foregroundStyle(BDColor.primaryBlue)
-                .monospacedDigit()
+                    Text("\(coordinator.restCountdown)")
+                        .font(.system(size: 60, weight: .bold, design: .rounded))
+                        .foregroundStyle(BDColor.primaryBlue)
+                        .monospacedDigit()
 
-            Text("第\(coordinator.currentSet + 1)组 第\(coordinator.currentRep + 1)次 即将开始")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
+                    Text("第\(coordinator.currentSet + 1)组 第\(coordinator.currentRep + 1)次 即将开始")
+                        .font(.system(.body, design: .rounded))
+                        .foregroundStyle(BDColor.textSecondary)
 
-            Button("跳过休息") {
-                coordinator.skipRest(settings: appModel.settings)
+                    Button("跳过休息") {
+                        coordinator.skipRest(settings: appModel.settings)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.vertical, 8)
             }
-            .font(.system(.callout, design: .rounded, weight: .medium))
-            .buttonStyle(.bordered)
+            .frame(maxWidth: 520)
 
             Spacer()
         }
@@ -121,30 +126,28 @@ struct SchulteTrainingView: View {
     // MARK: - Active Session
 
     private func activeSessionView(engine: SchulteEngine) -> some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 14) {
             sessionStatusBar(engine: engine)
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
 
-            Spacer(minLength: 8)
-
-            ZStack {
-                gridView(engine: engine)
-                if engine.config.showFixationDot {
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 10, height: 10)
-                        .allowsHitTesting(false)
+            BDTrainingStage(accent: BDColor.primaryBlue) {
+                ZStack {
+                    gridView(engine: engine)
+                    if engine.config.showFixationDot {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 10, height: 10)
+                            .allowsHitTesting(false)
+                    }
                 }
             }
-            .padding(.horizontal, 20)
-
-            Spacer(minLength: 8)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             sessionBottomBar(engine: engine)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -171,11 +174,7 @@ struct SchulteTrainingView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(BDColor.cardStroke, lineWidth: 1))
-        )
+        .bdPanelSurface(.primary, cornerRadius: 14)
     }
 
     private func gridView(engine: SchulteEngine) -> some View {
@@ -223,11 +222,7 @@ struct SchulteTrainingView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(BDColor.cardStroke, lineWidth: 1))
-        )
+        .bdPanelSurface(.primary, cornerRadius: 14)
     }
 }
 
@@ -299,7 +294,12 @@ private struct SchulteTileButton: View {
         if isCompleted {
             RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDColor.tileCompleted)
         } else if isTarget {
-            RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDGradient.primaryBlue).shadow(color: BDColor.primaryBlue.opacity(0.3), radius: 6, y: 2)
+            RoundedRectangle(cornerRadius: r, style: .continuous)
+                .fill(BDColor.primaryBlue.opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: r, style: .continuous)
+                        .stroke(BDColor.primaryBlue.opacity(0.18), lineWidth: 1)
+                )
         } else if let idx = distractionColorIndex {
             RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDColor.distractionColors[idx].opacity(0.25))
                 .overlay(RoundedRectangle(cornerRadius: r, style: .continuous).stroke(BDColor.distractionColors[idx].opacity(0.4), lineWidth: 1.5))
@@ -335,7 +335,7 @@ private struct SchulteResultOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(appeared ? 0.35 : 0).ignoresSafeArea().onTapGesture { dismiss() }
-            VStack(spacing: 20) {
+            BDResultPanel(title: "第\(summary.setIndex + 1)组 第\(summary.repIndex + 1)次 完成", accent: BDColor.primaryBlue) {
                 if summary.didSetPersonalBest {
                     HStack(spacing: 8) {
                         Image(systemName: "trophy.fill")
@@ -346,9 +346,6 @@ private struct SchulteResultOverlay: View {
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(Capsule().fill(BDColor.gold.opacity(0.12)))
                 }
-
-                Text("第\(summary.setIndex + 1)组 第\(summary.repIndex + 1)次 完成")
-                    .font(.system(.title3, design: .rounded, weight: .bold))
 
                 HStack(spacing: 16) {
                     ResultMetric(label: "用时", value: appModel.formattedDuration(summary.result.duration), color: BDColor.primaryBlue)
@@ -365,27 +362,16 @@ private struct SchulteResultOverlay: View {
                 }
 
                 HStack(spacing: 16) {
-                    Button { dismiss() } label: {
-                        Text("继续").font(.system(.body, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white).padding(.horizontal, 28).padding(.vertical, 12)
-                            .background(Capsule().fill(BDGradient.primaryBlue))
-                    }
-                    .buttonStyle(.plain)
+                    Button("继续") { dismiss() }
+                        .buttonStyle(.borderedProminent)
 
-                    Button { appModel.cancelSchulteSession(); dismiss() } label: {
-                        Text("结束训练").font(.system(.body, design: .rounded, weight: .medium))
-                            .foregroundStyle(.secondary).padding(.horizontal, 20).padding(.vertical, 12)
+                    Button("结束训练") {
+                        appModel.cancelSchulteSession()
+                        dismiss()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.bordered)
                 }
             }
-            .padding(28)
-            .frame(maxWidth: 420)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.regularMaterial)
-                    .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(BDColor.cardStroke, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.15), radius: 30, y: 10)
-            )
             .scaleEffect(appeared ? 1 : 0.92).opacity(appeared ? 1 : 0)
         }
         .onAppear { withAnimation(.spring(duration: 0.4, bounce: 0.25)) { appeared = true } }

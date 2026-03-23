@@ -5,14 +5,14 @@ options:
 settings:
   base:
     SWIFT_VERSION: 6.0
-    MACOSX_DEPLOYMENT_TARGET: 14.0
+    MACOSX_DEPLOYMENT_TARGET: 26.0
     MARKETING_VERSION: 0.1.0
     CURRENT_PROJECT_VERSION: 1
 targets:
   BrainDrill:
     type: application
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "26.0"
     sources:
       - path: Sources
       - path: Resources
@@ -32,7 +32,7 @@ targets:
   BrainDrillTests:
     type: bundle.unit-test
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "26.0"
     sources:
       - path: Tests/BrainDrillTests
     settings:

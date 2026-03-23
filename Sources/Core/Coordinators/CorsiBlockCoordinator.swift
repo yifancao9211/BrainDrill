@@ -9,10 +9,14 @@ final class CorsiBlockCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
-    private var sessionConditions = SessionConditions()
+    private(set) var sessionConditions = SessionConditions()
 
-    func startSession(mode: CorsiBlockMode = .forward) {
-        let config = CorsiBlockSessionConfig(mode: mode)
+    func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState = .default(for: .corsiBlock), mode: CorsiBlockMode = .forward) {
+        let startingLength = settings.adaptiveDifficultyEnabled ? min(max(adaptiveState.recommendedStartLevel, 2), 8) : settings.corsiBlockStartingLength
+        let config = CorsiBlockSessionConfig(
+            startingLength: startingLength,
+            mode: mode
+        )
         engine = CorsiBlockEngine(config: config)
         lastResult = nil
         sessionConditions = SessionConditions(

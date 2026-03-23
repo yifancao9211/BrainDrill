@@ -9,13 +9,20 @@ final class GoNoGoCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
-    private var sessionConditions = SessionConditions()
+    private(set) var sessionConditions = SessionConditions()
 
-    func startSession(settings: TrainingSettings) {
-        let config = GoNoGoSessionConfig()
+    func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState = .default(for: .goNoGo)) {
+        let startLevel = adaptiveState.recommendedStartLevel
+        let config = settings.adaptiveDifficultyEnabled
+            ? GoNoGoSessionConfig(blockCount: 2, startingLevel: startLevel)
+            : GoNoGoSessionConfig()
         engine = GoNoGoEngine(config: config)
         lastResult = nil
-        sessionConditions = SessionConditions(feedbackEnabled: true, adaptiveEnabled: false)
+        sessionConditions = SessionConditions(
+            feedbackEnabled: true,
+            adaptiveEnabled: settings.adaptiveDifficultyEnabled,
+            customParameters: ["startingLevel": "\(engine?.currentLevel ?? startLevel)"]
+        )
         statusMessage = "绿色 → 点击，红色 → 不动"
     }
 
@@ -43,13 +50,18 @@ final class GoNoGoCoordinator {
         guard let engine else { return nil }
         let metrics = engine.computeMetrics()
         let now = Date()
+        var conditions = sessionConditions
+        conditions.customParameters["finalLevel"] = "\(engine.currentLevel)"
+        conditions.customParameters["recommendedStartLevel"] = "\(engine.currentLevel)"
+        conditions.customParameters["levelTrace"] = engine.blockLevelHistory.map(String.init).joined(separator: ",")
+        conditions.customParameters["blockOutcomes"] = engine.blockOutcomes.map(\.rawValue).joined(separator: ",")
         let result = SessionResult(
             module: .goNoGo,
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
             metrics: .goNoGo(metrics),
-            conditions: sessionConditions
+            conditions: conditions
         )
         lastResult = result
         statusMessage = "Go/No-Go 完成 — d' \(String(format: "%.2f", metrics.dPrime))"

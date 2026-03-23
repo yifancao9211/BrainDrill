@@ -27,6 +27,14 @@ final class DigitSpanEngine {
 
     var isComplete: Bool { phase == .completed }
 
+    var consecutiveCorrectCount: Int { consecutiveCorrect }
+
+    var consecutiveWrongCount: Int { consecutiveWrong }
+
+    var advanceThreshold: Int { config.consecutiveCorrectToAdvance }
+
+    var endThreshold: Int { config.consecutiveWrongToDemote }
+
     var completionFraction: Double {
         guard !results.isEmpty else { return 0 }
         return Double(results.count) / Double(results.count + 3)

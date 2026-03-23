@@ -27,6 +27,14 @@ final class CorsiBlockEngine {
 
     var isComplete: Bool { phase == .completed }
 
+    var consecutiveCorrectCount: Int { consecutiveCorrect }
+
+    var consecutiveWrongCount: Int { consecutiveWrong }
+
+    var advanceThreshold: Int { config.consecutiveCorrectToAdvance }
+
+    var endThreshold: Int { config.consecutiveWrongToDemote }
+
     var completionFraction: Double {
         guard !results.isEmpty else { return 0 }
         return Double(results.count) / Double(results.count + 3)
@@ -109,14 +117,6 @@ final class CorsiBlockEngine {
     }
 
     private func generateSequence(length: Int) -> [Int] {
-        var seq: [Int] = []
-        for _ in 0..<length {
-            var idx: Int
-            repeat {
-                idx = Int.random(in: 0..<config.gridSize)
-            } while idx == seq.last
-            seq.append(idx)
-        }
-        return seq
+        Array((0..<config.gridSize).shuffled().prefix(length))
     }
 }

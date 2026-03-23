@@ -1,12 +1,29 @@
 import Foundation
 import Observation
 
+enum ModuleFeedbackStatus: Equatable {
+    case noData
+    case success
+    case warning
+    case error
+
+    var shortLabel: String {
+        switch self {
+        case .noData: "未训练"
+        case .success: "达标"
+        case .warning: "一般"
+        case .error: "失准"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppModel {
-    var selectedRoute: AppRoute = .dailyPlan
+    var selectedRoute: AppRoute = .home
     var settings: TrainingSettings
     var sessions: [SessionResult]
+    var adaptiveStates: [TrainingModule: ModuleAdaptiveState]
     var lastPersistenceError: String?
 
     let schulte: SchulteCoordinator
@@ -20,13 +37,7 @@ final class AppModel {
     let corsiBlock: CorsiBlockCoordinator
     let stopSignal: StopSignalCoordinator
 
-    // AI Chat
-    var chatMessages: [ChatMessage] = []
-    var isChatLoading = false
-    var isChatPanelOpen = false
-
     @ObservationIgnored private let store: any TrainingStore
-    @ObservationIgnored private var aiService: AIAnalystService!
 
     init(store: any TrainingStore) {
         self.store = store
@@ -42,8 +53,10 @@ final class AppModel {
         self.stopSignal = StopSignalCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
         self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
-        self.aiService = AIAnalystService(baseURL: settings.aiBaseURL, apiKey: settings.aiAPIKey)
-        self.chatMessages = (try? store.loadChatHistory().messages) ?? []
+        let loadedAdaptiveStates = (try? store.loadAdaptiveStates()) ?? [:]
+        self.adaptiveStates = TrainingModule.allCases.reduce(into: [TrainingModule: ModuleAdaptiveState]()) { partial, module in
+            partial[module] = loadedAdaptiveStates[module] ?? .default(for: module)
+        }
     }
 
     var statistics: TrainingStatistics {
@@ -54,10 +67,52 @@ final class AppModel {
         store.storageURL.path
     }
 
+    var skillProfile: AppSkillProfile {
+        AppSkillProfile.compute(from: adaptiveStates)
+    }
+
     var isAnyModuleActive: Bool {
         schulte.isTrainingActive || flanker.isActive || goNoGo.isActive || nBack.isActive
             || digitSpan.isActive || choiceRT.isActive || changeDetection.isActive || visualSearch.isActive
             || corsiBlock.isActive || stopSignal.isActive
+    }
+
+    var isSelectedTrainingActive: Bool {
+        switch selectedRoute {
+        case .mainIdea, .evidenceMap, .delayedRecall:
+            false
+        case .schulte:
+            schulte.isTrainingActive || schulte.isResting
+        case .nBack:
+            nBack.isActive
+        case .visualSearch:
+            visualSearch.isActive
+        default:
+            false
+        }
+    }
+
+    var currentStatusMessage: String {
+        switch selectedRoute {
+        case .mainIdea:
+            "抓一篇短文的主旨"
+        case .evidenceMap:
+            "判断结论、证据与限制"
+        case .delayedRecall:
+            "延迟后提取关键点"
+        case .schulte:
+            schulte.statusMessage
+        case .nBack:
+            nBack.statusMessage
+        case .visualSearch:
+            visualSearch.statusMessage
+        case .home:
+            "查看阅读主线、支撑训练与关键统计"
+        case .history:
+            "按模块过滤历史训练记录"
+        case .settings:
+            "调整训练参数与应用配置"
+        }
     }
 
     var cognitiveProfile: CognitiveProfile {
@@ -66,6 +121,61 @@ final class AppModel {
 
     var schulteSessions: [SessionResult] {
         sessions.filter { $0.module == .schulte }
+    }
+
+    func latestSession(for module: TrainingModule) -> SessionResult? {
+        sessions.first { $0.module == module }
+    }
+
+    func feedbackStatus(for module: TrainingModule) -> ModuleFeedbackStatus {
+        guard let session = latestSession(for: module) else { return .noData }
+
+        switch session.metrics {
+        case let .mainIdea(metrics):
+            return metrics.isCorrect ? .success : .error
+        case let .evidenceMap(metrics):
+            if metrics.accuracy >= 0.85 && metrics.mappingAccuracy >= 0.75 {
+                return .success
+            }
+            if metrics.accuracy >= 0.65 && metrics.mappingAccuracy >= 0.5 {
+                return .warning
+            }
+            return .error
+        case let .delayedRecall(metrics):
+            if metrics.accuracy >= 0.8 && metrics.freeRecallCoverage >= 0.4 {
+                return .success
+            }
+            if metrics.accuracy >= 0.55 {
+                return .warning
+            }
+            return .error
+        case let .schulte(metrics):
+            if metrics.mistakeCount == 0 {
+                return .success
+            }
+            if metrics.mistakeCount <= 2 {
+                return .warning
+            }
+            return .error
+        case let .nBack(metrics):
+            if metrics.dPrime >= 1.2 && metrics.hitRate >= 0.7 && metrics.falseAlarmRate <= 0.2 {
+                return .success
+            }
+            if metrics.dPrime >= 0.6 && metrics.hitRate >= 0.55 {
+                return .warning
+            }
+            return .error
+        case let .visualSearch(metrics):
+            if metrics.accuracy >= 0.85 && metrics.errorRate <= 0.15 {
+                return .success
+            }
+            if metrics.accuracy >= 0.7 && metrics.errorRate <= 0.3 {
+                return .warning
+            }
+            return .error
+        case .flanker, .goNoGo, .digitSpan, .choiceRT, .changeDetection, .corsiBlock, .stopSignal:
+            return .noData
+        }
     }
 
     // MARK: - Schulte delegation
@@ -83,10 +193,22 @@ final class AppModel {
         case .continued:
             break
         case let .repCompleted(result):
-            let sessionResult = result.toSessionResult(setIndex: schulte.currentSet, repIndex: schulte.currentRep)
-            sessions.insert(sessionResult, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            let sessionResult = SessionResult(
+                id: result.id,
+                module: .schulte,
+                startedAt: result.startedAt,
+                endedAt: result.endedAt,
+                duration: result.duration,
+                metrics: .schulte(SchulteMetrics(
+                    difficulty: result.difficulty,
+                    mistakeCount: result.mistakeCount,
+                    setIndex: schulte.currentSet,
+                    repIndex: schulte.currentRep,
+                    perNumberDurations: result.perNumberDurations
+                )),
+                conditions: schulteSessionConditions(for: result)
+            )
+            appendSession(sessionResult)
             _ = schulte.finishRep(result: result, schulteHistory: schulteSessions, settings: settings)
         }
     }
@@ -103,22 +225,18 @@ final class AppModel {
     // MARK: - Flanker delegation
 
     func startFlankerSession() {
-        flanker.startSession(settings: settings)
+        flanker.startSession(settings: settings, adaptiveState: adaptiveState(for: .flanker))
     }
 
     func handleFlankerResponse(_ direction: FlankerDirection, at date: Date = Date()) {
         if let result = flanker.handleResponse(direction, at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
         }
     }
 
     func finalizeFlankerIfComplete() {
         if let result = flanker.finalizeIfComplete() {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
         }
     }
 
@@ -133,22 +251,18 @@ final class AppModel {
     // MARK: - GoNoGo delegation
 
     func startGoNoGoSession() {
-        goNoGo.startSession(settings: settings)
+        goNoGo.startSession(settings: settings, adaptiveState: adaptiveState(for: .goNoGo))
     }
 
     func handleGoNoGoTap(at date: Date = Date()) {
         if let result = goNoGo.handleTap(at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
         }
     }
 
     func finalizeGoNoGoIfComplete() {
         if let result = goNoGo.finalizeIfComplete() {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
         }
     }
 
@@ -163,14 +277,12 @@ final class AppModel {
     // MARK: - NBack delegation
 
     func startNBackSession() {
-        nBack.startSession(settings: settings)
+        nBack.startSession(settings: settings, adaptiveState: adaptiveState(for: .nBack))
     }
 
     func handleNBackMatch(at date: Date = Date()) {
         if let result = nBack.handleMatch(at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
         }
     }
 
@@ -179,25 +291,59 @@ final class AppModel {
     }
 
     func recordNBackResult(_ result: SessionResult) {
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func dismissNBackResult() {
         nBack.lastResult = nil
     }
 
+    // MARK: - Reading modules
+
+    func recordMainIdeaResult(_ metrics: MainIdeaMetrics, startedAt: Date, endedAt: Date) {
+        appendSession(
+            SessionResult(
+                module: .mainIdea,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                duration: endedAt.timeIntervalSince(startedAt),
+                metrics: .mainIdea(metrics)
+            )
+        )
+    }
+
+    func recordEvidenceMapResult(_ metrics: EvidenceMapMetrics, startedAt: Date, endedAt: Date) {
+        appendSession(
+            SessionResult(
+                module: .evidenceMap,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                duration: endedAt.timeIntervalSince(startedAt),
+                metrics: .evidenceMap(metrics)
+            )
+        )
+    }
+
+    func recordDelayedRecallResult(_ metrics: DelayedRecallMetrics, startedAt: Date, endedAt: Date) {
+        appendSession(
+            SessionResult(
+                module: .delayedRecall,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                duration: endedAt.timeIntervalSince(startedAt),
+                metrics: .delayedRecall(metrics)
+            )
+        )
+    }
+
     // MARK: - DigitSpan delegation
 
     func startDigitSpanSession(mode: DigitSpanMode = .forward) {
-        digitSpan.startSession(settings: settings, mode: mode)
+        digitSpan.startSession(settings: settings, adaptiveState: adaptiveState(for: .digitSpan), mode: mode)
     }
 
     func recordDigitSpanResult(_ result: SessionResult) {
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelDigitSpanSession() {
@@ -211,14 +357,12 @@ final class AppModel {
     // MARK: - ChoiceRT delegation
 
     func startChoiceRTSession() {
-        choiceRT.startSession(settings: settings)
+        choiceRT.startSession(settings: settings, adaptiveState: adaptiveState(for: .choiceRT))
     }
 
     func handleChoiceRTResponse(_ responseIndex: Int, at date: Date = Date()) -> SessionResult? {
         if let result = choiceRT.handleResponse(responseIndex, at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
             return result
         }
         return nil
@@ -233,13 +377,12 @@ final class AppModel {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .choiceRT(metrics)
+            metrics: .choiceRT(metrics),
+            conditions: choiceRT.sessionConditions
         )
         choiceRT.lastResult = result
         choiceRT.engine = nil
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelChoiceRTSession() {
@@ -253,14 +396,12 @@ final class AppModel {
     // MARK: - ChangeDetection delegation
 
     func startChangeDetectionSession() {
-        changeDetection.startSession(settings: settings)
+        changeDetection.startSession(settings: settings, adaptiveState: adaptiveState(for: .changeDetection))
     }
 
     func handleChangeDetectionResponse(changed: Bool, at date: Date = Date()) -> SessionResult? {
         if let result = changeDetection.handleResponse(userSaidChanged: changed, at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
             return result
         }
         return nil
@@ -275,13 +416,12 @@ final class AppModel {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .changeDetection(metrics)
+            metrics: .changeDetection(metrics),
+            conditions: changeDetection.sessionConditions
         )
         changeDetection.lastResult = result
         changeDetection.engine = nil
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelChangeDetectionSession() {
@@ -295,14 +435,12 @@ final class AppModel {
     // MARK: - VisualSearch delegation
 
     func startVisualSearchSession() {
-        visualSearch.startSession(settings: settings)
+        visualSearch.startSession(settings: settings, adaptiveState: adaptiveState(for: .visualSearch))
     }
 
     func handleVisualSearchResponse(present: Bool, at date: Date = Date()) -> SessionResult? {
         if let result = visualSearch.handleResponse(userSaidPresent: present, at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
             return result
         }
         return nil
@@ -317,13 +455,12 @@ final class AppModel {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .visualSearch(metrics)
+            metrics: .visualSearch(metrics),
+            conditions: visualSearch.sessionConditions
         )
         visualSearch.lastResult = result
         visualSearch.engine = nil
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelVisualSearchSession() {
@@ -337,13 +474,11 @@ final class AppModel {
     // MARK: - CorsiBlock delegation
 
     func startCorsiBlockSession(mode: CorsiBlockMode = .forward) {
-        corsiBlock.startSession(mode: mode)
+        corsiBlock.startSession(settings: settings, adaptiveState: adaptiveState(for: .corsiBlock), mode: mode)
     }
 
     func recordCorsiBlockResult(_ result: SessionResult) {
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelCorsiBlockSession() {
@@ -357,14 +492,12 @@ final class AppModel {
     // MARK: - StopSignal delegation
 
     func startStopSignalSession() {
-        stopSignal.startSession()
+        stopSignal.startSession(adaptiveState: adaptiveState(for: .stopSignal))
     }
 
     func handleStopSignalResponse(_ direction: StopSignalDirection, at date: Date = Date()) -> SessionResult? {
         if let result = stopSignal.handleResponse(direction, at: date) {
-            sessions.insert(result, at: 0)
-            sessions.sort { $0.endedAt > $1.endedAt }
-            persistSessions()
+            appendSession(result)
             return result
         }
         return nil
@@ -387,13 +520,12 @@ final class AppModel {
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .stopSignal(metrics)
+            metrics: .stopSignal(metrics),
+            conditions: stopSignal.sessionConditions
         )
         stopSignal.lastResult = result
         stopSignal.engine = nil
-        sessions.insert(result, at: 0)
-        sessions.sort { $0.endedAt > $1.endedAt }
-        persistSessions()
+        appendSession(result)
     }
 
     func cancelStopSignalSession() {
@@ -402,59 +534,6 @@ final class AppModel {
 
     func dismissStopSignalResult() {
         stopSignal.lastResult = nil
-    }
-
-    // MARK: - AI Chat
-
-    func sendChatMessage(_ text: String) {
-        let userMsg = ChatMessage(role: .user, content: text)
-        chatMessages.append(userMsg)
-        isChatLoading = true
-        persistChat()
-
-        let service = aiService!
-        let currentSessions = Array(sessions)
-        Task {
-            let response: String
-            do {
-                response = try await service.sendMessage(text, sessions: currentSessions)
-            } catch {
-                response = "抱歉，出错了：\(error.localizedDescription)"
-            }
-            chatMessages.append(ChatMessage(role: .assistant, content: response))
-            isChatLoading = false
-            persistChat()
-        }
-    }
-
-    func sendQuickAnalysis() {
-        sendChatMessage("请分析我的整体训练表现，包括各维度强弱项、近期趋势、和具体建议。")
-    }
-
-    func sendWeeklyReport() {
-        sendChatMessage("请生成我的本周训练周报，对比上周的变化，给出下周建议。")
-    }
-
-    func clearChat() {
-        chatMessages = []
-        aiService.clearHistory()
-        persistChat()
-    }
-
-    func updateAIConfig(baseURL: String, apiKey: String) {
-        settings.aiBaseURL = baseURL
-        settings.aiAPIKey = apiKey
-        persistSettings()
-        aiService.updateProvider(baseURL: baseURL, apiKey: apiKey)
-    }
-
-    private func persistChat() {
-        var history = ChatHistory(messages: chatMessages)
-        do {
-            try store.saveChatHistory(history)
-        } catch {
-            lastPersistenceError = "聊天保存失败：\(error.localizedDescription)"
-        }
     }
 
     // MARK: - Data Export
@@ -467,11 +546,6 @@ final class AppModel {
 
     func updateShowHints(_ isEnabled: Bool) {
         settings.showHints = isEnabled
-        persistSettings()
-    }
-
-    func updateSoundFeedback(_ isEnabled: Bool) {
-        settings.enableSoundFeedback = isEnabled
         persistSettings()
     }
 
@@ -521,6 +595,96 @@ final class AppModel {
             lastPersistenceError = nil
         } catch {
             lastPersistenceError = "保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistAdaptiveStates() {
+        do {
+            try store.saveAdaptiveStates(adaptiveStates)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "自适应状态保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    func adaptiveState(for module: TrainingModule) -> ModuleAdaptiveState {
+        adaptiveStates[module] ?? .default(for: module)
+    }
+
+    private func schulteSessionConditions(for result: SchulteSessionResult) -> SessionConditions {
+        guard settings.adaptiveDifficultyEnabled else {
+            return SessionConditions(adaptiveEnabled: false)
+        }
+
+        let history = [result] + schulteSessions.compactMap { session -> SchulteSessionResult? in
+            guard let metrics = session.schulteMetrics else { return nil }
+            return SchulteSessionResult(
+                id: session.id,
+                startedAt: session.startedAt,
+                endedAt: session.endedAt,
+                duration: session.duration,
+                difficulty: metrics.difficulty,
+                mistakeCount: metrics.mistakeCount,
+                perNumberDurations: metrics.perNumberDurations
+            )
+        }
+        let evaluation = AdaptiveDifficulty.evaluate(
+            currentDifficulty: result.difficulty,
+            history: history,
+            config: settings.adaptiveConfig
+        )
+
+        let recommendedDifficulty: SchulteDifficulty
+        switch evaluation.recommendation {
+        case let .promote(to):
+            recommendedDifficulty = to
+        case let .demote(to):
+            recommendedDifficulty = to
+        case .stay:
+            recommendedDifficulty = result.difficulty
+        }
+
+        return SessionConditions(
+            adaptiveEnabled: true,
+            customParameters: [
+                "recommendedStartLevel": "\(recommendedDifficulty.gridSize - 2)"
+            ]
+        )
+    }
+
+    private func appendSession(_ result: SessionResult) {
+        sessions.insert(result, at: 0)
+        sessions.sort { $0.endedAt > $1.endedAt }
+        applyAdaptiveAdjustmentsIfNeeded(for: result)
+        persistSessions()
+    }
+
+    private func applyAdaptiveAdjustmentsIfNeeded(for result: SessionResult) {
+        guard settings.adaptiveDifficultyEnabled else { return }
+        guard result.module.dimension != .reading else { return }
+        let currentState = adaptiveState(for: result.module)
+        let updatedState = AdaptiveScoring.updatedState(for: result, current: currentState)
+        adaptiveStates[result.module] = updatedState
+        syncLegacySettings(with: updatedState, for: result.module)
+        persistAdaptiveStates()
+        persistSettings()
+    }
+
+    private func syncLegacySettings(with state: ModuleAdaptiveState, for module: TrainingModule) {
+        switch module {
+        case .digitSpan:
+            settings.digitSpanStartingLength = min(max(state.recommendedStartLevel, 2), 8)
+        case .corsiBlock:
+            settings.corsiBlockStartingLength = min(max(state.recommendedStartLevel, 2), 8)
+        case .nBack:
+            settings.nBackStartingN = min(max(state.recommendedStartLevel, 1), 5)
+        case .changeDetection:
+            settings.changeDetectionInitialSetSize = min(max(state.recommendedStartLevel + 1, 2), 6)
+        case .schulte:
+            let level = min(max(state.recommendedStartLevel, 1), 7)
+            settings.preferredDifficulty = SchulteDifficulty.allCases[level - 1]
+        default:
+            break
         }
     }
 }

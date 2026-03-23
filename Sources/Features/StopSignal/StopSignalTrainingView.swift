@@ -55,12 +55,18 @@ struct StopSignalTrainingView: View {
 
     private func activeView(engine: StopSignalEngine) -> some View {
         VStack(spacing: 24) {
-            Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)  •  SSD \(engine.currentSSD)ms")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)  •  SSD \(engine.currentSSD)ms")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
 
-            phaseContent(engine: engine)
-                .frame(height: 100)
+                BDFeedbackNote(text: feedbackText(engine), color: BDColor.stopSignalAccent)
+            }
+
+            BDTrainingStage(accent: BDColor.stopSignalAccent) {
+                phaseContent(engine: engine)
+                    .frame(height: 140)
+            }
 
             let canRespond = engine.phase == .stimulus || engine.phase == .stopSignalShown
             HStack(spacing: 40) {
@@ -126,9 +132,14 @@ struct StopSignalTrainingView: View {
                     .offset(y: -40)
             }
         case .feedback(let correct):
-            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(correct ? BDColor.green : BDColor.error)
+            VStack(spacing: 8) {
+                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
+                Text(correct ? "本次控制正确" : "停止信号后未成功抑制")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
         default:
             Color.clear.frame(height: 1)
         }
@@ -145,7 +156,7 @@ struct StopSignalTrainingView: View {
                 scheduleStopOrTimeout(engine)
             }
         case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
                 engine.advanceToNext()
                 if engine.isComplete {
                     appModel.finalizeStopSignalIfComplete()
@@ -182,9 +193,7 @@ struct StopSignalTrainingView: View {
     }
 
     private func resultView(metrics: StopSignalMetrics) -> some View {
-        VStack(spacing: 20) {
-            Text("Stop-Signal 完成")
-                .font(.system(.title2, design: .rounded, weight: .bold))
+        BDResultPanel(title: "Stop-Signal 完成", accent: BDColor.stopSignalAccent) {
             HStack(spacing: 16) {
                 SSResultCard(label: "SSRT", value: "\(Int(metrics.ssrt * 1000))ms", color: BDColor.stopSignalAccent)
                 SSResultCard(label: "抑制率", value: "\(Int(metrics.inhibitionRate * 100))%", color: BDColor.green)
@@ -194,6 +203,27 @@ struct StopSignalTrainingView: View {
 
             Button("关闭") { appModel.dismissStopSignalResult() }
                 .buttonStyle(.bordered)
+        }
+    }
+
+    private func feedbackText(_ engine: StopSignalEngine) -> String {
+        switch engine.phase {
+        case .fixation:
+            return "准备对箭头方向做出反应"
+        case .stimulus:
+            return "看到箭头立即响应"
+        case .stopSignalShown:
+            return "红点出现后必须忍住不按"
+        case .feedback(let correct):
+            guard let trial = engine.currentTrial else {
+                return correct ? "正确" : "错误"
+            }
+            if trial.hasStopSignal {
+                return correct ? "Stop 试次抑制成功" : "Stop 试次抑制失败"
+            }
+            return correct ? "Go 试次方向正确" : "Go 试次方向判断错误"
+        default:
+            return coordinator.statusMessage
         }
     }
 }

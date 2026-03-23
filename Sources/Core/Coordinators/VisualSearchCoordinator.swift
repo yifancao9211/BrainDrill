@@ -9,25 +9,26 @@ final class VisualSearchCoordinator {
 
     var isActive: Bool { engine != nil && !(engine?.isComplete ?? true) }
 
-    private var sessionConditions = SessionConditions()
+    private(set) var sessionConditions = SessionConditions()
 
-    func startSession(settings: TrainingSettings) {
-        let config = VisualSearchSessionConfig(
-            setSizes: settings.visualSearchSetSizes,
-            trialsPerSize: settings.visualSearchTrialsPerSize
-        )
+    func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState = .default(for: .visualSearch)) {
+        let startLevel = adaptiveState.recommendedStartLevel
+        let config = settings.adaptiveDifficultyEnabled
+            ? VisualSearchSessionConfig(blockCount: 2, startingLevel: startLevel)
+            : VisualSearchSessionConfig(setSizes: settings.visualSearchSetSizes, trialsPerSize: settings.visualSearchTrialsPerSize)
         engine = VisualSearchEngine(config: config)
         lastResult = nil
         sessionConditions = SessionConditions(
             hintsEnabled: false,
             feedbackEnabled: true,
-            adaptiveEnabled: false,
+            adaptiveEnabled: settings.adaptiveDifficultyEnabled,
             customParameters: [
-                "setSizes": config.setSizes.map(String.init).joined(separator: ","),
-                "trialsPerSize": "\(config.trialsPerSize)",
+                "startingLevel": "\(engine?.currentLevel ?? startLevel)",
+                "setSizes": (engine?.currentSpec.setSizes ?? settings.visualSearchSetSizes).map(String.init).joined(separator: ","),
+                "trialsPerBlock": "\(engine?.currentSpec.trialsPerBlock ?? settings.visualSearchSetSizes.count * settings.visualSearchTrialsPerSize)",
                 "targetPresentRatio": "\(config.targetPresentRatio)",
-                "fixationMs": "\(config.fixationMs)",
-                "feedbackMs": "\(config.feedbackMs)"
+                "fixationMs": "\(engine?.currentSpec.fixationMs ?? 500)",
+                "feedbackMs": "\(engine?.currentSpec.feedbackMs ?? 300)"
             ]
         )
         if let target = engine?.target {
@@ -38,10 +39,8 @@ final class VisualSearchCoordinator {
     func handleResponse(userSaidPresent: Bool, at date: Date = Date()) -> SessionResult? {
         guard let engine else { return nil }
         _ = engine.recordResponse(userSaidPresent: userSaidPresent, at: date)
-        engine.advanceToNext()
-        if engine.isComplete {
-            return buildResult()
-        }
+        // Don't advanceToNext() here — let the feedback phase display first.
+        // The view's schedulePhase will call advanceToNext() after feedbackMs.
         return nil
     }
 
@@ -54,13 +53,18 @@ final class VisualSearchCoordinator {
         guard let engine else { return nil }
         let metrics = engine.computeMetrics()
         let now = Date()
+        var conditions = sessionConditions
+        conditions.customParameters["finalLevel"] = "\(engine.currentLevel)"
+        conditions.customParameters["recommendedStartLevel"] = "\(engine.currentLevel)"
+        conditions.customParameters["levelTrace"] = engine.blockLevelHistory.map(String.init).joined(separator: ",")
+        conditions.customParameters["blockOutcomes"] = engine.blockOutcomes.map(\.rawValue).joined(separator: ",")
         let result = SessionResult(
             module: .visualSearch,
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
             metrics: .visualSearch(metrics),
-            conditions: sessionConditions
+            conditions: conditions
         )
         lastResult = result
         statusMessage = "视觉搜索完成 — 搜索斜率 \(String(format: "%.0f", metrics.searchSlope * 1000))ms/项"

@@ -7,6 +7,8 @@ final class NBackEngine {
     let startedAt: Date
 
     private(set) var currentN: Int
+    private(set) var currentStimulusDurationMs: Int
+    private(set) var currentISIMs: Int
     private(set) var currentBlock: Int = 0
     private(set) var currentTrialIndex: Int = 0
     private(set) var sequence: [Int] = []
@@ -14,10 +16,14 @@ final class NBackEngine {
     private(set) var phase: Phase = .idle
     private(set) var stimulusOnsetTime: Date?
     private(set) var respondedThisTrial: Bool = false
+    private var slowDownNextBlock: Bool = false
+
+    let feedbackDurationMs: Int = 500
 
     enum Phase: Equatable, Hashable {
         case idle
         case stimulus
+        case feedback(correct: Bool)
         case isi
         case blockBreak(blockIndex: Int, nextN: Int)
         case completed
@@ -52,6 +58,9 @@ final class NBackEngine {
         self.config = config
         self.startedAt = startedAt
         self.currentN = config.startingN
+        let timing = AdaptiveScoring.nBackTiming(level: config.startingN, internalSkillScore: config.internalSkillScore, slowDownAfterPoorBlock: false)
+        self.currentStimulusDurationMs = timing.stimulusMs
+        self.currentISIMs = timing.isiMs
         self.sequence = Self.generateSequence(config: config, n: config.startingN)
     }
 
@@ -70,12 +79,17 @@ final class NBackEngine {
                 reactionTime: nil
             )
             results.append(result)
+            if isTarget {
+                // Missed a target — show brief feedback
+                phase = .feedback(correct: false)
+                return
+            }
         }
         phase = .isi
     }
 
     func recordMatch(at date: Date) -> NBackTrialResult? {
-        guard phase == .stimulus || phase == .isi, !respondedThisTrial, currentTrialIndex >= currentN else { return nil }
+        guard phase == .stimulus || phase == .isi, !respondedThisTrial else { return nil }
         respondedThisTrial = true
         let rt = stimulusOnsetTime.map { date.timeIntervalSince($0) }
         let result = NBackTrialResult(
@@ -85,7 +99,13 @@ final class NBackEngine {
             reactionTime: rt
         )
         results.append(result)
+        phase = .feedback(correct: isTarget)
         return result
+    }
+
+    func dismissFeedback() {
+        guard case .feedback = phase else { return }
+        phase = .isi
     }
 
     func advanceToNext() {
@@ -93,6 +113,7 @@ final class NBackEngine {
 
         if currentTrialIndex >= sequence.count {
             let blockAccuracy = computeBlockAccuracy()
+            let (blockHitRate, blockFalseAlarmRate) = computeRecentBlockSignal()
 
             currentBlock += 1
             if currentBlock >= config.blockCount {
@@ -107,6 +128,7 @@ final class NBackEngine {
                 nextN = currentN - 1
             }
 
+            slowDownNextBlock = blockHitRate < 0.65 || blockFalseAlarmRate > 0.30
             phase = .blockBreak(blockIndex: currentBlock, nextN: nextN)
         } else {
             phase = .idle
@@ -117,6 +139,10 @@ final class NBackEngine {
         currentN = n
         currentTrialIndex = 0
         sequence = Self.generateSequence(config: config, n: n)
+        let timing = AdaptiveScoring.nBackTiming(level: n, internalSkillScore: config.internalSkillScore, slowDownAfterPoorBlock: slowDownNextBlock)
+        currentStimulusDurationMs = timing.stimulusMs
+        currentISIMs = timing.isiMs
+        slowDownNextBlock = false
         phase = .idle
     }
 
@@ -152,6 +178,16 @@ final class NBackEngine {
             return !result.responded
         }
         return Double(correct.count) / Double(blockResults.count)
+    }
+
+    private func computeRecentBlockSignal() -> (hitRate: Double, falseAlarmRate: Double) {
+        let blockResults = Array(results.suffix(config.trialsPerBlock))
+        let targets = blockResults.filter(\.isTarget)
+        let nonTargets = blockResults.filter { !$0.isTarget }
+
+        let hitRate = targets.isEmpty ? 0 : Double(targets.filter(\.responded).count) / Double(targets.count)
+        let falseAlarmRate = nonTargets.isEmpty ? 0 : Double(nonTargets.filter(\.responded).count) / Double(nonTargets.count)
+        return (hitRate, falseAlarmRate)
     }
 
     private static func zScore(_ p: Double) -> Double {
