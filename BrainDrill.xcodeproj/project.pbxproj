@@ -38,6 +38,7 @@
 		3786432FE03D2CD472370B8C /* SchulteCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849FE99A1D49E71212E788CC /* SchulteCoordinator.swift */; };
 		38DE779BBE40B4ECF126EF27 /* SchulteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217FDC9BBD48D8B5F4F2E9B0 /* SchulteModels.swift */; };
 		3A8BD79DE1BF80AA1C7F2D9A /* FlankerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96BA0D6B7AF44FB64229EC32 /* FlankerModels.swift */; };
+		3C12E5B77DCEDDF2E3F516F3 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 818A79C3D6DE8F012BFFA5B4 /* AppIcon.icns */; };
 		41D221092945F22C3CBF6896 /* StopSignalEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E907A859284C945145B5DF97 /* StopSignalEngineTests.swift */; };
 		4349236E1D26A9F04C14627B /* SessionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD7981D04DEA2F51D52500F /* SessionResult.swift */; };
 		47F0DB04DFEB1E83D82959F6 /* NBackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0AAE60E0BF59060012F254 /* NBackEngine.swift */; };
@@ -173,6 +174,7 @@
 		791FA323988886A267E09047 /* VisualSearchTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualSearchTrainingView.swift; sourceTree = "<group>"; };
 		7947501A7432AFA5E41366A1 /* TrialExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialExporter.swift; sourceTree = "<group>"; };
 		7D41A0937210B5B92216B20B /* PracticeTrialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeTrialTests.swift; sourceTree = "<group>"; };
+		818A79C3D6DE8F012BFFA5B4 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		83505935BAF94F581D1538CE /* DelayedRecallTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelayedRecallTrainingView.swift; sourceTree = "<group>"; };
 		849FE99A1D49E71212E788CC /* SchulteCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchulteCoordinator.swift; sourceTree = "<group>"; };
 		8C015BB4ED14489EC8ACF40F /* FlankerTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlankerTrainingView.swift; sourceTree = "<group>"; };
@@ -393,6 +395,7 @@
 		9B79F2C7E5DFD84177DE259E = {
 			isa = PBXGroup;
 			children = (
+				818A79C3D6DE8F012BFFA5B4 /* AppIcon.icns */,
 				ED9AED894169E0E0E6B2A696 /* Resources */,
 				BC2A870D27FC41AC3D96248B /* Sources */,
 				39EA4A5DD769CAB93ED98EAA /* Tests */,
@@ -628,6 +631,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C12E5B77DCEDDF2E3F516F3 /* AppIcon.icns in Resources */,
 				CA75157614D0E4050C8B0033 /* Resources in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -846,6 +850,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BrainDrill;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -885,6 +890,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BrainDrill;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
