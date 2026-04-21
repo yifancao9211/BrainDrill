@@ -88,6 +88,8 @@ enum TrainingScheduler {
         case let .nBack(m):           return m.dPrime / 4.0
         case let .stopSignal(m):      return m.inhibitionRate
         case let .corsiBlock(m):      return Double(m.maxSpan) / 9.0
+        case let .syllogism(m):       return m.accuracy
+        case let .logicArgument(m):   return m.compositeScore
         case .schulte:                return 0.5
         }
     }

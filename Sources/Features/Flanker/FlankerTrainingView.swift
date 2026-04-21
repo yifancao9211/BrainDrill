@@ -1,7 +1,17 @@
 import SwiftUI
 
 struct FlankerTrainingView: View {
+    private enum FocusTarget: Hashable {
+        case start
+        case left
+        case right
+        case cancel
+        case close
+    }
+
     @Environment(AppModel.self) private var appModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var focusedTarget: FocusTarget?
 
     private var coordinator: FlankerCoordinator { appModel.flanker }
 
@@ -20,95 +30,101 @@ struct FlankerTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            focusedTarget = coordinator.engine == nil ? .start : .left
+        }
+        .onChange(of: coordinator.engine?.phase) { _, phase in
+            switch phase {
+            case .stimulus, .waitingForResponse:
+                focusedTarget = .left
+            case .fixation, .feedback, .iti, .idle, .blockBreak:
+                focusedTarget = .cancel
+            case .completed:
+                focusedTarget = .close
+            case .none:
+                focusedTarget = coordinator.lastResult == nil ? .start : .close
+            }
+        }
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.flankerAccent.opacity(0.6))
-            Text("Flanker 反应力训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("快速判断中间箭头方向（键盘 ←→），忽略两侧干扰")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text("核心指标：冲突代价 = 反向RT - 同向RT")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            if appModel.settings.adaptiveDifficultyEnabled {
-                Text("当前推荐档位 L\(appModel.adaptiveState(for: .flanker).recommendedStartLevel) · 每局 2 个 block")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
-
-            Button {
-                appModel.startFlankerSession()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+        SurfaceCard(title: "Flanker", subtitle: "在统一训练壳层中完成冲突判断与干扰抑制。", accent: BDColor.flankerAccent) {
+            VStack(alignment: .leading, spacing: 16) {
+                if appModel.settings.adaptiveDifficultyEnabled {
+                    Text("当前推荐档位 L\(appModel.adaptiveState(for: .flanker).recommendedStartLevel) · 每局 2 个 block")
+                        .font(.system(.caption))
+                        .foregroundStyle(BDColor.textSecondary)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.flankerAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "只判断中间箭头方向，忽略两侧干扰。重点看冲突代价是否下降，同时保持准确率。",
+                    accent: BDColor.flankerAccent
+                )
+
+                Button("开始训练") {
+                    appModel.startFlankerSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.flankerAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .start)
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: FlankerEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.flankerAccent) {
             VStack(spacing: 8) {
-                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
+                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.totalBlocks * engine.currentSpec.trialsPerBlock)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(BDColor.textSecondary)
                 Text("L\(engine.currentLevel) · Block \(engine.currentBlock + 1)/\(engine.totalBlocks)")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.flankerAccent)
             }
-
-            BDTrainingStage(accent: BDColor.flankerAccent) {
-                phaseContent(engine: engine)
-                    .frame(height: 120)
-            }
-
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 280)
+                .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
+        } footer: {
             let canRespond = engine.phase == .stimulus || engine.phase == .waitingForResponse
-            HStack(spacing: 40) {
-                Button { appModel.handleFlankerResponse(.left) } label: {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 32, weight: .bold))
-                        .frame(width: 80, height: 80)
-                        .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
-                        .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
-                }
-                .buttonStyle(.plain)
-                .disabled(!canRespond)
-                .keyboardShortcut(.leftArrow, modifiers: [])
+            VStack(spacing: 16) {
+                HStack(spacing: 40) {
+                    Button { appModel.handleFlankerResponse(.left) } label: {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 32, weight: .bold))
+                            .frame(width: 80, height: 80)
+                            .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
+                            .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
+                    }
+                    .buttonStyle(BDSpringPressStyle())
+                    .disabled(!canRespond)
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                    .focused($focusedTarget, equals: .left)
 
-                Button { appModel.handleFlankerResponse(.right) } label: {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 32, weight: .bold))
-                        .frame(width: 80, height: 80)
-                        .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
-                        .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
+                    Button { appModel.handleFlankerResponse(.right) } label: {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 32, weight: .bold))
+                            .frame(width: 80, height: 80)
+                            .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
+                            .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
+                    }
+                    .buttonStyle(BDSpringPressStyle())
+                    .disabled(!canRespond)
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                    .focused($focusedTarget, equals: .right)
                 }
-                .buttonStyle(.plain)
-                .disabled(!canRespond)
-                .keyboardShortcut(.rightArrow, modifiers: [])
+
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.flankerAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { appModel.cancelFlankerSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .keyboardShortcut(.cancelAction)
+                    .focused($focusedTarget, equals: .cancel)
             }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.flankerAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelFlankerSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -119,24 +135,47 @@ struct FlankerTrainingView: View {
         switch engine.phase {
         case .fixation:
             Text("+")
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 80, weight: .bold, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .transition(.opacity)
         case .stimulus, .waitingForResponse:
             if let trial = engine.currentTrial {
-                Text(trial.arrows)
-                    .font(.system(size: 56, weight: .bold, design: .monospaced))
+                let arrows = Array(trial.arrows)
+                if arrows.count == 5 {
+                    HStack(spacing: 8) {
+                        Text(String(arrows[0...1]))
+                            .foregroundStyle(.tertiary)
+                            .blur(radius: 2.5)
+                        
+                        Text(String(arrows[2]))
+                            .foregroundStyle(BDColor.flankerAccent)
+                            .shadow(color: BDColor.flankerAccent.opacity(0.8), radius: 16, y: 0)
+                            .scaleEffect(1.2)
+                            
+                        Text(String(arrows[3...4]))
+                            .foregroundStyle(.tertiary)
+                            .blur(radius: 2.5)
+                    }
+                    .font(.system(size: 80, weight: .bold, design: .monospaced))
+                    .transition(reduceMotion ? .identity : .scale(scale: 0.8).combined(with: .opacity))
+                } else {
+                    Text(trial.arrows)
+                        .font(.system(size: 80, weight: .bold, design: .monospaced))
+                }
             }
         case .feedback(let correct):
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: 56))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
                 Text(correct ? "抓住了中间目标" : "注意只判断中间箭头")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
+            .transition(reduceMotion ? .identity : .scale.combined(with: .opacity))
+            .offset(x: correct ? 0 : 8)
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -181,6 +220,10 @@ struct FlankerTrainingView: View {
 
     private func resultView(metrics: FlankerMetrics) -> some View {
         BDResultPanel(title: "Flanker 完成", accent: BDColor.flankerAccent) {
+            Text("查看本轮冲突控制表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.flankerAccent)
+
             HStack(spacing: 16) {
                 FResultCard(label: "冲突代价", value: "\(Int(metrics.conflictCost * 1000))ms", color: BDColor.flankerAccent)
                 FResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -189,34 +232,13 @@ struct FlankerTrainingView: View {
             .frame(maxWidth: 400)
 
             Button("关闭") { appModel.dismissFlankerResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.flankerAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .close)
         }
     }
 
-    private func feedbackText(_ engine: FlankerEngine) -> String {
-        switch engine.phase {
-        case .fixation:
-            return "保持注视，准备响应中央目标"
-        case .stimulus, .waitingForResponse:
-            if let trial = engine.currentTrial, trial.type == .incongruent {
-                return "忽略两侧干扰箭头，只看中间"
-            }
-            return "快速判断中间箭头方向"
-        case .feedback(let correct):
-            return correct ? "正确聚焦目标" : "被干扰项影响了判断"
-        case let .blockBreak(_, outcome, nextLevel):
-            switch outcome {
-            case .promote:
-                return "本 block 升到 L\(nextLevel)"
-            case .demote:
-                return "本 block 调整到 L\(nextLevel)"
-            case .stay:
-                return "本 block 保持 L\(nextLevel)"
-            }
-        default:
-            return coordinator.statusMessage
-        }
-    }
+    // feedbackText removed
 }
 
 private struct FResultCard: View {

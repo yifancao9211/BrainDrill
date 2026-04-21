@@ -3,7 +3,7 @@ import Testing
 @testable import BrainDrill
 
 struct NBackCoordinatorTests {
-    @Test func recordingMatchKeepsCurrentTrialRhythm() {
+    @Test func recordingMatchTransitionsIntoFeedbackWithoutAdvancingTrial() {
         var settings = TrainingSettings.default
         settings.nBackStartingN = 1
         settings.nBackStimulusDurationMs = 900
@@ -22,7 +22,7 @@ struct NBackCoordinatorTests {
 
         _ = coordinator.handleMatch(at: Date())
 
-        #expect(engine.phase == .stimulus)
+        #expect(engine.phase == .feedback(correct: false))
         #expect(engine.currentTrialIndex == trialIndexBeforeResponse)
         #expect(engine.respondedThisTrial)
     }

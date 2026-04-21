@@ -35,4 +35,36 @@ struct LocalTrainingStoreTests {
         #expect(loadedSessions.first?.module == .schulte)
         #expect(loadedSessions.first?.schulteMetrics?.difficulty == .challenge5x5)
     }
+
+    @Test
+    func loadingSettingsMigratesLegacyDefaultAIModel() throws {
+        let tempRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = LocalTrainingStore(baseURL: tempRoot)
+
+        var settings = TrainingSettings.default
+        settings.aiModel = TrainingSettings.legacyDefaultAIModel
+        try store.saveSettings(settings)
+
+        let loaded = try store.loadSettings()
+
+        #expect(loaded.aiModel == TrainingSettings.defaultAIModel)
+        #expect(try store.loadSettings().aiModel == TrainingSettings.defaultAIModel)
+    }
+
+    @Test
+    func loadingSourceConfigsMergesNewDefaults() throws {
+        let tempRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = LocalTrainingStore(baseURL: tempRoot)
+
+        try store.saveSourceConfigs([
+            ContentSourceConfig(kind: .openStax, isEnabled: false, lastCompletedAt: nil, lastError: nil, lastStatus: nil),
+            ContentSourceConfig(kind: .ourWorldInData, isEnabled: true, lastCompletedAt: nil, lastError: nil, lastStatus: .healthy)
+        ])
+
+        let loaded = try store.loadSourceConfigs()
+
+        #expect(loaded.count == ConcreteSourceKind.allCases.count)
+        #expect(loaded.first(where: { $0.kind == .openStax })?.isEnabled == false)
+        #expect(loaded.contains(where: { $0.kind == .qstheory }))
+    }
 }

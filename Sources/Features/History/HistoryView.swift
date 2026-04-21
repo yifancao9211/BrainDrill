@@ -9,15 +9,20 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        BDWorkbenchPage(title: "历史记录", subtitle: "只查看当前保留模块的训练结果。") {
-            SurfaceCard(title: "全部记录", subtitle: "按阅读主线或支撑模块筛选。") {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        FilterChip(label: "全部", isSelected: moduleFilter == nil) { moduleFilter = nil }
+        BDWorkbenchPage(title: "历史", subtitle: "按模块筛选训练记录，快速回看最近状态。", maxContentWidth: BDMetrics.contentMaxAnalysisWidth) {
+            SurfaceCard(title: "训练记录", subtitle: "按模块过滤后查看时长、日期和结果摘要。", accent: BDColor.teal) {
+                HStack {
+                    Picker("模块筛选", selection: $moduleFilter) {
+                        Text("全部").tag(TrainingModule?.none)
+                        Divider()
                         ForEach(TrainingModule.allCases) { mod in
-                            FilterChip(label: mod.shortName, isSelected: moduleFilter == mod) { moduleFilter = mod }
+                            Text(mod.shortName).tag(TrainingModule?.some(mod))
                         }
                     }
+                    .pickerStyle(.menu)
+                    .frame(width: 160)
+
+                    Spacer()
                 }
 
                 let filtered = moduleFilter == nil ? visibleSessions : visibleSessions.filter { $0.module == moduleFilter }
@@ -40,39 +45,48 @@ struct HistoryView: View {
     }
 
     private func sessionRow(_ session: SessionResult) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: session.module.systemImage)
-                .foregroundStyle(moduleColor(session.module))
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(session.module.shortName + summaryLabel(session))
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(BDColor.textPrimary)
-                Text(appModel.formattedDate(session.endedAt))
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(.secondary)
+        BDInteractiveRow(accent: moduleColor(session.module)) {
+            HStack(spacing: 12) {
+                Image(systemName: session.module.systemImage)
+                    .foregroundStyle(moduleColor(session.module))
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(session.module.shortName)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(BDColor.textPrimary)
+                    Text(summaryLabel(session))
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(BDColor.textSecondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer()
-            InfoPill(title: appModel.formattedDuration(session.duration), accent: moduleColor(session.module))
+        } trailing: {
+            HStack(spacing: 14) {
+                Text(appModel.formattedDate(session.endedAt))
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+                    .frame(width: 120, alignment: .leading)
+                InfoPill(title: appModel.formattedDuration(session.duration), accent: moduleColor(session.module))
+            }
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(BDColor.historyRow))
     }
 
     private func summaryLabel(_ session: SessionResult) -> String {
         switch session.metrics {
         case let .mainIdea(m):
-            " \(m.isCorrect ? "命中主旨" : "主旨偏差")"
+            m.isCorrect ? "命中主旨" : "主旨偏差"
         case let .evidenceMap(m):
-            " 准确率\(Int(m.accuracy * 100))%"
+            "准确率 \(Int(m.accuracy * 100))%"
         case let .delayedRecall(m):
-            " 命中\(m.recalledTargets)/\(m.totalTargets)"
+            "命中 \(m.recalledTargets)/\(m.totalTargets)"
         case let .schulte(m):
-            " \(m.difficulty.shortLabel) 错误\(m.mistakeCount)"
+            "\(m.difficulty.shortLabel) 错误 \(m.mistakeCount)"
         case let .nBack(m):
-            " \(m.nLevel)-Back d'\(String(format: "%.1f", m.dPrime))"
+            "\(m.nLevel)-Back d' \(String(format: "%.1f", m.dPrime))"
         case let .visualSearch(m):
-            " 斜率\(Int(m.searchSlope * 1000))ms"
+            "斜率 \(Int(m.searchSlope * 1000))ms"
         default:
             ""
         }
@@ -88,23 +102,5 @@ struct HistoryView: View {
         case .visualSearch:  BDColor.visualSearchAccent
         default:             BDColor.textSecondary
         }
-    }
-}
-
-private struct FilterChip: View {
-    let label: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(.caption, design: .rounded, weight: isSelected ? .bold : .medium))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(isSelected ? BDColor.primaryBlue.opacity(0.12) : BDColor.panelSecondaryFill))
-                .foregroundStyle(isSelected ? BDColor.primaryBlue : BDColor.textSecondary)
-        }
-        .buttonStyle(.plain)
     }
 }

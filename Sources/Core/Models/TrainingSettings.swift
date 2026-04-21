@@ -1,6 +1,11 @@
 import Foundation
 
 struct TrainingSettings: Codable, Equatable {
+    static let defaultAIBaseURL = "https://litellm.qa.domio.so"
+    static let defaultAIModel = "claude-opus-4-6"
+    static let legacyDefaultAIModel = "claude-sonnet-4-20250514"
+    private static let keychainAPIKeyName = "ai_api_key"
+
     // Schulte
     var showHints: Bool
     var preferredDifficulty: SchulteDifficulty
@@ -39,7 +44,16 @@ struct TrainingSettings: Codable, Equatable {
 
     // AI
     var aiBaseURL: String
-    var aiAPIKey: String
+    var aiAPIKey: String {
+        didSet {
+            if !aiAPIKey.isEmpty {
+                KeychainHelper.save(key: Self.keychainAPIKeyName, value: aiAPIKey)
+            }
+        }
+    }
+    var aiModel: String
+    var materialsAutoSourceCountPerRun: Int
+    var materialsCandidateThreshold: Double
 
     // General
     var dailyPlanEnabled: Bool
@@ -65,8 +79,11 @@ struct TrainingSettings: Codable, Equatable {
         self.changeDetectionRetentionMs = 600
         self.visualSearchSetSizes = [8, 16, 24]
         self.visualSearchTrialsPerSize = 6
-        self.aiBaseURL = "https://litellm.qa.domio.so"
-        self.aiAPIKey = "sk-3AXEzLuCihLJH9gDIXV6Lw"
+        self.aiBaseURL = Self.defaultAIBaseURL
+        self.aiAPIKey = KeychainHelper.load(key: Self.keychainAPIKeyName) ?? ""
+        self.aiModel = Self.defaultAIModel
+        self.materialsAutoSourceCountPerRun = 3
+        self.materialsCandidateThreshold = 70
         self.dailyPlanEnabled = true
     }
 
@@ -92,10 +109,35 @@ struct TrainingSettings: Codable, Equatable {
         changeDetectionRetentionMs = try c.decodeIfPresent(Int.self, forKey: .changeDetectionRetentionMs) ?? 600
         visualSearchSetSizes = try c.decodeIfPresent([Int].self, forKey: .visualSearchSetSizes) ?? [8, 16, 24]
         visualSearchTrialsPerSize = try c.decodeIfPresent(Int.self, forKey: .visualSearchTrialsPerSize) ?? 6
-        aiBaseURL = try c.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? "https://litellm.qa.domio.so"
-        aiAPIKey = try c.decodeIfPresent(String.self, forKey: .aiAPIKey) ?? "sk-3AXEzLuCihLJH9gDIXV6Lw"
+        aiBaseURL = try c.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? Self.defaultAIBaseURL
+        // Migrate: if Keychain has a value, use it; otherwise try legacy JSON field and migrate
+        let keychainValue = KeychainHelper.load(key: Self.keychainAPIKeyName)
+        let legacyValue = try c.decodeIfPresent(String.self, forKey: .aiAPIKey)
+        if let kv = keychainValue, !kv.isEmpty {
+            aiAPIKey = kv
+        } else if let lv = legacyValue, !lv.isEmpty {
+            aiAPIKey = lv
+            KeychainHelper.save(key: Self.keychainAPIKeyName, value: lv)
+        } else {
+            aiAPIKey = ""
+        }
+        aiModel = try c.decodeIfPresent(String.self, forKey: .aiModel) ?? Self.defaultAIModel
+        materialsAutoSourceCountPerRun = try c.decodeIfPresent(Int.self, forKey: .materialsAutoSourceCountPerRun) ?? 3
+        materialsCandidateThreshold = try c.decodeIfPresent(Double.self, forKey: .materialsCandidateThreshold) ?? 70
         dailyPlanEnabled = try c.decodeIfPresent(Bool.self, forKey: .dailyPlanEnabled) ?? true
     }
 
     static let `default` = TrainingSettings()
+
+    func normalizedForCurrentDefaults() -> TrainingSettings {
+        var normalized = self
+        let trimmedModel = normalized.aiModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedModel.isEmpty || trimmedModel == Self.legacyDefaultAIModel {
+            normalized.aiModel = Self.defaultAIModel
+        }
+        if normalized.aiBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            normalized.aiBaseURL = Self.defaultAIBaseURL
+        }
+        return normalized
+    }
 }

@@ -24,7 +24,18 @@ final class AppModel {
     var settings: TrainingSettings
     var sessions: [SessionResult]
     var adaptiveStates: [TrainingModule: ModuleAdaptiveState]
+    var sourceConfigs: [ContentSourceConfig]
+    var materialCandidates: [MaterialCandidate]
+    var approvedReadingPassages: [ApprovedReadingPassage]
+    var materialRunRecords: [MaterialRunRecord]
+    var isMaterialsRunInProgress: Bool = false
+    var materialsStatusMessage: String = "准备抓取开放来源并生成候选。"
+    var materialsPipelineProgress: MaterialsPipelineProgress?
+    var materialsLiveLogs: [String] = []
     var lastPersistenceError: String?
+    var streakTracker: StreakTracker
+    var achievementTracker: AchievementTracker
+    var recentlyUnlockedAchievements: [Achievement] = []
 
     let schulte: SchulteCoordinator
     let flanker: FlankerCoordinator
@@ -36,6 +47,8 @@ final class AppModel {
     let visualSearch: VisualSearchCoordinator
     let corsiBlock: CorsiBlockCoordinator
     let stopSignal: StopSignalCoordinator
+    let syllogismCoord: SyllogismCoordinator
+    let logicArgumentCoord: LogicArgumentCoordinator
 
     @ObservationIgnored private let store: any TrainingStore
 
@@ -51,12 +64,23 @@ final class AppModel {
         self.visualSearch = VisualSearchCoordinator()
         self.corsiBlock = CorsiBlockCoordinator()
         self.stopSignal = StopSignalCoordinator()
+        self.syllogismCoord = SyllogismCoordinator()
+        self.logicArgumentCoord = LogicArgumentCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
         self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
         let loadedAdaptiveStates = (try? store.loadAdaptiveStates()) ?? [:]
         self.adaptiveStates = TrainingModule.allCases.reduce(into: [TrainingModule: ModuleAdaptiveState]()) { partial, module in
             partial[module] = loadedAdaptiveStates[module] ?? .default(for: module)
         }
+        self.sourceConfigs = (try? store.loadSourceConfigs()) ?? ContentSourceConfig.defaults
+        self.materialCandidates = ((try? store.loadMaterialCandidates()) ?? [])
+            .filter { $0.status != .rejected }
+            .sorted { $0.updatedAt > $1.updatedAt }
+        self.approvedReadingPassages = ((try? store.loadApprovedReadingPassages()) ?? []).sorted { $0.approvedAt > $1.approvedAt }
+        self.materialRunRecords = ((try? store.loadMaterialRunRecords()) ?? []).sorted { $0.endedAt > $1.endedAt }
+        self.streakTracker = (try? store.loadStreakTracker()) ?? StreakTracker()
+        self.achievementTracker = (try? store.loadAchievementTracker()) ?? AchievementTracker()
+        ReadingPassageRepository.updateApprovedPassages(self.approvedReadingPassages)
     }
 
     var statistics: TrainingStatistics {
@@ -71,22 +95,55 @@ final class AppModel {
         AppSkillProfile.compute(from: adaptiveStates)
     }
 
+    var pendingMaterialCandidates: [MaterialCandidate] {
+        materialCandidates
+            .filter { $0.status == .pending }
+            .sorted { lhs, rhs in
+                if lhs.status != rhs.status {
+                    return lhs.status.rawValue < rhs.status.rawValue
+                }
+                return lhs.score > rhs.score
+            }
+    }
+
+    var latestMaterialRun: MaterialRunRecord? {
+        materialRunRecords.first
+    }
+
     var isAnyModuleActive: Bool {
         schulte.isTrainingActive || flanker.isActive || goNoGo.isActive || nBack.isActive
             || digitSpan.isActive || choiceRT.isActive || changeDetection.isActive || visualSearch.isActive
-            || corsiBlock.isActive || stopSignal.isActive
+            || corsiBlock.isActive || stopSignal.isActive || syllogismCoord.isActive || logicArgumentCoord.isActive
     }
 
     var isSelectedTrainingActive: Bool {
         switch selectedRoute {
         case .mainIdea, .evidenceMap, .delayedRecall:
             false
+        case .syllogism:
+            syllogismCoord.isActive
+        case .logicArgument:
+            logicArgumentCoord.isActive
         case .schulte:
             schulte.isTrainingActive || schulte.isResting
         case .nBack:
             nBack.isActive
         case .visualSearch:
             visualSearch.isActive
+        case .flanker:
+            flanker.isActive
+        case .goNoGo:
+            goNoGo.isActive
+        case .stopSignal:
+            stopSignal.isActive
+        case .digitSpan:
+            digitSpan.isActive
+        case .corsiBlock:
+            corsiBlock.isActive
+        case .changeDetection:
+            changeDetection.isActive
+        case .choiceRT:
+            choiceRT.isActive
         default:
             false
         }
@@ -100,12 +157,32 @@ final class AppModel {
             "判断结论、证据与限制"
         case .delayedRecall:
             "延迟后提取关键点"
+        case .syllogism:
+            syllogismCoord.statusMessage
+        case .logicArgument:
+            logicArgumentCoord.statusMessage
         case .schulte:
             schulte.statusMessage
         case .nBack:
             nBack.statusMessage
         case .visualSearch:
             visualSearch.statusMessage
+        case .flanker:
+            flanker.statusMessage
+        case .goNoGo:
+            goNoGo.statusMessage
+        case .stopSignal:
+            stopSignal.statusMessage
+        case .digitSpan:
+            digitSpan.statusMessage
+        case .corsiBlock:
+            corsiBlock.statusMessage
+        case .changeDetection:
+            changeDetection.statusMessage
+        case .choiceRT:
+            choiceRT.statusMessage
+        case .materialsWorkbench:
+            materialsStatusMessage
         case .home:
             "查看阅读主线、支撑训练与关键统计"
         case .history:
@@ -175,6 +252,14 @@ final class AppModel {
             return .error
         case .flanker, .goNoGo, .digitSpan, .choiceRT, .changeDetection, .corsiBlock, .stopSignal:
             return .noData
+        case let .syllogism(metrics):
+            if metrics.accuracy >= 0.80 && metrics.dPrime >= 1.5 { return .success }
+            if metrics.accuracy >= 0.60 { return .warning }
+            return .error
+        case let .logicArgument(metrics):
+            if metrics.compositeScore >= 0.80 { return .success }
+            if metrics.compositeScore >= 0.55 { return .warning }
+            return .error
         }
     }
 
@@ -564,6 +649,177 @@ final class AppModel {
         persistSettings()
     }
 
+    func updateAIBaseURL(_ value: String) {
+        settings.aiBaseURL = value
+        persistSettings()
+    }
+
+    func updateAIAPIKey(_ value: String) {
+        settings.aiAPIKey = value
+        persistSettings()
+    }
+
+    func updateAIModel(_ value: String) {
+        settings.aiModel = value
+        persistSettings()
+    }
+
+    func updateMaterialsAutoSourceCount(_ value: Int) {
+        settings.materialsAutoSourceCountPerRun = value
+        persistSettings()
+    }
+
+    func updateMaterialsCandidateThreshold(_ value: Double) {
+        settings.materialsCandidateThreshold = value
+        persistSettings()
+    }
+
+    func updateSourceEnabled(_ kind: ConcreteSourceKind, isEnabled: Bool) {
+        guard let index = sourceConfigs.firstIndex(where: { $0.kind == kind }) else { return }
+        sourceConfigs[index].isEnabled = isEnabled
+        persistSourceConfigs()
+    }
+
+    // MARK: - Materials
+
+    func runMaterialsHarvest() {
+        guard !isMaterialsRunInProgress else { return }
+
+        isMaterialsRunInProgress = true
+        materialsStatusMessage = "正在抓取来源并清洗候选..."
+        materialsPipelineProgress = nil
+        materialsLiveLogs.removeAll()
+        let snapshotSettings = settings
+        let snapshotConfigs = sourceConfigs
+
+        Task {
+            let outcome = await MaterialsPipeline().run(
+                sourceConfigs: snapshotConfigs,
+                settings: snapshotSettings,
+                recentMaterialHints: recentMaterialHints()
+            ) { progress in
+                Task { @MainActor in
+                    self.materialsPipelineProgress = progress
+                    if let msg = progress.logMessage {
+                        self.materialsLiveLogs.append(msg)
+                    }
+                }
+            }
+
+            await MainActor.run {
+                sourceConfigs = outcome.updatedSourceConfigs
+                materialCandidates = mergeCandidates(materialCandidates, with: outcome.candidates)
+                materialRunRecords = mergeRunRecords(materialRunRecords, with: outcome.runRecord)
+                isMaterialsRunInProgress = false
+                materialsStatusMessage = harvestSummary(for: outcome.runRecord)
+                persistSourceConfigs()
+                persistMaterialCandidates()
+                persistMaterialRunRecords()
+            }
+        }
+    }
+
+    func rejectMaterialCandidate(_ candidateID: String) {
+        materialCandidates.removeAll { $0.id == candidateID }
+        materialsStatusMessage = "候选已删除。"
+        persistMaterialCandidates()
+    }
+
+    func reprocessMaterialCandidate(_ candidateID: String) {
+        guard
+            !isMaterialsRunInProgress,
+            let index = materialCandidates.firstIndex(where: { $0.id == candidateID })
+        else { return }
+
+        isMaterialsRunInProgress = true
+        materialsStatusMessage = "正在重新清洗 \(materialCandidates[index].sourceArticle.title)..."
+        materialsPipelineProgress = nil
+        materialsLiveLogs.removeAll()
+        let article = materialCandidates[index].sourceArticle
+        let snapshotSettings = settings
+
+        Task {
+            let rebuilt = await MaterialsPipeline().rebuildCandidate(
+                from: article,
+                settings: snapshotSettings,
+                existingID: candidateID,
+                recentMaterialHints: recentMaterialHints(excludingCandidateID: candidateID)
+            ) { progress in
+                Task { @MainActor in
+                    self.materialsPipelineProgress = progress
+                    if let msg = progress.logMessage {
+                        self.materialsLiveLogs.append(msg)
+                    }
+                }
+            }
+
+            await MainActor.run {
+                materialCandidates[index] = rebuilt
+                materialCandidates[index].status = .pending
+                materialCandidates[index].updatedAt = Date()
+                isMaterialsRunInProgress = false
+                materialsStatusMessage = rebuilt.failureReasons.isEmpty ? "候选已重新清洗。" : "候选重新清洗完成，但仍有风险提示。"
+                persistMaterialCandidates()
+            }
+        }
+    }
+
+    func approveMaterialCandidate(_ candidateID: String) {
+        guard
+            let candidateIndex = materialCandidates.firstIndex(where: { $0.id == candidateID }),
+            let passage = materialCandidates[candidateIndex].generatedPassage
+        else { return }
+
+        let issues = passage.validationIssues
+        guard issues.isEmpty else {
+            materialCandidates[candidateIndex].failureReasons = issues
+            materialsStatusMessage = "入库前校验未通过。"
+            persistMaterialCandidates()
+            return
+        }
+
+        let candidate = materialCandidates[candidateIndex]
+        let approved = ApprovedReadingPassage(
+            passage: passage,
+            sourceArticle: candidate.sourceArticle,
+            approvedAt: Date(),
+            candidateID: candidate.id,
+            score: candidate.score
+        )
+
+        if let existingIndex = approvedReadingPassages.firstIndex(where: { $0.id == approved.id }) {
+            approvedReadingPassages[existingIndex] = approved
+        } else {
+            approvedReadingPassages.insert(approved, at: 0)
+        }
+
+        materialCandidates[candidateIndex].status = .approved
+        materialCandidates[candidateIndex].updatedAt = Date()
+        ReadingPassageRepository.updateApprovedPassages(approvedReadingPassages)
+        materialsStatusMessage = "素材已通过审核并加入正式题库。"
+        persistApprovedReadingPassages()
+        persistApprovedReadingPassages()
+        persistMaterialCandidates()
+    }
+
+    func clearAllMaterialsData() {
+        guard !isMaterialsRunInProgress else { return }
+        materialCandidates.removeAll()
+        approvedReadingPassages.removeAll()
+        materialRunRecords.removeAll()
+        for i in 0..<sourceConfigs.count {
+            sourceConfigs[i].lastError = nil
+            sourceConfigs[i].lastStatus = nil
+            sourceConfigs[i].lastCompletedAt = nil
+        }
+        ReadingPassageRepository.updateApprovedPassages([])
+        materialsStatusMessage = "素材工作台缓存与抓取日志已全部清空。"
+        persistMaterialCandidates()
+        persistApprovedReadingPassages()
+        persistMaterialRunRecords()
+        persistSourceConfigs()
+    }
+
     // MARK: - Formatting
 
     func formattedDuration(_ duration: TimeInterval) -> String {
@@ -604,6 +860,42 @@ final class AppModel {
             lastPersistenceError = nil
         } catch {
             lastPersistenceError = "自适应状态保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistSourceConfigs() {
+        do {
+            try store.saveSourceConfigs(sourceConfigs)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "来源设置保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistMaterialCandidates() {
+        do {
+            try store.saveMaterialCandidates(materialCandidates)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "候选材料保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistApprovedReadingPassages() {
+        do {
+            try store.saveApprovedReadingPassages(approvedReadingPassages)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "正式材料保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistMaterialRunRecords() {
+        do {
+            try store.saveMaterialRunRecords(materialRunRecords)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "执行记录保存失败：\(error.localizedDescription)"
         }
     }
 
@@ -652,16 +944,86 @@ final class AppModel {
         )
     }
 
+    private func mergeCandidates(_ existing: [MaterialCandidate], with incoming: [MaterialCandidate]) -> [MaterialCandidate] {
+        var byURL = Dictionary(uniqueKeysWithValues: existing.map { ($0.sourceArticle.url, $0) })
+        for candidate in incoming {
+            byURL[candidate.sourceArticle.url] = candidate
+        }
+        return byURL.values.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private func mergeRunRecords(_ existing: [MaterialRunRecord], with incoming: MaterialRunRecord) -> [MaterialRunRecord] {
+        ([incoming] + existing)
+            .sorted { $0.endedAt > $1.endedAt }
+            .prefix(20)
+            .map { $0 }
+    }
+
+    private func harvestSummary(for record: MaterialRunRecord) -> String {
+        if record.candidateCount > 0 {
+            return "已生成 \(record.candidateCount) 条候选，等待审核。"
+        }
+        if let firstError = record.errorMessages.first {
+            return firstError
+        }
+        return "本轮没有生成可用候选。"
+    }
+
+    private func recentMaterialHints(excludingCandidateID: String? = nil) -> [String] {
+        let candidateHints = materialCandidates
+            .filter { $0.id != excludingCandidateID }
+            .prefix(8)
+            .map { candidate in
+                let title = candidate.displayTitle
+                let keywords = candidate.generatedPassage?.recallKeywords.prefix(5).joined(separator: "、") ?? ""
+                return "候选：\(title)；关键词：\(keywords)"
+            }
+        let approvedHints = approvedReadingPassages
+            .prefix(8)
+            .map { approved in
+                "正式：\(approved.passage.title)；关键词：\(approved.passage.recallKeywords.prefix(5).joined(separator: "、"))"
+            }
+        return Array(candidateHints + approvedHints)
+    }
+
+    func appendSessionPublic(_ result: SessionResult) {
+        appendSession(result)
+    }
+
     private func appendSession(_ result: SessionResult) {
         sessions.insert(result, at: 0)
         sessions.sort { $0.endedAt > $1.endedAt }
         applyAdaptiveAdjustmentsIfNeeded(for: result)
+
+        // Update streak
+        streakTracker.recordTrainingDay(on: result.endedAt)
+        persistStreakTracker()
+
+        // Evaluate achievements
+        let newAchievements = achievementTracker.evaluate(
+            sessions: sessions,
+            streak: streakTracker,
+            cognitiveProfile: cognitiveProfile
+        )
+        if !newAchievements.isEmpty {
+            recentlyUnlockedAchievements = newAchievements
+            persistAchievementTracker()
+        }
+
         persistSessions()
     }
 
     private func applyAdaptiveAdjustmentsIfNeeded(for result: SessionResult) {
         guard settings.adaptiveDifficultyEnabled else { return }
         guard result.module.dimension != .reading else { return }
+        guard result.module.dimension != .logicalReasoning else {
+            // Logic modules manage their own adaptive state through coordinators
+            let currentState = adaptiveState(for: result.module)
+            let updatedState = AdaptiveScoring.updatedState(for: result, current: currentState)
+            adaptiveStates[result.module] = updatedState
+            persistAdaptiveStates()
+            return
+        }
         let currentState = adaptiveState(for: result.module)
         let updatedState = AdaptiveScoring.updatedState(for: result, current: currentState)
         adaptiveStates[result.module] = updatedState
@@ -685,6 +1047,24 @@ final class AppModel {
             settings.preferredDifficulty = SchulteDifficulty.allCases[level - 1]
         default:
             break
+        }
+    }
+
+    private func persistStreakTracker() {
+        do {
+            try store.saveStreakTracker(streakTracker)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "连胜数据保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistAchievementTracker() {
+        do {
+            try store.saveAchievementTracker(achievementTracker)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "成就数据保存失败：\(error.localizedDescription)"
         }
     }
 }

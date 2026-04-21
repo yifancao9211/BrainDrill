@@ -7,6 +7,7 @@ struct ReadingModuleIntroCard: View {
     let accent: Color
     let actionTitle: String
     let action: () -> Void
+    @FocusState private var isPrimaryActionFocused: Bool
 
     var body: some View {
         SurfaceCard(title: title, subtitle: subtitle) {
@@ -18,16 +19,15 @@ struct ReadingModuleIntroCard: View {
 
             Button(action: action) {
                 Text(actionTitle)
-                    .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(accent)
-                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BDPrimaryButton(accent: accent))
+            .keyboardShortcut(.defaultAction)
+            .focused($isPrimaryActionFocused)
+            .bdFocusRing(cornerRadius: 14)
+            .onAppear {
+                isPrimaryActionFocused = true
+            }
         }
     }
 }
@@ -73,6 +73,10 @@ struct PassageStage: View {
                         )
                 }
                 .frame(minHeight: 260, maxHeight: 360)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(BDColor.borderSubtle, lineWidth: 1)
+                )
 
                 footer
             }
@@ -85,6 +89,7 @@ struct ReadingPromptEditor: View {
     let subtitle: String
     let placeholder: String
     @Binding var text: String
+    @FocusState private var isEditorFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -98,11 +103,18 @@ struct ReadingPromptEditor: View {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(BDColor.panelSecondaryFill.opacity(0.3))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(BDColor.borderSubtle, lineWidth: 1)
+                    )
 
                 TextEditor(text: $text)
                     .font(.system(.body, design: .rounded))
                     .scrollContentBackground(.hidden)
                     .padding(10)
+                    .focused($isEditorFocused)
+                    .accessibilityLabel(title)
+                    .accessibilityHint(subtitle)
 
                 if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(placeholder)
@@ -114,6 +126,7 @@ struct ReadingPromptEditor: View {
                 }
             }
             .frame(minHeight: 120)
+            .bdFocusRing(cornerRadius: 16)
         }
     }
 }
@@ -125,22 +138,7 @@ struct ReadingChipButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(isSelected ? .white : BDColor.textPrimary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isSelected ? accent : BDColor.panelSecondaryFill.opacity(0.28))
-                )
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(isSelected ? accent : BDColor.borderSubtle, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
+        BDSelectionChip(title: title, isSelected: isSelected, accent: accent, action: action)
     }
 }
 
@@ -151,7 +149,7 @@ struct ReadingOptionButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        BDSelectionOptionCard(isSelected: isSelected, accent: accent, action: action) {
             HStack(alignment: .top, spacing: 10) {
                 Circle()
                     .fill(isSelected ? accent : accent.opacity(0.18))
@@ -164,16 +162,6 @@ struct ReadingOptionButton: View {
 
                 Spacer()
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? accent.opacity(0.12) : BDColor.panelSecondaryFill.opacity(0.25))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? accent.opacity(0.35) : BDColor.borderSubtle, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
     }
 }

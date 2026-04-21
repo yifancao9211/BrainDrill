@@ -15,6 +15,7 @@ struct CognitiveProfile: Equatable {
         ("inhibitionControl", "抑制控制"),
         ("visualSearch", "视觉搜索"),
         ("visualWorkingMemory", "视觉工作记忆"),
+        ("logicalReasoning", "逻辑推理"),
     ]
 
     static func compute(from sessions: [SessionResult]) -> CognitiveProfile {
@@ -40,6 +41,8 @@ struct CognitiveProfile: Equatable {
             return visualSearchScore(sessions)
         case "visualWorkingMemory":
             return visualWorkingMemoryScore(sessions)
+        case "logicalReasoning":
+            return logicalReasoningScore(sessions)
         default:
             return 0
         }
@@ -94,6 +97,25 @@ struct CognitiveProfile: Equatable {
         let dPrimes = sessions.compactMap { $0.changeDetectionMetrics?.dPrime }
         guard let best = dPrimes.max() else { return 0 }
         return clampScore(best / 4.0 * 100)
+    }
+
+    private static func logicalReasoningScore(_ sessions: [SessionResult]) -> Double {
+        var scores: [Double] = []
+
+        // Syllogism: based on d'
+        let syllogismDPrimes = sessions.compactMap { $0.syllogismMetrics?.dPrime }
+        if let bestDP = syllogismDPrimes.max() {
+            scores.append(clampScore(bestDP / 3.0 * 100))
+        }
+
+        // Logic Argument: based on composite score
+        let argumentScores = sessions.compactMap { $0.logicArgumentMetrics?.compositeScore }
+        if let bestScore = argumentScores.max() {
+            scores.append(clampScore(bestScore * 100))
+        }
+
+        guard !scores.isEmpty else { return 0 }
+        return scores.reduce(0, +) / Double(scores.count)
     }
 
     private static func clampScore(_ value: Double) -> Double {

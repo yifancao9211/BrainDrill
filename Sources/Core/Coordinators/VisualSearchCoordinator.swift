@@ -31,8 +31,8 @@ final class VisualSearchCoordinator {
                 "feedbackMs": "\(engine?.currentSpec.feedbackMs ?? 300)"
             ]
         )
-        if let target = engine?.target {
-            statusMessage = "找到 \(colorName(target.color))\(shapeName(target.shape))"
+        if engine != nil {
+            statusMessage = "迅速判断视场中是否包含要求的目标"
         }
     }
 

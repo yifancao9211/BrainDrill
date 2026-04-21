@@ -25,25 +25,21 @@ struct ChoiceRTTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.choiceRTAccent.opacity(0.6))
-            Text("选择反应时训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("看到颜色后，快速按对应按键（键盘 1/2/3/4）")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("核心指标：中位反应时 (RT)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            if appModel.settings.adaptiveDifficultyEnabled {
-                Text("当前推荐档位 L\(appModel.adaptiveState(for: .choiceRT).recommendedStartLevel) · 每局 2 个 block")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
+        SurfaceCard(title: "选择反应时", subtitle: "在统一训练壳层里完成颜色映射、响应和结果回看。", accent: BDColor.choiceRTAccent) {
+            VStack(alignment: .leading, spacing: 16) {
+                if appModel.settings.adaptiveDifficultyEnabled {
+                    Text("当前推荐档位 L\(appModel.adaptiveState(for: .choiceRT).recommendedStartLevel) · 每局 2 个 block")
+                        .font(.system(.caption))
+                        .foregroundStyle(BDColor.textSecondary)
+                }
 
-            HStack(spacing: 12) {
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "看到颜色后，快速按对应键位。先熟悉映射，再压缩中位反应时和波动。",
+                    accent: BDColor.choiceRTAccent
+                )
+
+                HStack(spacing: 12) {
                 let idleChoiceCount = appModel.settings.adaptiveDifficultyEnabled
                     ? ChoiceRTSessionConfig(startingLevel: appModel.adaptiveState(for: .choiceRT).recommendedStartLevel).initialSpec.choiceCount
                     : appModel.settings.choiceRTChoiceCount
@@ -58,26 +54,17 @@ struct ChoiceRTTrainingView: View {
                         }
                     }
                 }
-            }
-
-            Button {
-                appModel.startChoiceRTSession()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.choiceRTAccent))
+                Button("开始训练") {
+                    appModel.startChoiceRTSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.choiceRTAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: ChoiceRTEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.choiceRTAccent) {
             VStack(spacing: 8) {
                 Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
@@ -85,44 +72,50 @@ struct ChoiceRTTrainingView: View {
                 Text("L\(engine.currentLevel) · Block \(engine.currentBlock + 1)/\(engine.totalBlocks)")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.choiceRTAccent)
             }
-
-            BDTrainingStage(accent: BDColor.choiceRTAccent) {
-                phaseContent(engine: engine)
-                    .frame(height: 150)
-            }
-
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 240)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
+        } footer: {
             let canRespond = engine.phase == .stimulus
-            HStack(spacing: 12) {
-                ForEach(0..<engine.currentSpec.choiceCount, id: \.self) { i in
-                    let keyboardKeys: [KeyEquivalent] = ["1", "2", "3", "4"]
-                    Button {
-                        _ = appModel.handleChoiceRTResponse(i)
-                    } label: {
-                        let palette = ChoiceRTStimulus.palette
-                        Text(i < palette.count ? palette[i].label : "\(i+1)")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 64, height: 48)
-                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(i < stimulusColors.count ? stimulusColors[palette[i].colorIndex] : .gray))
+            VStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    ForEach(0..<engine.currentSpec.choiceCount, id: \.self) { i in
+                        let keyboardKeys: [KeyEquivalent] = ["1", "2", "3", "4"]
+                        Button {
+                            _ = appModel.handleChoiceRTResponse(i)
+                        } label: {
+                            let palette = ChoiceRTStimulus.palette
+                            Text(i < palette.count ? palette[i].label : "\(i+1)")
+                                .font(.system(.title2, design: .rounded, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 72, height: 64)
+                                .background(
+                                    ZStack {
+                                        Color.clear.bdPanelSurface(.primary, cornerRadius: 16)
+                                        if i < stimulusColors.count {
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .fill(stimulusColors[palette[i].colorIndex].opacity(canRespond ? 1 : 0.2))
+                                        }
+                                    }
+                                )
+                                .shadow(color: (i < stimulusColors.count && canRespond) ? stimulusColors[palette[i].colorIndex].opacity(0.4) : .clear, radius: 10, y: 4)
+                        }
+                        .buttonStyle(BDSpringPressStyle())
+                        .disabled(!canRespond)
+                        .keyboardShortcut(i < keyboardKeys.count ? keyboardKeys[i] : "0", modifiers: [])
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!canRespond)
-                    .keyboardShortcut(i < keyboardKeys.count ? keyboardKeys[i] : "0", modifiers: [])
                 }
+
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.choiceRTAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { appModel.cancelChoiceRTSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
             }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.choiceRTAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelChoiceRTSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -133,25 +126,32 @@ struct ChoiceRTTrainingView: View {
         switch engine.phase {
         case .fixation:
             Text("+")
-                .font(.system(size: 64, weight: .light, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 80, weight: .light, design: .rounded))
+                .foregroundStyle(.tertiary)
+                .transition(.opacity)
         case .stimulus:
             if let trial = engine.currentTrial {
+                let c = stimulusColors[trial.stimulus.colorIndex]
                 Circle()
-                    .fill(stimulusColors[trial.stimulus.colorIndex])
-                    .frame(width: 100, height: 100)
+                    .fill(c)
+                    .frame(width: 120, height: 120)
+                    .shadow(color: c.opacity(0.5), radius: 24, y: 8)
+                    .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 4))
+                    .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
         case .feedback(let correct):
             VStack(spacing: 8) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: 56))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
                 Text(correct ? "按键映射正确" : "颜色与按键映射不匹配")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
+            .transition(.scale.combined(with: .opacity))
+            .offset(x: correct ? 0 : 8)
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -189,6 +189,10 @@ struct ChoiceRTTrainingView: View {
 
     private func resultView(metrics: ChoiceRTMetrics) -> some View {
         BDResultPanel(title: "选择反应时完成", accent: BDColor.choiceRTAccent) {
+            Text("查看本轮选择反应速度")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.choiceRTAccent)
+
             HStack(spacing: 16) {
                 CRTResultCard(label: "中位 RT", value: "\(Int(metrics.medianRT * 1000))ms", color: BDColor.choiceRTAccent)
                 CRTResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -203,34 +207,11 @@ struct ChoiceRTTrainingView: View {
             }
 
             Button("关闭") { appModel.dismissChoiceRTResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.choiceRTAccent))
         }
     }
 
-    private func feedbackText(_ engine: ChoiceRTEngine) -> String {
-        switch engine.phase {
-        case .fixation:
-            return "注视中央，等待颜色出现"
-        case .stimulus:
-            if let trial = engine.currentTrial {
-                return "看到 \(trial.stimulus.label) 后按键 \(trial.correctResponseIndex + 1)"
-            }
-            return coordinator.statusMessage
-        case .feedback(let correct):
-            return correct ? "响应正确" : "重新确认颜色和按键编号"
-        case let .blockBreak(_, outcome, nextLevel):
-            switch outcome {
-            case .promote:
-                return "进入更高映射负荷 L\(nextLevel)"
-            case .demote:
-                return "本 block 调整到 L\(nextLevel)"
-            case .stay:
-                return "本 block 保持 L\(nextLevel)"
-            }
-        default:
-            return coordinator.statusMessage
-        }
-    }
+    // feedbackText removed
 }
 
 private struct CRTResultCard: View {

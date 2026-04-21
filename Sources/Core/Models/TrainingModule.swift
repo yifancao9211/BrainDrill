@@ -4,6 +4,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     case mainIdea
     case evidenceMap
     case delayedRecall
+    case syllogism
+    case logicArgument
     case schulte
     case nBack
     case visualSearch
@@ -21,6 +23,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .mainIdea,
         .evidenceMap,
         .delayedRecall,
+        .syllogism,
+        .logicArgument,
         .schulte,
         .visualSearch,
         .nBack,
@@ -38,6 +42,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     enum Dimension: String, CaseIterable, Identifiable {
         case reading
+        case logicalReasoning
         case memory
         case reaction
         case visualAttention
@@ -46,10 +51,11 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
         var displayName: String {
             switch self {
-            case .reading:         "阅读训练"
-            case .memory:          "记忆力"
-            case .reaction:        "反应力"
-            case .visualAttention: "视觉注意"
+            case .reading:          "阅读训练"
+            case .logicalReasoning: "逻辑推理"
+            case .memory:           "记忆力"
+            case .reaction:         "反应力"
+            case .visualAttention:  "视觉注意"
             }
         }
 
@@ -61,6 +67,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     var dimension: Dimension {
         switch self {
         case .mainIdea, .evidenceMap, .delayedRecall:            .reading
+        case .syllogism, .logicArgument:                        .logicalReasoning
         case .digitSpan, .nBack, .changeDetection, .corsiBlock: .memory
         case .choiceRT, .goNoGo, .flanker, .stopSignal:         .reaction
         case .schulte, .visualSearch:                           .visualAttention
@@ -72,6 +79,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .mainIdea:       "主旨提取"
         case .evidenceMap:    "结构证据"
         case .delayedRecall:  "延迟回忆"
+        case .syllogism:       "逻辑快判"
+        case .logicArgument:   "论证分析"
         case .schulte:         "舒尔特方格"
         case .flanker:         "Flanker 反应力"
         case .goNoGo:          "Go/No-Go 抑制力"
@@ -90,6 +99,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .mainIdea:       "主旨"
         case .evidenceMap:    "证据"
         case .delayedRecall:  "回忆"
+        case .syllogism:       "逻辑快判"
+        case .logicArgument:   "论证分析"
         case .schulte:         "舒尔特"
         case .flanker:         "Flanker"
         case .goNoGo:          "Go/No-Go"
@@ -108,6 +119,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .mainIdea:       "text.alignleft"
         case .evidenceMap:    "list.bullet.clipboard"
         case .delayedRecall:  "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .syllogism:       "bolt.trianglebadge.exclamationmark"
+        case .logicArgument:   "puzzlepiece.extension"
         case .schulte:         "square.grid.3x3.fill"
         case .flanker:         "arrow.left.arrow.right"
         case .goNoGo:          "hand.raised.fill"
@@ -126,6 +139,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .mainIdea:       "快速抓取说明文主干"
         case .evidenceMap:    "定位结论、证据与限制"
         case .delayedRecall:  "读后保持与结构化提取"
+        case .syllogism:       "形式逻辑推理速度与准确性"
+        case .logicArgument:   "论证结构·谬误识别·论证评估"
         case .schulte:         "视觉注意力与周边视觉"
         case .flanker:         "选择性注意力与抑制控制"
         case .goNoGo:          "反应抑制与冲动控制"
@@ -143,6 +158,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         switch self {
         case .mainIdea, .evidenceMap, .delayedRecall:
             .readingComprehension
+        case .syllogism, .logicArgument:
+            .logicalReasoning
         case .digitSpan, .nBack, .changeDetection, .corsiBlock:
             .memory
         case .choiceRT, .flanker:
@@ -156,7 +173,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var adaptiveLevelRange: ClosedRange<Int> {
         switch self {
-        case .mainIdea, .evidenceMap, .delayedRecall:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
             1...3
         case .schulte:
             1...7
@@ -167,7 +184,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var defaultAdaptiveLevel: Int {
         switch self {
-        case .mainIdea, .evidenceMap, .delayedRecall:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
             1
         case .schulte:
             2

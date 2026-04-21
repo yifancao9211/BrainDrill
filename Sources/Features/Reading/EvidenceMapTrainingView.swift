@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct EvidenceMapTrainingView: View {
+    private enum FocusTarget: Hashable {
+        case startIntro
+        case startClassification
+        case submit
+        case restart
+    }
+
     @Environment(AppModel.self) private var appModel
 
     @State private var passage: ReadingPassage?
@@ -9,6 +16,7 @@ struct EvidenceMapTrainingView: View {
     @State private var selections: [String: EvidenceClassificationItem.Role] = [:]
     @State private var claimLinks: [String: String] = [:]
     @State private var lastMetrics: EvidenceMapMetrics?
+    @FocusState private var focusedTarget: FocusTarget?
 
     private let accent = BDColor.teal
 
@@ -20,7 +28,9 @@ struct EvidenceMapTrainingView: View {
                         Button("开始结构标注") {
                             answeringStartedAt = Date()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(BDPrimaryButton(accent: accent))
+                        .keyboardShortcut(.defaultAction)
+                        .focused($focusedTarget, equals: .startClassification)
                     } else {
                         classificationStage(for: passage)
                     }
@@ -43,6 +53,17 @@ struct EvidenceMapTrainingView: View {
                 ) {
                     startNewSession()
                 }
+                .onAppear {
+                    focusedTarget = .startIntro
+                }
+            }
+        }
+        .onChange(of: passage?.id) { _, newValue in
+            focusedTarget = newValue == nil ? .startIntro : .startClassification
+        }
+        .onChange(of: lastMetrics != nil) { _, hasMetrics in
+            if hasMetrics {
+                focusedTarget = .restart
             }
         }
     }
@@ -145,8 +166,10 @@ struct EvidenceMapTrainingView: View {
                 Button("提交判分") {
                     submit()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(BDPrimaryButton(accent: accent))
                 .disabled(!canSubmit(passage))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .submit)
             }
         }
     }
@@ -169,7 +192,9 @@ struct EvidenceMapTrainingView: View {
             Button("再来一组") {
                 startNewSession()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(BDPrimaryButton(accent: accent))
+            .keyboardShortcut(.defaultAction)
+            .focused($focusedTarget, equals: .restart)
         }
     }
 

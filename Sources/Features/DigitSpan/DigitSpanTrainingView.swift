@@ -27,53 +27,42 @@ struct DigitSpanTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "brain")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.digitSpanAccent.opacity(0.6))
-            Text("数字广度训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("记住数字序列，然后按顺序复述")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("核心指标：最大广度 (Span)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 8) {
-                InfoPill(title: "起始广度 \(appModel.settings.digitSpanStartingLength)", accent: BDColor.digitSpanAccent)
-                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
-
-            Picker("模式", selection: $selectedMode) {
-                ForEach(DigitSpanMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 200)
-
-            Button {
-                userInput = []
-                appModel.startDigitSpanSession(mode: selectedMode)
-            } label: {
+        SurfaceCard(title: "数字广度训练", subtitle: "在统一训练壳层中完成数字编码、复述和结果回看。", accent: BDColor.digitSpanAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "起始广度 \(appModel.settings.digitSpanStartingLength)", accent: BDColor.digitSpanAccent)
+                    InfoPill(title: "核心指标 Span", accent: BDColor.green)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.digitSpanAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "正序更看保持，倒序更看操作更新。先稳定正确率，再尝试抬高广度。",
+                    accent: BDColor.digitSpanAccent
+                )
+
+                Picker("模式", selection: $selectedMode) {
+                    ForEach(DigitSpanMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+
+                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+                    .font(.system(.caption))
+                    .foregroundStyle(BDColor.textSecondary)
+
+                Button("开始训练") {
+                    userInput = []
+                    appModel.startDigitSpanSession(mode: selectedMode)
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.digitSpanAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: DigitSpanEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.digitSpanAccent) {
             VStack(spacing: 8) {
                 Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
                     .font(.system(.caption, design: .rounded, weight: .medium))
@@ -86,26 +75,24 @@ struct DigitSpanTrainingView: View {
                     .font(.system(.callout, design: .rounded))
                     .foregroundStyle(.secondary)
             }
-
-            BDTrainingStage(accent: BDColor.digitSpanAccent) {
-                switch engine.phase {
-                case .presenting:
-                    presentingView(engine: engine)
-                case .recalling:
-                    recallingView(engine: engine)
-                case .feedback(let correct):
-                    feedbackView(correct: correct, engine: engine)
-                default:
-                    EmptyView()
-                }
+        } stage: {
+            switch engine.phase {
+            case .presenting:
+                presentingView(engine: engine)
+            case .recalling:
+                recallingView(engine: engine)
+            case .feedback(let correct):
+                feedbackView(correct: correct, engine: engine)
+            default:
+                EmptyView()
             }
+        } footer: {
+            VStack(spacing: 16) {
+                staircaseStatus(engine: engine)
 
-            staircaseStatus(engine: engine)
-
-            Button("取消") { appModel.cancelDigitSpanSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
+                Button("取消") { appModel.cancelDigitSpanSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+            }
         }
     }
 
@@ -113,11 +100,18 @@ struct DigitSpanTrainingView: View {
         VStack(spacing: 16) {
             if let trial = engine.currentTrial, engine.presentingDigitIndex < trial.length {
                 Text("\(trial.sequence[engine.presentingDigitIndex])")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .font(.system(size: 84, weight: .bold, design: .rounded))
                     .foregroundStyle(BDColor.digitSpanAccent)
+                    .frame(width: 140, height: 140)
+                    .background(
+                        Color.clear.bdPanelSurface(.primary, cornerRadius: 40)
+                            .shadow(color: BDColor.digitSpanAccent.opacity(0.2), radius: 24, y: 12)
+                    )
                     .id("digit-\(engine.presentingDigitIndex)")
-                    .transition(.scale.combined(with: .opacity))
-                    .animation(.easeInOut(duration: 0.2), value: engine.presentingDigitIndex)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: engine.presentingDigitIndex)
+            } else {
+                Color.clear.frame(width: 140, height: 140)
             }
         }
         .task(id: presentationTaskID(for: engine)) {
@@ -159,21 +153,22 @@ struct DigitSpanTrainingView: View {
             }
             .frame(minHeight: 40)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 14), count: 5), spacing: 14) {
                 ForEach(0..<10, id: \.self) { digit in
                     Button {
                         appendDigit(digit, engine: engine)
                     } label: {
                         Text("\(digit)")
-                            .font(.system(.title2, design: .rounded, weight: .semibold))
-                            .frame(width: 52, height: 52)
-                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(BDColor.tileDefault))
+                            .font(.system(.title, design: .rounded, weight: .bold))
+                            .foregroundStyle(BDColor.digitSpanAccent)
+                            .frame(width: 64, height: 64)
+                            .background(Color.clear.bdPanelSurface(.primary, cornerRadius: 18))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BDSpringPressStyle())
                     .disabled(userInput.count >= targetInputCount(for: engine))
                 }
             }
-            .frame(maxWidth: 300)
+            .padding(.vertical, 16)
 
             HStack(spacing: 16) {
                 Button {
@@ -188,7 +183,7 @@ struct DigitSpanTrainingView: View {
                     .background(Capsule().fill(BDColor.error.opacity(0.12)))
                     .foregroundStyle(BDColor.error)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
                 .disabled(userInput.isEmpty)
 
                 Button {
@@ -203,7 +198,7 @@ struct DigitSpanTrainingView: View {
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(Capsule().fill(BDColor.digitSpanAccent))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BDPrimaryButton(accent: BDColor.digitSpanAccent))
                 .disabled(userInput.isEmpty)
             }
         }
@@ -236,7 +231,7 @@ struct DigitSpanTrainingView: View {
                 advanceAfterFeedback()
             }
             .font(.system(.callout, design: .rounded, weight: .semibold))
-            .buttonStyle(.bordered)
+            .buttonStyle(BDSecondaryButton(accent: correct ? BDColor.green : BDColor.error))
         }
         .task(id: feedbackTaskID(for: engine, correct: correct)) {
             await scheduleAutoAdvanceAfterFeedback(engine: engine, correct: correct)
@@ -245,6 +240,10 @@ struct DigitSpanTrainingView: View {
 
     private func resultView(metrics: DigitSpanMetrics) -> some View {
         BDResultPanel(title: "数字广度完成", accent: BDColor.digitSpanAccent) {
+            Text("查看本轮数字工作记忆表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.digitSpanAccent)
+
             HStack(spacing: 16) {
                 DSResultCard(label: "最大广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.digitSpanAccent)
                 DSResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -259,7 +258,7 @@ struct DigitSpanTrainingView: View {
             }
 
             Button("关闭") { appModel.dismissDigitSpanResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.digitSpanAccent))
         }
     }
 

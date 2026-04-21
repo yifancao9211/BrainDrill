@@ -1,7 +1,16 @@
 import SwiftUI
 
 struct NBackTrainingView: View {
+    private enum FocusTarget: Hashable {
+        case start
+        case respond
+        case cancel
+        case close
+    }
+
     @Environment(AppModel.self) private var appModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var focusedTarget: FocusTarget?
 
     private var coordinator: NBackCoordinator { appModel.nBack }
 
@@ -27,47 +36,52 @@ struct NBackTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            focusedTarget = coordinator.engine == nil ? .start : .respond
+        }
+        .onChange(of: coordinator.engine?.phase) { _, phase in
+            switch phase {
+            case .stimulus, .feedback, .isi, .idle, .blockBreak:
+                focusedTarget = .respond
+            case .completed:
+                focusedTarget = .close
+            case .none:
+                focusedTarget = coordinator.lastResult == nil ? .start : .close
+            }
+        }
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "number.square.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.nBackAccent.opacity(0.6))
-            Text("N-Back 记忆训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("判断当前数字是否与 N 步前的数字相同")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text("当前推荐起始 N = \(recommendedStartN)  ·  核心指标：d'")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("显示 \(appModel.settings.nBackStimulusDurationMs)ms  ·  间隔 \(appModel.settings.nBackISIMs)ms")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("每局 2 个 block，达到准确阈值后下一 block 自动升降 N。")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(BDColor.textSecondary)
-
-            Button {
-                appModel.startNBackSession()
-            } label: {
+        SurfaceCard(title: "N-Back", subtitle: "进入训练前先确认推荐负荷、节奏和目标指标。", accent: BDColor.nBackAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "推荐 \(recommendedStartN)-Back", accent: BDColor.nBackAccent)
+                    InfoPill(title: "核心指标 d'", accent: BDColor.green)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.nBackAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "判断当前数字是否与 N 步前相同。先稳定命中和抑制误报，再逐步提高负荷。",
+                    accent: BDColor.nBackAccent
+                )
+
+                HStack(spacing: 14) {
+                    BDStatCard(label: "刺激时长", value: "\(appModel.settings.nBackStimulusDurationMs) ms", accent: BDColor.nBackAccent)
+                    BDStatCard(label: "刺激间隔", value: "\(appModel.settings.nBackISIMs) ms", accent: BDColor.teal)
+                }
+
+                Button("开始训练") {
+                    appModel.startNBackSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.nBackAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .start)
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: NBackEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.nBackAccent) {
             VStack(spacing: 8) {
                 Text("\(engine.currentN)-Back  ·  Block \(engine.currentBlock + 1)/\(engine.config.blockCount)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
@@ -76,43 +90,31 @@ struct NBackTrainingView: View {
                 Text("显示 \(engine.currentStimulusDurationMs)ms  ·  间隔 \(engine.currentISIMs)ms")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
-
-                BDFeedbackNote(text: coordinator.statusMessage, color: BDColor.nBackAccent)
             }
-
-            BDTrainingStage(accent: BDColor.nBackAccent) {
-                phaseContent(engine: engine)
-                    .frame(height: 180)
-            }
-
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(height: 180)
+        } footer: {
+            VStack(spacing: 16) {
             Button {
                 appModel.handleNBackMatch()
             } label: {
                 Text(engine.respondedThisTrial ? "已记录" : "匹配")
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 48).padding(.vertical, 14)
-                    .background(
-                        Capsule()
-                            .fill(
-                                engine.phase == .stimulus && !engine.respondedThisTrial
-                                    ? BDColor.nBackAccent
-                                    : BDColor.nBackAccent.opacity(0.3)
-                            )
-                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BDPrimaryButton(accent: engine.phase == .stimulus && !engine.respondedThisTrial ? BDColor.nBackAccent : BDColor.nBackAccent.opacity(0.5)))
             .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
             .keyboardShortcut(.space, modifiers: [])
+            .focused($focusedTarget, equals: .respond)
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.nBackAccent)
                 .frame(maxWidth: 300)
 
             Button("取消") { appModel.cancelNBackSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                .keyboardShortcut(.cancelAction)
+                .focused($focusedTarget, equals: .cancel)
+        }
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -138,13 +140,13 @@ struct NBackTrainingView: View {
                     .font(.system(.callout, design: .rounded, weight: .medium))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
-            .transition(.opacity)
+            .transition(reduceMotion ? .identity : .opacity)
         case .isi:
             Text("+")
                 .font(.system(size: 36, weight: .light, design: .rounded))
                 .foregroundStyle(.secondary)
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -187,24 +189,31 @@ struct NBackTrainingView: View {
     private func resultView(metrics: NBackMetrics) -> some View {
         let feedback = resultFeedback(for: metrics)
         return BDResultPanel(title: "N-Back 完成", accent: BDColor.nBackAccent) {
+            Text(feedback.title)
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(feedback.color)
+
             HStack(spacing: 16) {
-                NResultCard(label: "结果", value: feedback.title, color: feedback.color)
                 NResultCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
                 NResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
                 NResultCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
-            BDFeedbackNote(text: feedback.note, color: feedback.color)
+            Text(feedback.note)
+                .font(.system(.callout))
+                .foregroundStyle(BDColor.textSecondary)
 
             if appModel.settings.adaptiveDifficultyEnabled {
                 Text("下次训练将从 \(recommendedStartN)-Back 开始。")
-                    .font(.system(.callout, design: .rounded))
+                    .font(.system(.callout))
                     .foregroundStyle(BDColor.textSecondary)
             }
 
             Button("关闭") { appModel.dismissNBackResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .close)
         }
     }
 

@@ -115,6 +115,22 @@ enum TrialExporter {
                 ("ssrt", String(format: "%.4f", m.ssrt)),
                 ("inhibitionRate", String(format: "%.4f", m.inhibitionRate)),
             ]
+        case let .syllogism(m):
+            return [
+                ("difficulty", "\(m.difficulty)"),
+                ("totalTrials", "\(m.totalTrials)"),
+                ("accuracy", String(format: "%.4f", m.accuracy)),
+                ("dPrime", String(format: "%.4f", m.dPrime)),
+                ("medianRT", String(format: "%.4f", m.medianRT)),
+            ]
+        case let .logicArgument(m):
+            return [
+                ("passageID", m.passageID),
+                ("difficulty", "\(m.difficulty)"),
+                ("compositeScore", String(format: "%.4f", m.compositeScore)),
+                ("componentAccuracy", String(format: "%.4f", m.componentAccuracy)),
+                ("fallacyAccuracy", String(format: "%.4f", m.fallacyAccuracy)),
+            ]
         }
     }
 }

@@ -1,6 +1,14 @@
 import SwiftUI
 
 struct MainIdeaTrainingView: View {
+    private enum FocusTarget: Hashable {
+        case startIntro
+        case startAnswering
+        case lockSummary
+        case submit
+        case restart
+    }
+
     @Environment(AppModel.self) private var appModel
 
     @State private var passage: ReadingPassage?
@@ -10,6 +18,7 @@ struct MainIdeaTrainingView: View {
     @State private var generatedSummary = ""
     @State private var summaryLocked = false
     @State private var lastMetrics: MainIdeaMetrics?
+    @FocusState private var focusedTarget: FocusTarget?
 
     private let accent = BDColor.gold
 
@@ -21,7 +30,9 @@ struct MainIdeaTrainingView: View {
                         Button("我读完了，开始提炼主旨") {
                             answeringStartedAt = Date()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(BDPrimaryButton(accent: accent))
+                        .keyboardShortcut(.defaultAction)
+                        .focused($focusedTarget, equals: .startAnswering)
                     } else {
                         answerStage(for: passage)
                     }
@@ -44,6 +55,20 @@ struct MainIdeaTrainingView: View {
                 ) {
                     startNewSession()
                 }
+                .onAppear {
+                    focusedTarget = .startIntro
+                }
+            }
+        }
+        .onChange(of: passage?.id) { _, newValue in
+            focusedTarget = newValue == nil ? .startIntro : .startAnswering
+        }
+        .onChange(of: summaryLocked) { _, isLocked in
+            focusedTarget = isLocked ? .submit : .lockSummary
+        }
+        .onChange(of: lastMetrics != nil) { _, hasMetrics in
+            if hasMetrics {
+                focusedTarget = .restart
             }
         }
     }
@@ -90,8 +115,10 @@ struct MainIdeaTrainingView: View {
                     Button(summaryLocked ? "重新编辑" : "锁定主旨句") {
                         summaryLocked.toggle()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(BDPrimaryButton(accent: accent))
                     .disabled(!summaryLocked && summaryCharacterCount < passage.mainIdeaMinimumLength)
+                    .keyboardShortcut(.defaultAction)
+                    .focused($focusedTarget, equals: .lockSummary)
                 }
             }
 
@@ -116,8 +143,10 @@ struct MainIdeaTrainingView: View {
                     Button("提交") {
                         submit()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(BDPrimaryButton(accent: accent))
                     .disabled(selectedIndex == nil)
+                    .keyboardShortcut(.defaultAction)
+                    .focused($focusedTarget, equals: .submit)
                 }
             }
         }
@@ -150,7 +179,9 @@ struct MainIdeaTrainingView: View {
             Button("再来一篇") {
                 startNewSession()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(BDPrimaryButton(accent: accent))
+            .keyboardShortcut(.defaultAction)
+            .focused($focusedTarget, equals: .restart)
         }
     }
 
@@ -192,8 +223,7 @@ struct MainIdeaTrainingView: View {
     }
 
     private func matchingKeywordCount(in text: String, keywords: [String]) -> Int {
-        let normalized = normalizedText(text)
-        return keywords.filter { normalized.contains(normalizedText($0)) }.count
+        KeywordSynonyms.matchingCount(in: text, keywords: keywords)
     }
 
     private func normalizedText(_ text: String) -> String {

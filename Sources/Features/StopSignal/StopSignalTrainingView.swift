@@ -23,84 +23,68 @@ struct StopSignalTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "stop.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.stopSignalAccent.opacity(0.6))
-            Text("Stop-Signal 训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("看到箭头按方向键 ←→，出现红点时忍住不按")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text("核心指标：SSRT（停止信号反应时）")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
+        SurfaceCard(title: "Stop-Signal", subtitle: "在统一训练壳层中完成反应启动与停止控制。", accent: BDColor.stopSignalAccent) {
+            VStack(alignment: .leading, spacing: 16) {
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "看到方向箭头按左右键，出现红色停止信号时立即抑制反应。核心观察指标是 SSRT。",
+                    accent: BDColor.stopSignalAccent
+                )
 
-            Button {
-                appModel.startStopSignalSession()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                Button("开始训练") {
+                    appModel.startStopSignalSession()
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.stopSignalAccent))
+                .buttonStyle(BDPrimaryButton(accent: BDColor.stopSignalAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: StopSignalEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.stopSignalAccent) {
             VStack(spacing: 8) {
-                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)  •  SSD \(engine.currentSSD)ms")
+                Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(BDColor.textSecondary)
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.stopSignalAccent)
             }
-
-            BDTrainingStage(accent: BDColor.stopSignalAccent) {
-                phaseContent(engine: engine)
-                    .frame(height: 140)
-            }
-
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 280)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
+        } footer: {
             let canRespond = engine.phase == .stimulus || engine.phase == .stopSignalShown
-            HStack(spacing: 40) {
-                Button { _ = appModel.handleStopSignalResponse(.left) } label: {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 28, weight: .bold))
-                        .frame(width: 70, height: 70)
-                        .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
-                        .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
-                }
-                .buttonStyle(.plain)
-                .disabled(!canRespond)
-                .keyboardShortcut(.leftArrow, modifiers: [])
+            VStack(spacing: 16) {
+                HStack(spacing: 40) {
+                    Button { _ = appModel.handleStopSignalResponse(.left) } label: {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 28, weight: .bold))
+                            .frame(width: 70, height: 70)
+                            .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
+                            .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
+                    }
+                    .buttonStyle(BDSpringPressStyle())
+                    .disabled(!canRespond)
+                    .keyboardShortcut(.leftArrow, modifiers: [])
 
-                Button { _ = appModel.handleStopSignalResponse(.right) } label: {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 28, weight: .bold))
-                        .frame(width: 70, height: 70)
-                        .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
-                        .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
+                    Button { _ = appModel.handleStopSignalResponse(.right) } label: {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 28, weight: .bold))
+                            .frame(width: 70, height: 70)
+                            .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
+                            .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
+                    }
+                    .buttonStyle(BDSpringPressStyle())
+                    .disabled(!canRespond)
+                    .keyboardShortcut(.rightArrow, modifiers: [])
                 }
-                .buttonStyle(.plain)
-                .disabled(!canRespond)
-                .keyboardShortcut(.rightArrow, modifiers: [])
+
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.stopSignalAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { appModel.cancelStopSignalSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
             }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.stopSignalAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelStopSignalSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -111,37 +95,48 @@ struct StopSignalTrainingView: View {
         switch engine.phase {
         case .fixation:
             Text("+")
-                .font(.system(size: 48, weight: .light, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 80, weight: .light, design: .rounded))
+                .foregroundStyle(.tertiary)
+                .transition(.opacity)
         case .stimulus:
             if let trial = engine.currentTrial {
                 Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
-                    .font(.system(size: 64, weight: .bold))
+                    .font(.system(size: 72, weight: .bold))
                     .foregroundStyle(BDColor.primaryBlue)
+                    .frame(width: 140, height: 140)
+                    .background(Color.clear.bdPanelSurface(.primary, cornerRadius: 40))
+                    .shadow(color: BDColor.primaryBlue.opacity(0.2), radius: 24, y: 8)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
             }
         case .stopSignalShown:
             ZStack {
                 if let trial = engine.currentTrial {
                     Image(systemName: trial.correctDirection == .left ? "arrow.left" : "arrow.right")
-                        .font(.system(size: 64, weight: .bold))
+                        .font(.system(size: 72, weight: .bold))
                         .foregroundStyle(BDColor.primaryBlue)
+                        .frame(width: 140, height: 140)
+                        .background(Color.clear.bdPanelSurface(.primary, cornerRadius: 40))
                 }
                 Circle()
-                    .fill(BDColor.stopSignalAccent)
-                    .frame(width: 30, height: 30)
-                    .offset(y: -40)
+                    .strokeBorder(BDColor.error, lineWidth: 10)
+                    .background(Circle().fill(BDColor.error.opacity(0.15)))
+                    .frame(width: 170, height: 170)
+                    .shadow(color: BDColor.error.opacity(0.8), radius: 20, y: 0)
+                    .transition(.scale(scale: 2.5).combined(with: .opacity))
             }
         case .feedback(let correct):
             VStack(spacing: 8) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: 56))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
                 Text(correct ? "本次控制正确" : "停止信号后未成功抑制")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
+            .transition(.scale.combined(with: .opacity))
+            .offset(x: correct ? 0 : -8)
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -194,6 +189,10 @@ struct StopSignalTrainingView: View {
 
     private func resultView(metrics: StopSignalMetrics) -> some View {
         BDResultPanel(title: "Stop-Signal 完成", accent: BDColor.stopSignalAccent) {
+            Text("查看本轮停止控制表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.stopSignalAccent)
+
             HStack(spacing: 16) {
                 SSResultCard(label: "SSRT", value: "\(Int(metrics.ssrt * 1000))ms", color: BDColor.stopSignalAccent)
                 SSResultCard(label: "抑制率", value: "\(Int(metrics.inhibitionRate * 100))%", color: BDColor.green)
@@ -202,30 +201,11 @@ struct StopSignalTrainingView: View {
             .frame(maxWidth: 400)
 
             Button("关闭") { appModel.dismissStopSignalResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.stopSignalAccent))
         }
     }
 
-    private func feedbackText(_ engine: StopSignalEngine) -> String {
-        switch engine.phase {
-        case .fixation:
-            return "准备对箭头方向做出反应"
-        case .stimulus:
-            return "看到箭头立即响应"
-        case .stopSignalShown:
-            return "红点出现后必须忍住不按"
-        case .feedback(let correct):
-            guard let trial = engine.currentTrial else {
-                return correct ? "正确" : "错误"
-            }
-            if trial.hasStopSignal {
-                return correct ? "Stop 试次抑制成功" : "Stop 试次抑制失败"
-            }
-            return correct ? "Go 试次方向正确" : "Go 试次方向判断错误"
-        default:
-            return coordinator.statusMessage
-        }
-    }
+    // feedbackText removed
 }
 
 private struct SSResultCard: View {

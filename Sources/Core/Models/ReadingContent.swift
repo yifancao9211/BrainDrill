@@ -164,17 +164,26 @@ enum ReadingDifficultyPlanner {
         let recent = recentSessions(for: module, sessions: sessions)
         guard let currentDifficulty = recent.first.map(readingDifficulty(for:)) else { return 1 }
 
-        let averageScore = recent.map(score(for:)).reduce(0, +) / Double(recent.count)
+        let scores = recent.map(score(for:))
+        let recommendation = WindowedAdaptiveEvaluator.evaluate(
+            recentScores: scores,
+            config: .reading
+        )
 
-        if recent.count >= 2, averageScore >= 0.82 {
+        switch recommendation {
+        case .promote:
             return min(currentDifficulty + 1, 3)
-        }
-
-        if averageScore <= 0.55 {
+        case .demote:
             return max(currentDifficulty - 1, 1)
+        case .stay:
+            // Fallback for small window (< 5 sessions): use old simple average
+            if recent.count >= 1 {
+                let avg = scores.reduce(0, +) / Double(scores.count)
+                if avg >= 0.82 { return min(currentDifficulty + 1, 3) }
+                if avg <= 0.55 { return max(currentDifficulty - 1, 1) }
+            }
+            return currentDifficulty
         }
-
-        return currentDifficulty
     }
 
     static func nextPassage(for module: TrainingModule, sessions: [SessionResult]) -> ReadingPassage {
@@ -201,7 +210,7 @@ enum ReadingDifficultyPlanner {
         sessions
             .filter { $0.module == module }
             .sorted { $0.endedAt > $1.endedAt }
-            .prefix(3)
+            .prefix(5)
             .map { $0 }
     }
 
@@ -249,7 +258,11 @@ enum ReadingDifficultyPlanner {
 }
 
 enum ReadingPassageLibrary {
-    static let all: [ReadingPassage] = loadPassages()
+    private static let bundled: [ReadingPassage] = loadPassages()
+
+    static var all: [ReadingPassage] {
+        ReadingPassageRepository.mergedPassages(bundled: bundled)
+    }
 
     static func randomPassage(maxDifficulty: Int? = nil) -> ReadingPassage {
         let candidates = maxDifficulty.map { limit in

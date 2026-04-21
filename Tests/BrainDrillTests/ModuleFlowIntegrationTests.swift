@@ -75,10 +75,10 @@ struct GoNoGoFlowTests {
         let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
         let engine = GoNoGoEngine(config: config)
 
-        for trial in engine.trials {
+        for _ in 0..<10 {
             engine.beginTrial()
             engine.showStimulus()
-            if trial.stimulusType == .go {
+            if engine.currentTrial!.stimulusType == .go {
                 _ = engine.recordTap(at: Date())
             } else {
                 engine.recordTimeout()
@@ -117,10 +117,10 @@ struct FlankerFlowTests {
         let config = FlankerSessionConfig(trialsPerBlock: 4, blockCount: 1)
         let engine = FlankerEngine(config: config)
 
-        for trial in engine.trials {
+        for _ in 0..<4 {
             engine.beginTrial()
             engine.showStimulus()
-            _ = engine.recordResponse(trial.targetDirection, at: Date())
+            _ = engine.recordResponse(engine.currentTrial!.targetDirection, at: Date())
             engine.advanceToNext()
         }
 
@@ -191,10 +191,10 @@ struct VisualSearchFlowTests {
         let config = VisualSearchSessionConfig(setSizes: [8], trialsPerSize: 3)
         let engine = VisualSearchEngine(config: config)
 
-        for trial in engine.trials {
+        for _ in 0..<3 {
             engine.beginTrial()
             engine.showDisplay()
-            _ = engine.recordResponse(userSaidPresent: trial.targetPresent)
+            _ = engine.recordResponse(userSaidPresent: engine.currentTrial!.targetPresent)
             engine.advanceToNext()
         }
 
@@ -239,9 +239,10 @@ struct StopSignalFlowTests {
         let config = StopSignalSessionConfig(trialsPerBlock: 5, blockCount: 1, stopRatio: 0.2)
         let engine = StopSignalEngine(config: config)
 
-        for trial in engine.trials {
+        for _ in 0..<5 {
             engine.beginTrial()
             engine.showStimulus()
+            let trial = engine.currentTrial!
             if trial.hasStopSignal {
                 engine.showStopSignal()
                 engine.recordStopTimeout()
@@ -372,12 +373,13 @@ struct CoordinatorFlowTests {
         #expect(coord.engine != nil)
 
         let engine = coord.engine!
-        for _ in 0..<engine.trials.count {
+        while !engine.isComplete {
             engine.beginTrial()
             engine.showStimulus()
             let trial = engine.currentTrial!
             let onset = engine.stimulusOnsetTime!
-            _ = coord.handleResponse(trial.correctResponseIndex, at: onset.addingTimeInterval(0.3))
+            let result = coord.handleResponse(trial.correctResponseIndex, at: onset.addingTimeInterval(0.3))
+            if result != nil { break }
         }
 
         #expect(coord.lastResult != nil)
@@ -388,10 +390,10 @@ struct CoordinatorFlowTests {
         let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
         let engine = GoNoGoEngine(config: config)
 
-        for trial in engine.trials {
+        for _ in 0..<10 {
             engine.beginTrial()
             engine.showStimulus()
-            if trial.stimulusType == .go {
+            if engine.currentTrial!.stimulusType == .go {
                 _ = engine.recordTap(at: Date())
             } else {
                 engine.recordTimeout()
@@ -409,10 +411,11 @@ struct CoordinatorFlowTests {
         coord.startSession(settings: .default)
 
         let engine = coord.engine!
-        for trial in engine.trials {
+        while !engine.isComplete {
             engine.beginTrial()
             engine.showStimulus()
-            _ = coord.handleResponse(trial.targetDirection, at: Date())
+            let result = coord.handleResponse(engine.currentTrial!.targetDirection, at: Date())
+            if result != nil { break }
         }
 
         #expect(coord.lastResult != nil)

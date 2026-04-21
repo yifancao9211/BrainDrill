@@ -3,29 +3,24 @@ import Testing
 @testable import BrainDrill
 
 struct FlankerEngineTests {
-    @Test func generatesCorrectTrialCount() {
+    @Test func engineInitializes() {
         let config = FlankerSessionConfig(trialsPerBlock: 40, blockCount: 2)
         let engine = FlankerEngine(config: config)
-        #expect(engine.trials.count == 80)
+        #expect(engine.currentTrialIndex == 0)
+        #expect(engine.phase == .idle)
     }
 
-    @Test func halfCongruentHalfIncongruent() {
-        let config = FlankerSessionConfig(trialsPerBlock: 20, blockCount: 2)
-        let engine = FlankerEngine(config: config)
-        let congruent = engine.trials.filter { $0.type == .congruent }.count
-        let incongruent = engine.trials.filter { $0.type == .incongruent }.count
-        #expect(congruent == 20)
-        #expect(incongruent == 20)
-    }
-
-    @Test func metricsComputeConflictCost() {
+    @Test func trialGenerationAndResponse() {
         let config = FlankerSessionConfig(trialsPerBlock: 4, blockCount: 1)
         let engine = FlankerEngine(config: config)
-        engine.beginTrial()
-        engine.showStimulus()
 
-        for trial in engine.trials {
+        for _ in 0..<4 {
+            engine.beginTrial()
             engine.showStimulus()
+            guard let trial = engine.currentTrial else {
+                Issue.record("currentTrial should not be nil during stimulus")
+                return
+            }
             _ = engine.recordResponse(trial.targetDirection, at: Date())
             engine.advanceToNext()
         }

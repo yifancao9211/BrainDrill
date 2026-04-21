@@ -6,14 +6,19 @@ final class FlankerEngine {
     let config: FlankerSessionConfig
     let startedAt: Date
 
-    private(set) var trials: [FlankerTrial] = []
+    // Core Engine Logic
+    private(set) var staircase: AdaptiveStaircase
     private(set) var currentLevel: Int
     private(set) var currentBlockIndex: Int = 0
     private(set) var currentSpec: FlankerLevelSpec
     private(set) var blockLevelHistory: [Int] = []
+    
+    // Block Outcomes (Fake for legacy compatibility, not used by true staircase)
     private(set) var blockOutcomes: [AdaptiveBlockOutcome] = []
     private(set) var lastBlockOutcome: AdaptiveBlockOutcome?
     private(set) var lastBlockPerformanceIndex: Double?
+
+    // Trial Tracking
     private(set) var currentTrialIndex: Int = 0
     private(set) var currentBlockStartIndex: Int = 0
     private(set) var currentBlockTrialCount: Int
@@ -21,6 +26,9 @@ final class FlankerEngine {
     private(set) var phase: Phase = .idle
 
     private(set) var stimulusOnsetTime: Date?
+    private(set) var currentTrial: FlankerTrial?
+    
+    var isWarmup: Bool { currentTrialIndex < 3 } // First 3 trials are warmup and don't demote
 
     enum Phase: Equatable, Hashable {
         case idle
@@ -31,11 +39,6 @@ final class FlankerEngine {
         case iti
         case blockBreak(blockIndex: Int, outcome: AdaptiveBlockOutcome, nextLevel: Int)
         case completed
-    }
-
-    var currentTrial: FlankerTrial? {
-        guard currentTrialIndex < trials.count else { return nil }
-        return trials[currentTrialIndex]
     }
 
     var currentBlock: Int {
@@ -57,23 +60,18 @@ final class FlankerEngine {
     init(config: FlankerSessionConfig, startedAt: Date = Date()) {
         self.config = config
         self.startedAt = startedAt
-        self.currentLevel = config.startingLevel ?? config.initialSpec.level
+        let initialLevel = config.startingLevel ?? config.initialSpec.level
+        self.currentLevel = initialLevel
         self.currentSpec = config.initialSpec
+        self.staircase = AdaptiveStaircase(startLevel: initialLevel, minLevel: 1, maxLevel: 6, rule: .threeUpOneDown)
         self.currentBlockTrialCount = config.initialSpec.trialsPerBlock
-        self.blockLevelHistory = [self.currentLevel]
-        if config.isAdaptive {
-            self.trials = Self.generateTrials(spec: config.initialSpec, startId: 0)
-        } else {
-            var startId = 0
-            for _ in 0..<config.blockCount {
-                let blockTrials = Self.generateTrials(spec: config.initialSpec, startId: startId)
-                self.trials.append(contentsOf: blockTrials)
-                startId += blockTrials.count
-            }
-        }
+        self.blockLevelHistory = [initialLevel]
     }
 
     func beginTrial() {
+        if currentTrial == nil {
+            currentTrial = generateSingleTrial(spec: currentSpec, startId: currentTrialIndex)
+        }
         phase = .fixation
     }
 
@@ -92,6 +90,8 @@ final class FlankerEngine {
         let rt = stimulusOnsetTime.map { date.timeIntervalSince($0) }
         let result = FlankerTrialResult(trialIndex: currentTrialIndex, type: trial.type, responseCorrect: correct, reactionTime: rt)
         results.append(result)
+        
+        applyStaircaseMetrics(correct: correct)
         phase = .feedback(correct: correct)
         return result
     }
@@ -100,38 +100,48 @@ final class FlankerEngine {
         guard let trial = currentTrial else { return }
         let result = FlankerTrialResult(trialIndex: currentTrialIndex, type: trial.type, responseCorrect: false, reactionTime: nil)
         results.append(result)
+        
+        applyStaircaseMetrics(correct: false)
         phase = .feedback(correct: false)
+    }
+    
+    private func applyStaircaseMetrics(correct: Bool) {
+        if config.isAdaptive && !isWarmup {
+            let change = staircase.recordTrial(correct: correct)
+            if change != 0 {
+                currentLevel = staircase.currentLevel
+                currentSpec = config.spec(for: currentLevel)
+            }
+        }
     }
 
     func advanceToNext() {
         currentTrialIndex += 1
-        if currentTrialIndex >= currentBlockStartIndex + currentBlockTrialCount {
+        currentTrial = nil
+        
+        if trialInBlock >= currentBlockTrialCount {
             if currentBlockIndex + 1 >= config.blockCount {
                 phase = .completed
                 return
             }
 
-            let (outcome, nextLevel, performanceIndex) = evaluateCurrentBlock()
+            let (outcome, nextLevel, performanceIndex) = evaluateCurrentBlockLegacy()
             lastBlockOutcome = outcome
             lastBlockPerformanceIndex = performanceIndex
             blockOutcomes.append(outcome)
             currentBlockIndex += 1
-            phase = .blockBreak(blockIndex: currentBlockIndex, outcome: outcome, nextLevel: nextLevel)
+            phase = .blockBreak(blockIndex: currentBlockIndex, outcome: outcome, nextLevel: currentLevel)
         } else {
             phase = .iti
         }
     }
 
     func startNextBlock(level: Int) {
-        currentLevel = level
-        blockLevelHistory.append(level)
-        currentSpec = config.isAdaptive ? config.spec(for: level) : currentSpec
+        // level param is mostly ignored as we use continuous staircase now, 
+        // but kept to honor legacy API calls from FlankerTrainingView
+        blockLevelHistory.append(currentLevel)
         currentBlockStartIndex = currentTrialIndex
         currentBlockTrialCount = currentSpec.trialsPerBlock
-        if config.isAdaptive {
-            let blockTrials = Self.generateTrials(spec: currentSpec, startId: trials.count)
-            trials.append(contentsOf: blockTrials)
-        }
         phase = .idle
     }
 
@@ -160,7 +170,7 @@ final class FlankerEngine {
         Int.random(in: currentSpec.itiRangeMs)
     }
 
-    private func evaluateCurrentBlock() -> (AdaptiveBlockOutcome, Int, Double) {
+    private func evaluateCurrentBlockLegacy() -> (AdaptiveBlockOutcome, Int, Double) {
         let blockResults = results.filter { $0.trialIndex >= currentBlockStartIndex && $0.trialIndex < currentBlockStartIndex + currentBlockTrialCount }
         let accuracy = blockResults.isEmpty ? 0 : Double(blockResults.filter(\.responseCorrect).count) / Double(blockResults.count)
         let congruentRT = timeAverage(blockResults.filter { $0.type == .congruent && $0.responseCorrect }.compactMap(\.reactionTime)) ?? 0
@@ -168,39 +178,23 @@ final class FlankerEngine {
         let speedScore = clamp((1_200 - incongruentRT * 1_000) / 780)
         let conflictScore = clamp((220 - max(0, (incongruentRT - congruentRT) * 1_000)) / 180)
         let performanceIndex = clamp(0.45 * accuracy + 0.35 * speedScore + 0.20 * conflictScore)
-
-        var nextLevel = currentLevel
-        let outcome: AdaptiveBlockOutcome
-        if accuracy >= 0.90 && performanceIndex >= 0.78 {
-            nextLevel = min(currentLevel + 1, 6)
-            outcome = nextLevel > currentLevel ? .promote : .stay
-        } else if accuracy < 0.72 || performanceIndex < 0.55 {
-            nextLevel = max(currentLevel - 1, 1)
-            outcome = nextLevel < currentLevel ? .demote : .stay
-        } else {
-            outcome = .stay
-        }
-
-        return (outcome, nextLevel, performanceIndex)
+        
+        // We defer to continuous staircase for true level, this outcome is just UI sugar
+        let diff = currentLevel - blockLevelHistory.last!
+        let outcome: AdaptiveBlockOutcome = diff > 0 ? .promote : (diff < 0 ? .demote : .stay)
+        return (outcome, currentLevel, performanceIndex)
     }
 
-    private static func generateTrials(spec: FlankerLevelSpec, startId: Int) -> [FlankerTrial] {
-        var trials: [FlankerTrial] = []
-        let total = spec.trialsPerBlock
-        let incongruentCount = Int(round(Double(total) * spec.incongruentRatio))
-
-        for i in 0..<total {
-            let isCongruent = i >= incongruentCount
-            let targetDir: FlankerDirection = Bool.random() ? .left : .right
-            let flankerDir = isCongruent ? targetDir : (targetDir == .left ? .right : .left)
-            trials.append(FlankerTrial(
-                id: startId + i,
-                type: isCongruent ? .congruent : .incongruent,
-                targetDirection: targetDir,
-                flankerDirection: flankerDir
-            ))
-        }
-        return trials.shuffled()
+    private func generateSingleTrial(spec: FlankerLevelSpec, startId: Int) -> FlankerTrial {
+        let isCongruent = Double.random(in: 0...1) > spec.incongruentRatio
+        let targetDir: FlankerDirection = Bool.random() ? .left : .right
+        let flankerDir = isCongruent ? targetDir : (targetDir == .left ? .right : .left)
+        return FlankerTrial(
+            id: startId,
+            type: isCongruent ? .congruent : .incongruent,
+            targetDirection: targetDir,
+            flankerDirection: flankerDir
+        )
     }
 }
 
@@ -211,4 +205,73 @@ private func timeAverage(_ values: [TimeInterval]) -> TimeInterval? {
 
 private func clamp(_ value: Double) -> Double {
     min(max(value, 0), 1)
+}
+
+// MARK: - Core Adaptive Engine Protocol & Math
+
+public enum AdaptiveStaircaseRule {
+    case threeUpOneDown
+    case twoUpOneDown
+    case oneUpOneDown
+}
+
+public class AdaptiveStaircase {
+    private let rule: AdaptiveStaircaseRule
+    private let minLevel: Int
+    private let maxLevel: Int
+    
+    private var consecutiveCorrects: Int = 0
+    private var consecutiveIncorrects: Int = 0
+    
+    public private(set) var currentLevel: Int
+    
+    public init(startLevel: Int, minLevel: Int = 1, maxLevel: Int, rule: AdaptiveStaircaseRule = .threeUpOneDown) {
+        self.currentLevel = max(minLevel, min(startLevel, maxLevel))
+        self.minLevel = minLevel
+        self.maxLevel = maxLevel
+        self.rule = rule
+    }
+    
+    @discardableResult
+    public func recordTrial(correct: Bool) -> Int {
+        if correct {
+            consecutiveCorrects += 1
+            consecutiveIncorrects = 0
+            
+            let threshold: Int
+            switch rule {
+            case .threeUpOneDown: threshold = 3
+            case .twoUpOneDown: threshold = 2
+            case .oneUpOneDown: threshold = 1
+            }
+            
+            if consecutiveCorrects >= threshold {
+                consecutiveCorrects = 0
+                return advanceLevel()
+            }
+        } else {
+            consecutiveIncorrects += 1
+            consecutiveCorrects = 0
+            
+            consecutiveIncorrects = 0
+            return dropLevel()
+        }
+        return 0
+    }
+    
+    private func advanceLevel() -> Int {
+        if currentLevel < maxLevel {
+            currentLevel += 1
+            return 1
+        }
+        return 0
+    }
+    
+    private func dropLevel() -> Int {
+        if currentLevel > minLevel {
+            currentLevel -= 1
+            return -1
+        }
+        return 0
+    }
 }

@@ -10,6 +10,14 @@ struct DelayedRecallTrainingView: View {
         case result
     }
 
+    private enum FocusTarget: Hashable {
+        case intro
+        case startDistractor
+        case freeRecallContinue
+        case submitRecall
+        case restart
+    }
+
     private struct DistractorQuestion: Identifiable {
         let id: String
         let prompt: String
@@ -30,6 +38,7 @@ struct DelayedRecallTrainingView: View {
     @State private var selectedPromptIDs: Set<String> = []
     @State private var freeRecallDraft = ""
     @State private var lastMetrics: DelayedRecallMetrics?
+    @FocusState private var focusedTarget: FocusTarget?
 
     private let accent = BDColor.green
 
@@ -50,13 +59,18 @@ struct DelayedRecallTrainingView: View {
                 ) {
                     startNewSession()
                 }
+                .onAppear {
+                    focusedTarget = .intro
+                }
             case .reading:
                 if let passage {
                     PassageStage(passage: passage, accent: accent) {
                         Button("进入干扰阶段") {
                             startDistractor()
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(BDPrimaryButton(accent: accent))
+                        .keyboardShortcut(.defaultAction)
+                        .focused($focusedTarget, equals: .startDistractor)
                     }
                 }
             case .distractor:
@@ -73,6 +87,22 @@ struct DelayedRecallTrainingView: View {
                 if let passage, let lastMetrics {
                     resultCard(metrics: lastMetrics, passage: passage)
                 }
+            }
+        }
+        .onChange(of: phase) { _, newPhase in
+            switch newPhase {
+            case .intro:
+                focusedTarget = .intro
+            case .reading:
+                focusedTarget = .startDistractor
+            case .freeRecall:
+                focusedTarget = .freeRecallContinue
+            case .cuedRecall:
+                focusedTarget = .submitRecall
+            case .result:
+                focusedTarget = .restart
+            case .distractor:
+                focusedTarget = nil
             }
         }
     }
@@ -155,8 +185,10 @@ struct DelayedRecallTrainingView: View {
                 Button("进入提示回忆") {
                     phase = .cuedRecall
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(BDPrimaryButton(accent: accent))
                 .disabled(freeRecallCharacterCount < passage.freeRecallMinimumLength)
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .freeRecallContinue)
             }
         }
     }
@@ -179,8 +211,10 @@ struct DelayedRecallTrainingView: View {
             Button("提交回忆") {
                 submitRecall()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(BDPrimaryButton(accent: accent))
             .disabled(selectedPromptIDs.count != targetCount(for: passage))
+            .keyboardShortcut(.defaultAction)
+            .focused($focusedTarget, equals: .submitRecall)
         }
     }
 
@@ -206,7 +240,9 @@ struct DelayedRecallTrainingView: View {
             Button("再来一轮") {
                 startNewSession()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(BDPrimaryButton(accent: accent))
+            .keyboardShortcut(.defaultAction)
+            .focused($focusedTarget, equals: .restart)
         }
     }
 

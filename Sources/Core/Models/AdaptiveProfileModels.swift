@@ -8,6 +8,7 @@ enum AdaptiveBlockOutcome: String, Codable, Equatable {
 
 enum SkillCategory: String, Codable, CaseIterable, Identifiable {
     case readingComprehension
+    case logicalReasoning
     case memory
     case reactionSpeed
     case inhibitionControl
@@ -19,6 +20,8 @@ enum SkillCategory: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .readingComprehension:
             "阅读理解"
+        case .logicalReasoning:
+            "逻辑推理"
         case .memory:
             "记忆"
         case .reactionSpeed:

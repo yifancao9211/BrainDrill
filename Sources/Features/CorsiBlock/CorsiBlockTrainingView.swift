@@ -30,53 +30,42 @@ struct CorsiBlockTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "square.grid.3x3.topleft.filled")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.corsiBlockAccent.opacity(0.6))
-            Text("空间广度训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("记住方块亮起的顺序，然后按相同顺序点击")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("核心指标：最大空间广度 (Span)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 8) {
-                InfoPill(title: "起始广度 \(appModel.settings.corsiBlockStartingLength)", accent: BDColor.corsiBlockAccent)
-                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
-
-            Picker("模式", selection: $selectedMode) {
-                ForEach(CorsiBlockMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 200)
-
-            Button {
-                userInput = []
-                appModel.startCorsiBlockSession(mode: selectedMode)
-            } label: {
+        SurfaceCard(title: "空间广度训练", subtitle: "在统一训练壳层中完成空间编码、复现和结果回看。", accent: BDColor.corsiBlockAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "起始广度 \(appModel.settings.corsiBlockStartingLength)", accent: BDColor.corsiBlockAccent)
+                    InfoPill(title: "核心指标 Span", accent: BDColor.green)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.corsiBlockAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "先稳定编码空间序列，再完成正序或倒序复现。优先保证正确率，再看广度是否抬升。",
+                    accent: BDColor.corsiBlockAccent
+                )
+
+                Picker("模式", selection: $selectedMode) {
+                    ForEach(CorsiBlockMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+
+                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+                    .font(.system(.caption))
+                    .foregroundStyle(BDColor.textSecondary)
+
+                Button("开始训练") {
+                    userInput = []
+                    appModel.startCorsiBlockSession(mode: selectedMode)
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.corsiBlockAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: CorsiBlockEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.corsiBlockAccent) {
             VStack(spacing: 8) {
                 Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
                     .font(.system(.caption, design: .rounded, weight: .medium))
@@ -89,35 +78,34 @@ struct CorsiBlockTrainingView: View {
                     .font(.system(.callout, design: .rounded))
                     .foregroundStyle(.secondary)
             }
+        } stage: {
+            VStack(spacing: 20) {
+                blockGrid(engine: engine)
 
-            BDTrainingStage(accent: BDColor.corsiBlockAccent) {
-                VStack(spacing: 20) {
-                    blockGrid(engine: engine)
-
-                    switch engine.phase {
-                    case .presenting:
-                        EmptyView()
-                    case .recalling:
-                        recallingControls(engine: engine)
-                    case .feedback(let correct):
-                        feedbackView(correct: correct, engine: engine)
-                    default:
-                        EmptyView()
-                    }
+                switch engine.phase {
+                case .presenting:
+                    EmptyView()
+                case .recalling:
+                    recallingControls(engine: engine)
+                case .feedback(let correct):
+                    feedbackView(correct: correct, engine: engine)
+                default:
+                    EmptyView()
                 }
             }
+        } footer: {
+            VStack(spacing: 16) {
+                staircaseStatus(engine: engine)
 
-            staircaseStatus(engine: engine)
-
-            Button("取消") { appModel.cancelCorsiBlockSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
+                Button("取消") { appModel.cancelCorsiBlockSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+            }
         }
     }
 
     private func blockGrid(engine: CorsiBlockEngine) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columns), spacing: 8) {
+        let size: CGFloat = 72
+        return LazyVGrid(columns: Array(repeating: GridItem(.fixed(size), spacing: 14), count: columns), spacing: 14) {
             ForEach(0..<gridSize, id: \.self) { idx in
                 let isHighlighted = engine.phase == .presenting
                     && engine.currentTrial?.sequence[safe: engine.presentingBlockIndex] == idx
@@ -127,19 +115,34 @@ struct CorsiBlockTrainingView: View {
                 Button {
                     selectBlock(idx, engine: engine)
                 } label: {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(isHighlighted ? BDColor.corsiBlockAccent : (isSelected ? BDColor.corsiBlockAccent.opacity(0.4) : BDColor.tileDefault))
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay(
-                            blockOverlay(for: idx, isSelected: isSelected, feedbackOrder: feedbackOrder)
-                        )
+                    ZStack {
+                        Color.clear.bdPanelSurface(.primary, cornerRadius: 18)
+
+                        if isHighlighted {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(BDColor.corsiBlockAccent)
+                                .shadow(color: BDColor.corsiBlockAccent.opacity(0.6), radius: 10, y: 4)
+                        } else if let _ = feedbackOrder {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(BDColor.error.opacity(0.85))
+                        } else if isSelected {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(BDColor.corsiBlockAccent.opacity(0.4))
+                        }
+                    }
+                    .frame(width: size, height: size)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHighlighted)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
+                    .overlay(
+                        blockOverlay(for: idx, isSelected: isSelected, feedbackOrder: feedbackOrder)
+                    )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BDSpringPressStyle())
                 .disabled(engine.phase != .recalling)
             }
         }
-        .frame(maxWidth: 240)
+        .padding(24)
+        .bdPanelSurface(.secondary, cornerRadius: 28)
         .task(id: presentationTaskID(for: engine)) {
             await scheduleBlockPresentation(engine: engine)
         }
@@ -190,7 +193,7 @@ struct CorsiBlockTrainingView: View {
                     .background(Capsule().fill(BDColor.error.opacity(0.12)))
                     .foregroundStyle(BDColor.error)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
                 .disabled(userInput.isEmpty)
 
                 Button {
@@ -205,7 +208,7 @@ struct CorsiBlockTrainingView: View {
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(Capsule().fill(BDColor.corsiBlockAccent))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BDPrimaryButton(accent: BDColor.corsiBlockAccent))
                 .disabled(userInput.isEmpty)
             }
         }
@@ -235,7 +238,7 @@ struct CorsiBlockTrainingView: View {
                 advanceAfterFeedback()
             }
             .font(.system(.callout, design: .rounded, weight: .semibold))
-            .buttonStyle(.bordered)
+            .buttonStyle(BDSecondaryButton(accent: correct ? BDColor.green : BDColor.error))
         }
         .task(id: feedbackTaskID(for: engine, correct: correct)) {
             await scheduleAutoAdvanceAfterFeedback(engine: engine, correct: correct)
@@ -244,6 +247,10 @@ struct CorsiBlockTrainingView: View {
 
     private func resultView(metrics: CorsiBlockMetrics) -> some View {
         BDResultPanel(title: "空间广度完成", accent: BDColor.corsiBlockAccent) {
+            Text("查看本轮空间工作记忆表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.corsiBlockAccent)
+
             HStack(spacing: 16) {
                 CBResultCard(label: "最大广度", value: "\(metrics.maxSpan)", color: BDColor.corsiBlockAccent)
                 CBResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -258,7 +265,7 @@ struct CorsiBlockTrainingView: View {
             }
 
             Button("关闭") { appModel.dismissCorsiBlockResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.corsiBlockAccent))
         }
     }
 

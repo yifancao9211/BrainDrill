@@ -23,43 +23,31 @@ struct VisualSearchTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.visualSearchAccent.opacity(0.6))
-            Text("视觉搜索训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("在干扰物中快速找到目标（需同时匹配颜色和形状）")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text("核心指标：搜索斜率 (ms/项)")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            if appModel.settings.adaptiveDifficultyEnabled {
-                Text("当前推荐档位 L\(appModel.adaptiveState(for: .visualSearch).recommendedStartLevel) · 每局 2 个 block")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
-
-            Button {
-                appModel.startVisualSearchSession()
-            } label: {
+        SurfaceCard(title: "视觉搜索", subtitle: "在干扰物中快速定位目标，同时保持颜色和形状双重匹配。", accent: BDColor.visualSearchAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "核心指标 搜索斜率", accent: BDColor.visualSearchAccent)
+                    if appModel.settings.adaptiveDifficultyEnabled {
+                        InfoPill(title: "推荐 L\(appModel.adaptiveState(for: .visualSearch).recommendedStartLevel)", accent: BDColor.teal)
+                    }
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.visualSearchAccent))
+
+                BDInsightCard(
+                    title: "训练目标",
+                    bodyText: "在复杂视觉场中稳定判断目标是否存在。先稳住准确率，再降低每个项目的平均搜索耗时。",
+                    accent: BDColor.visualSearchAccent
+                )
+
+                Button("开始训练") {
+                    appModel.startVisualSearchSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.visualSearchAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: VisualSearchEngine) -> some View {
-        VStack(spacing: 16) {
+        BDTrainingShell(accent: BDColor.visualSearchAccent) {
             VStack(spacing: 8) {
                 HStack(spacing: 16) {
                     Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
@@ -69,84 +57,73 @@ struct VisualSearchTrainingView: View {
                         .font(.system(.caption2, design: .rounded, weight: .medium))
                         .foregroundStyle(.secondary)
 
+                    let target = engine.currentTrial?.target ?? engine.target
                     HStack(spacing: 4) {
                         Text("找")
                             .font(.system(.caption, design: .rounded))
                             .foregroundStyle(BDColor.textSecondary)
-                        shapeView(shape: engine.target.shape, color: engine.target.color)
+                        shapeView(shape: target.shape, color: target.color)
                             .frame(width: 18, height: 18)
-                        Text("\(colorName(engine.target.color))\(shapeName(engine.target.shape))")
+                        Text("\(colorName(target.color))\(shapeName(target.shape))")
                             .font(.system(.caption, design: .rounded, weight: .semibold))
                             .foregroundStyle(BDColor.visualSearchAccent)
                     }
                 }
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.visualSearchAccent)
             }
-
-            BDTrainingStage(accent: BDColor.visualSearchAccent) {
-                ZStack {
-                    switch engine.phase {
-                    case .fixation:
-                        Text("+")
-                            .font(.system(size: 36, weight: .light, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    case .display:
-                        if let trial = engine.currentTrial {
-                            searchFieldView(trial: trial)
-                        }
-                    case .feedback(let correct):
-                        VStack(spacing: 8) {
-                            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .font(.system(size: 48))
-                                .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                            Text(correct ? "判断正确" : "重新检查目标是否存在")
-                                .font(.system(.callout, design: .rounded, weight: .medium))
-                                .foregroundStyle(BDColor.textSecondary)
-                        }
-                    default:
-                        Color.clear.frame(height: 1)
+        } stage: {
+            ZStack {
+                switch engine.phase {
+                case .fixation:
+                    Text("+")
+                        .font(.system(size: 36, weight: .light, design: .rounded))
+                        .foregroundStyle(.secondary)
+                case .display:
+                    if let trial = engine.currentTrial {
+                        searchFieldView(trial: trial)
                     }
+                case .feedback(let correct):
+                    VStack(spacing: 8) {
+                        Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(correct ? BDColor.green : BDColor.error)
+                        Text(correct ? "判断正确" : "重新检查目标是否存在")
+                            .font(.system(.callout, design: .rounded, weight: .medium))
+                            .foregroundStyle(BDColor.textSecondary)
+                    }
+                default:
+                    Color.clear
                 }
             }
             .frame(width: 400, height: 400)
-
-            if engine.phase == .display {
-                HStack(spacing: 20) {
-                    Button {
-                        _ = appModel.handleVisualSearchResponse(present: false)
-                    } label: {
-                        Text("没有")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 28).padding(.vertical, 14)
-                            .background(Capsule().fill(BDColor.teal))
-                    }
-                    .buttonStyle(.plain)
-                    .keyboardShortcut("1", modifiers: [])
-
-                    Button {
-                        _ = appModel.handleVisualSearchResponse(present: true)
-                    } label: {
-                        Text("找到了")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 28).padding(.vertical, 14)
-                            .background(Capsule().fill(BDColor.visualSearchAccent))
-                    }
-                    .buttonStyle(.plain)
-                    .keyboardShortcut("2", modifiers: [])
+        } footer: {
+            VStack(spacing: 16) {
+            HStack(spacing: 20) {
+                Button {
+                    _ = appModel.handleVisualSearchResponse(present: false)
+                } label: {
+                    Text("没有")
                 }
+                .buttonStyle(BDSecondaryButton(accent: BDColor.teal))
+                .keyboardShortcut("1", modifiers: [])
+
+                Button {
+                    _ = appModel.handleVisualSearchResponse(present: true)
+                } label: {
+                    Text("找到了")
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.visualSearchAccent))
+                .keyboardShortcut("2", modifiers: [])
             }
+            .opacity(engine.phase == .display ? 1 : 0)
+            .disabled(engine.phase != .display)
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.visualSearchAccent)
                 .frame(maxWidth: 300)
 
             Button("取消") { appModel.cancelVisualSearchSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+        }
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -224,18 +201,23 @@ struct VisualSearchTrainingView: View {
     private func resultView(metrics: VisualSearchMetrics) -> some View {
         let feedback = resultFeedback(for: metrics)
         return BDResultPanel(title: "视觉搜索完成", accent: BDColor.visualSearchAccent) {
+            Text(feedback.title)
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(feedback.color)
+
             HStack(spacing: 16) {
-                VSResultCard(label: "结果", value: feedback.title, color: feedback.color)
                 VSResultCard(label: "搜索斜率", value: "\(Int(metrics.searchSlope * 1000))ms/项", color: BDColor.visualSearchAccent)
                 VSResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
                 VSResultCard(label: "误报率", value: "\(Int(metrics.errorRate * 100))%", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
-            BDFeedbackNote(text: feedback.note, color: feedback.color)
+            Text(feedback.note)
+                .font(.system(.callout))
+                .foregroundStyle(BDColor.textSecondary)
 
             Button("关闭") { appModel.dismissVisualSearchResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.visualSearchAccent))
         }
     }
 

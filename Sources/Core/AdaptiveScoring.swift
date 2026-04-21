@@ -90,6 +90,14 @@ enum AdaptiveScoring {
         case let .stopSignal(metrics):
             let ssrtScore = inverseScore(metrics.ssrt * 1000, good: 160, bad: 420)
             return clamp(0.45 * ssrtScore + 0.35 * metrics.inhibitionRate + 0.20 * metrics.goAccuracy)
+
+        case let .syllogism(metrics):
+            let dPrimeScore = clamp((metrics.dPrime + 0.5) / 3.5)
+            let rtScore = inverseScore(metrics.medianRT * 1000, good: 3000, bad: 12000)
+            return clamp(0.45 * dPrimeScore + 0.35 * metrics.accuracy + 0.20 * rtScore)
+
+        case let .logicArgument(metrics):
+            return clamp(metrics.compositeScore)
         }
     }
 
@@ -140,6 +148,10 @@ enum AdaptiveScoring {
             return min(max(metrics.nLevel, 1), 6)
         case let .changeDetection(metrics):
             return min(max(metrics.maxSetSize - 1, 1), 6)
+        case let .syllogism(metrics):
+            return min(max(metrics.difficulty, 1), 3)
+        case let .logicArgument(metrics):
+            return min(max(metrics.difficulty, 1), 3)
         default:
             return fallback
         }

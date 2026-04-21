@@ -81,6 +81,11 @@ enum AnomalyDetector {
             result.append(("正确率", m.accuracy, history.compactMap { $0.corsiBlockMetrics?.accuracy }))
         case let .nBack(m):
             result.append(("d'", m.dPrime, history.compactMap { $0.nBackMetrics?.dPrime }))
+        case let .syllogism(m):
+            result.append(("准确率", m.accuracy, history.compactMap { $0.syllogismMetrics?.accuracy }))
+            result.append(("d'", m.dPrime, history.compactMap { $0.syllogismMetrics?.dPrime }))
+        case let .logicArgument(m):
+            result.append(("综合得分", m.compositeScore, history.compactMap { $0.logicArgumentMetrics?.compositeScore }))
         }
 
         return result

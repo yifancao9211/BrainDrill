@@ -64,11 +64,21 @@ final class VisualSearchEngine {
         self.currentBlockTrialCount = config.initialSpec.trialsPerBlock
         self.blockLevelHistory = [self.currentLevel]
         if config.isAdaptive {
-            self.trials = Self.generateTrials(spec: config.initialSpec, target: self.target, startId: 0, targetPresentRatio: config.targetPresentRatio)
+            self.trials = Self.generateTrials(
+                spec: config.initialSpec,
+                sessionTarget: self.target,
+                startId: 0,
+                targetPresentRatio: config.targetPresentRatio
+            )
         } else {
             var startId = 0
             for _ in 0..<config.blockCount {
-                let blockTrials = Self.generateTrials(spec: config.initialSpec, target: self.target, startId: startId, targetPresentRatio: config.targetPresentRatio)
+                let blockTrials = Self.generateTrials(
+                    spec: config.initialSpec,
+                    sessionTarget: self.target,
+                    startId: startId,
+                    targetPresentRatio: config.targetPresentRatio
+                )
                 self.trials.append(contentsOf: blockTrials)
                 startId += blockTrials.count
             }
@@ -119,7 +129,12 @@ final class VisualSearchEngine {
         currentBlockStartIndex = currentTrialIndex
         currentBlockTrialCount = currentSpec.trialsPerBlock
         if config.isAdaptive {
-            let blockTrials = Self.generateTrials(spec: currentSpec, target: target, startId: trials.count, targetPresentRatio: config.targetPresentRatio)
+            let blockTrials = Self.generateTrials(
+                spec: currentSpec,
+                sessionTarget: target,
+                startId: trials.count,
+                targetPresentRatio: config.targetPresentRatio
+            )
             trials.append(contentsOf: blockTrials)
         }
         phase = .idle
@@ -211,16 +226,27 @@ final class VisualSearchEngine {
         }
     }
 
-    private static func generateTrials(spec: VisualSearchLevelSpec, target: VisualSearchTarget, startId: Int, targetPresentRatio: Double) -> [VisualSearchTrial] {
+    private static func generateTrials(
+        spec: VisualSearchLevelSpec,
+        sessionTarget: VisualSearchTarget,
+        startId: Int,
+        targetPresentRatio: Double
+    ) -> [VisualSearchTrial] {
         var trials: [VisualSearchTrial] = []
 
         for index in 0..<spec.trialsPerBlock {
             let setSize = spec.setSizes[index % spec.setSizes.count]
             let present = Double.random(in: 0...1) < targetPresentRatio
-            let items = generateItems(setSize: setSize, target: target, targetPresent: present, startId: (startId + index) * 100)
+
+            let items = generateItems(
+                setSize: setSize,
+                target: sessionTarget,
+                targetPresent: present,
+                startId: (startId + index) * 100
+            )
             trials.append(VisualSearchTrial(
                 id: startId + index,
-                target: target,
+                target: sessionTarget,
                 items: items,
                 targetPresent: present,
                 setSize: setSize

@@ -72,6 +72,8 @@ enum ModuleMetrics: Codable, Equatable {
     case visualSearch(VisualSearchMetrics)
     case corsiBlock(CorsiBlockMetrics)
     case stopSignal(StopSignalMetrics)
+    case syllogism(SyllogismMetrics)
+    case logicArgument(LogicArgumentMetrics)
 }
 
 struct MainIdeaMetrics: Codable, Equatable {
@@ -431,6 +433,16 @@ extension SessionResult {
 
     var stopSignalMetrics: StopSignalMetrics? {
         if case let .stopSignal(m) = metrics { return m }
+        return nil
+    }
+
+    var syllogismMetrics: SyllogismMetrics? {
+        if case let .syllogism(m) = metrics { return m }
+        return nil
+    }
+
+    var logicArgumentMetrics: LogicArgumentMetrics? {
+        if case let .logicArgument(m) = metrics { return m }
         return nil
     }
 }

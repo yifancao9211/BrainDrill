@@ -3,9 +3,9 @@ import Testing
 @testable import BrainDrill
 
 struct CognitiveProfileTests {
-    @Test func computesAllFiveDimensions() {
+    @Test func computesAllSixDimensions() {
         let profile = CognitiveProfile.compute(from: sampleSessions())
-        #expect(profile.dimensions.count == 5)
+        #expect(profile.dimensions.count == 6)
     }
 
     @Test func scoresAreNormalized0to100() {
@@ -44,7 +44,7 @@ struct CognitiveProfileTests {
     @Test func dimensionIdsAreCorrect() {
         let profile = CognitiveProfile.compute(from: [])
         let ids = Set(profile.dimensions.map(\.id))
-        #expect(ids == ["memoryCapacity", "reactionSpeed", "inhibitionControl", "visualSearch", "visualWorkingMemory"])
+        #expect(ids == ["memoryCapacity", "reactionSpeed", "inhibitionControl", "visualSearch", "visualWorkingMemory", "logicalReasoning"])
     }
 
     private func sampleSessions() -> [SessionResult] {

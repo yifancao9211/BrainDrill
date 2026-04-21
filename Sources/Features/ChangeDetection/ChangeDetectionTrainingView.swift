@@ -27,89 +27,64 @@ struct ChangeDetectionTrainingView: View {
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "eye.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.changeDetectionAccent.opacity(0.6))
-            Text("变更检测训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("记住方块颜色，判断是否发生变化")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("核心指标：d' 与集合大小")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("起始集合 \(appModel.settings.changeDetectionInitialSetSize)，正确率稳定后本局内会提高集合大小。")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(BDColor.textSecondary)
-
-            Button {
-                appModel.startChangeDetectionSession()
-            } label: {
+        SurfaceCard(title: "变更检测", subtitle: "统一进入训练壳层完成编码、保持与探测。", accent: BDColor.changeDetectionAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "起始集合 \(appModel.settings.changeDetectionInitialSetSize)", accent: BDColor.changeDetectionAccent)
+                    InfoPill(title: "核心指标 d'", accent: BDColor.green)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.changeDetectionAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "先记住编码画面，短暂保持后判断探测画面是否发生变化。正确率稳定后集合大小会提高。",
+                    accent: BDColor.changeDetectionAccent
+                )
+
+                Button("开始训练") {
+                    appModel.startChangeDetectionSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.changeDetectionAccent))
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: ChangeDetectionEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.changeDetectionAccent) {
             VStack(spacing: 8) {
                 Text("集合大小 \(engine.currentSetSize)  •  试次 \(engine.currentTrialIndex + 1)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(BDColor.textSecondary)
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.changeDetectionAccent)
             }
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: 360, height: 360)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
+        } footer: {
+            VStack(spacing: 16) {
+                if engine.phase == .probe {
+                    HStack(spacing: 20) {
+                        Button("没变") {
+                            _ = appModel.handleChangeDetectionResponse(changed: false)
+                        }
+                        .buttonStyle(BDSecondaryButton(accent: BDColor.teal))
+                        .keyboardShortcut("1", modifiers: [])
 
-            BDTrainingStage(accent: BDColor.changeDetectionAccent) {
-                phaseContent(engine: engine)
-            }
-            .frame(width: 300, height: 300)
-
-            if engine.phase == .probe {
-                HStack(spacing: 20) {
-                    Button {
-                        _ = appModel.handleChangeDetectionResponse(changed: false)
-                    } label: {
-                        Text("没变")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 28).padding(.vertical, 14)
-                            .background(Capsule().fill(BDColor.teal))
+                        Button("变了") {
+                            _ = appModel.handleChangeDetectionResponse(changed: true)
+                        }
+                        .buttonStyle(BDPrimaryButton(accent: BDColor.choiceRTAccent))
+                        .keyboardShortcut("2", modifiers: [])
                     }
-                    .buttonStyle(.plain)
-                    .keyboardShortcut("1", modifiers: [])
-
-                    Button {
-                        _ = appModel.handleChangeDetectionResponse(changed: true)
-                    } label: {
-                        Text("变了")
-                            .font(.system(.title3, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 28).padding(.vertical, 14)
-                            .background(Capsule().fill(BDColor.choiceRTAccent))
-                    }
-                    .buttonStyle(.plain)
-                    .keyboardShortcut("2", modifiers: [])
                 }
+
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.changeDetectionAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { appModel.cancelChangeDetectionSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
             }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.changeDetectionAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelChangeDetectionSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -121,26 +96,29 @@ struct ChangeDetectionTrainingView: View {
         case .encoding:
             if let trial = engine.currentTrial {
                 colorGridView(colors: trial.originalColors, positions: trial.positions)
+                    .transition(.opacity)
             }
         case .retention:
             Text("+")
-                .font(.system(size: 36, weight: .light, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 64, weight: .light, design: .rounded))
+                .foregroundStyle(.tertiary)
         case .probe:
             if let trial = engine.currentTrial {
                 colorGridView(colors: trial.probeColors, positions: trial.positions)
+                    .transition(.opacity)
             }
         case .feedback(let correct):
             VStack(spacing: 8) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: 56))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
                 Text(correct ? "变化判断正确" : "重新检查变化是否出现")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
+            .transition(.scale.combined(with: .opacity))
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -179,9 +157,12 @@ struct ChangeDetectionTrainingView: View {
             ForEach(Array(colors.enumerated()), id: \.offset) { idx, colorIdx in
                 let pos = idx < positions.count ? positions[idx] : CGPoint(x: 0.5, y: 0.5)
                 let safeColorIdx = min(colorIdx, colorPalette.count - 1)
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(colorPalette[safeColorIdx])
-                    .frame(width: 44, height: 44)
+                let c = colorPalette[safeColorIdx]
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(c)
+                    .frame(width: 52, height: 52)
+                    .shadow(color: c.opacity(0.4), radius: 8, y: 4)
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.white.opacity(0.3), lineWidth: 2))
                     .position(x: pos.x * geo.size.width, y: pos.y * geo.size.height)
             }
         }
@@ -189,6 +170,10 @@ struct ChangeDetectionTrainingView: View {
 
     private func resultView(metrics: ChangeDetectionMetrics) -> some View {
         BDResultPanel(title: "变更检测完成", accent: BDColor.changeDetectionAccent) {
+            Text("查看本轮视觉保持表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.changeDetectionAccent)
+
             HStack(spacing: 16) {
                 CDResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.changeDetectionAccent)
                 CDResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
@@ -203,30 +188,11 @@ struct ChangeDetectionTrainingView: View {
             }
 
             Button("关闭") { appModel.dismissChangeDetectionResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.changeDetectionAccent))
         }
     }
 
-    private func feedbackText(_ engine: ChangeDetectionEngine) -> String {
-        switch engine.phase {
-        case .encoding:
-            return "编码颜色与位置"
-        case .retention:
-            return "保持刚才的颜色布局"
-        case .probe:
-            return "判断是否出现变化"
-        case .feedback(let correct):
-            guard let trial = engine.currentTrial else {
-                return correct ? "正确" : "错误"
-            }
-            if correct {
-                return trial.isChangePresent ? "变化被正确识别" : "无变化被正确确认"
-            }
-            return trial.isChangePresent ? "本轮实际上发生了变化" : "本轮实际上没有变化"
-        default:
-            return coordinator.statusMessage
-        }
-    }
+    // feedbackText removed
 }
 
 private struct CDResultCard: View {

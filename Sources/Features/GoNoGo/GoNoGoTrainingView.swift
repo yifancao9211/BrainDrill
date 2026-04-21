@@ -1,7 +1,16 @@
 import SwiftUI
 
 struct GoNoGoTrainingView: View {
+    private enum FocusTarget: Hashable {
+        case start
+        case respond
+        case cancel
+        case close
+    }
+
     @Environment(AppModel.self) private var appModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var focusedTarget: FocusTarget?
 
     private var coordinator: GoNoGoCoordinator { appModel.goNoGo }
 
@@ -20,46 +29,55 @@ struct GoNoGoTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            focusedTarget = coordinator.engine == nil ? .start : .respond
+        }
+        .onChange(of: coordinator.engine?.phase) { _, phase in
+            switch phase {
+            case .stimulus:
+                focusedTarget = .respond
+            case .fixation, .feedback, .iti, .idle, .blockBreak:
+                focusedTarget = .cancel
+            case .completed:
+                focusedTarget = .close
+            case .none:
+                focusedTarget = coordinator.lastResult == nil ? .start : .close
+            }
+        }
     }
 
     private var idleView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "hand.raised.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(BDColor.goNoGoAccent.opacity(0.6))
-            Text("Go/No-Go 抑制力训练")
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-            Text("绿色圆形 → 按空格键    红色方形 → 忍住不动")
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text("核心指标：No-Go 正确率 与 d'")
-                .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(.secondary)
-            if appModel.settings.adaptiveDifficultyEnabled {
-                Text("当前推荐档位 L\(appModel.adaptiveState(for: .goNoGo).recommendedStartLevel) · 每局 2 个 block")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(BDColor.textSecondary)
-            }
-
-            Button {
-                appModel.startGoNoGoSession()
-            } label: {
+        SurfaceCard(title: "Go/No-Go", subtitle: "在统一训练壳层中完成启动控制与抑制控制。", accent: BDColor.goNoGoAccent) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                    Text("开始训练")
+                    InfoPill(title: "Go 用空格响应", accent: BDColor.goNoGoAccent)
+                    InfoPill(title: "No-Go 保持抑制", accent: BDColor.error)
                 }
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40).padding(.vertical, 16)
-                .background(Capsule().fill(BDColor.goNoGoAccent))
+
+                BDInsightCard(
+                    title: "训练说明",
+                    bodyText: "绿色圆形立即响应，红色方形保持不动。先稳住 No-Go 正确率，再看 d' 与 Go RT。",
+                    accent: BDColor.goNoGoAccent
+                )
+
+                if appModel.settings.adaptiveDifficultyEnabled {
+                    Text("当前推荐档位 L\(appModel.adaptiveState(for: .goNoGo).recommendedStartLevel) · 每局 2 个 block")
+                        .font(.system(.caption))
+                        .foregroundStyle(BDColor.textSecondary)
+                }
+
+                Button("开始训练") {
+                    appModel.startGoNoGoSession()
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.goNoGoAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .start)
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func activeView(engine: GoNoGoEngine) -> some View {
-        VStack(spacing: 24) {
+        BDTrainingShell(accent: BDColor.goNoGoAccent) {
             VStack(spacing: 8) {
                 Text("试次 \(engine.currentTrialIndex + 1)/\(engine.trials.count)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
@@ -67,35 +85,32 @@ struct GoNoGoTrainingView: View {
                 Text("L\(engine.currentLevel) · Block \(engine.currentBlock + 1)/\(engine.totalBlocks)")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
-
-                BDFeedbackNote(text: feedbackText(engine), color: BDColor.goNoGoAccent)
             }
-
-            BDTrainingStage(accent: BDColor.goNoGoAccent) {
-                phaseContent(engine: engine)
-                    .frame(height: 170)
-            }
-
-            if engine.phase == .stimulus {
-                Button {
-                    appModel.handleGoNoGoTap()
-                } label: {
-                    Text("按空格或点击")
-                        .font(.system(.callout, design: .rounded, weight: .medium))
-                        .foregroundStyle(.secondary)
+        } stage: {
+            phaseContent(engine: engine)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 280)
+                .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
+        } footer: {
+            VStack(spacing: 16) {
+                if engine.phase == .stimulus {
+                    Button("按空格或点击") {
+                        appModel.handleGoNoGoTap()
+                    }
+                    .buttonStyle(BDPrimaryButton(accent: BDColor.goNoGoAccent))
+                    .keyboardShortcut(.space, modifiers: [])
+                    .focused($focusedTarget, equals: .respond)
                 }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.space, modifiers: [])
+
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.goNoGoAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { appModel.cancelGoNoGoSession() }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .keyboardShortcut(.cancelAction)
+                    .focused($focusedTarget, equals: .cancel)
             }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.goNoGoAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelGoNoGoSession() }
-                .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
@@ -106,28 +121,42 @@ struct GoNoGoTrainingView: View {
         switch engine.phase {
         case .fixation:
             Text("+")
-                .font(.system(size: 48, weight: .light, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 80, weight: .light, design: .rounded))
+                .foregroundStyle(.tertiary)
+                .transition(.opacity)
         case .stimulus:
             if let trial = engine.currentTrial {
                 if trial.stimulusType == .go {
-                    Circle().fill(BDColor.green).frame(width: 120, height: 120)
+                    ZStack {
+                        Circle().fill(BDColor.green)
+                        Circle().strokeBorder(Color.white.opacity(0.4), lineWidth: 6)
+                    }
+                    .frame(width: 140, height: 140)
+                    .shadow(color: BDColor.green.opacity(0.5), radius: 24, y: 8)
+                    .transition(reduceMotion ? .identity : .scale(scale: 0.5).combined(with: .opacity))
                 } else {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(BDColor.error).frame(width: 120, height: 120)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 32, style: .continuous).fill(BDColor.error)
+                        RoundedRectangle(cornerRadius: 32, style: .continuous).strokeBorder(Color.white.opacity(0.4), lineWidth: 6)
+                    }
+                    .frame(width: 140, height: 140)
+                    .shadow(color: BDColor.error.opacity(0.5), radius: 24, y: 8)
+                    .transition(reduceMotion ? .identity : .scale(scale: 0.5).combined(with: .opacity))
                 }
             }
         case .feedback(let correct):
             VStack(spacing: 8) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: 56))
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
                 Text(correct ? "控制稳定" : "抑制或启动判断出错")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
+            .transition(reduceMotion ? .identity : .scale.combined(with: .opacity))
+            .offset(x: correct ? 0 : 8) // simple shake attempt
         default:
-            Color.clear.frame(height: 1)
+            Color.clear
         }
     }
 
@@ -168,6 +197,10 @@ struct GoNoGoTrainingView: View {
 
     private func resultView(metrics: GoNoGoMetrics) -> some View {
         BDResultPanel(title: "Go/No-Go 完成", accent: BDColor.goNoGoAccent) {
+            Text("查看本轮抑制控制表现")
+                .font(.system(.title3, weight: .bold))
+                .foregroundStyle(BDColor.goNoGoAccent)
+
             HStack(spacing: 16) {
                 ResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.goNoGoAccent)
                 ResultCard(label: "No-Go正确", value: "\(Int(metrics.noGoAccuracy * 100))%", color: BDColor.green)
@@ -176,46 +209,13 @@ struct GoNoGoTrainingView: View {
             .frame(maxWidth: 400)
 
             Button("关闭") { appModel.dismissGoNoGoResult() }
-                .buttonStyle(.bordered)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.goNoGoAccent))
+                .keyboardShortcut(.defaultAction)
+                .focused($focusedTarget, equals: .close)
         }
     }
 
-    private func feedbackText(_ engine: GoNoGoEngine) -> String {
-        switch engine.phase {
-        case .fixation:
-            return "绿色启动，红色抑制"
-        case .stimulus:
-            if engine.currentTrial?.stimulusType == .go {
-                return "Go 试次，立刻点击"
-            }
-            return "No-Go 试次，保持不动"
-        case .feedback(let correct):
-            guard let trial = engine.currentTrial else {
-                return correct ? "正确" : "错误"
-            }
-            switch (trial.stimulusType, correct) {
-            case (.go, true):
-                return "Go 试次命中"
-            case (.go, false):
-                return "这是 Go 试次，应该点击"
-            case (.noGo, true):
-                return "No-Go 试次抑制成功"
-            case (.noGo, false):
-                return "这是 No-Go 试次，应该忍住"
-            }
-        case let .blockBreak(_, outcome, nextLevel):
-            switch outcome {
-            case .promote:
-                return "控制稳定，升到 L\(nextLevel)"
-            case .demote:
-                return "本 block 调整到 L\(nextLevel)"
-            case .stay:
-                return "本 block 保持 L\(nextLevel)"
-            }
-        default:
-            return coordinator.statusMessage
-        }
-    }
+    // feedbackText removed
 }
 
 private struct ResultCard: View {

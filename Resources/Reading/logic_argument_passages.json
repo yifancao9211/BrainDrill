@@ -1,0 +1,189 @@
+[
+  {
+    "id": "la_001",
+    "title": "城市限行政策的效果",
+    "domainTag": "publicPolicy",
+    "difficulty": 1,
+    "body": "近年来，多个城市实施了机动车限行政策以缓解交通拥堵和减少空气污染。支持者认为，限行政策使得道路上的车辆数量减少，从而降低了交通拥堵程度。此外，车辆尾气排放是城市空气污染的主要来源之一，减少上路车辆自然会改善空气质量。然而，批评者指出，部分家庭通过购买第二辆车来规避限行，这反而增加了汽车总保有量。因此，限行政策在长期来看可能并未达到预期效果。",
+    "argumentComponents": [
+      {
+        "id": "la_001_c1",
+        "text": "近年来，多个城市实施了机动车限行政策以缓解交通拥堵和减少空气污染。",
+        "role": "background",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_001_c2",
+        "text": "支持者认为，限行政策使得道路上的车辆数量减少，从而降低了交通拥堵程度。",
+        "role": "premise",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_001_c3",
+        "text": "此外，车辆尾气排放是城市空气污染的主要来源之一，减少上路车辆自然会改善空气质量。",
+        "role": "premise",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_001_c4",
+        "text": "然而，批评者指出，部分家庭通过购买第二辆车来规避限行，这反而增加了汽车总保有量。",
+        "role": "counterpoint",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_001_c5",
+        "text": "因此，限行政策在长期来看可能并未达到预期效果。",
+        "role": "conclusion",
+        "supportsConclusionID": null
+      }
+    ],
+    "fallacyItems": [
+      {
+        "id": "la_001_f1",
+        "argumentText": "张教授是物理学专家，他认为限行政策不会改善空气质量，所以限行政策对空气质量没有帮助。",
+        "correctFallacy": "appealToAuthority",
+        "distractors": ["hastyGeneralization", "falseCause", "noFallacy"],
+        "explanation": "张教授是物理学专家，不是环境科学或交通领域的权威。用不相关领域专家的意见来支持论点属于诉诸权威谬误。"
+      }
+    ],
+    "evaluationItems": []
+  },
+  {
+    "id": "la_002",
+    "title": "社交媒体对青少年心理健康的影响",
+    "domainTag": "psychology",
+    "difficulty": 2,
+    "body": "研究显示，过去十年中青少年抑郁和焦虑的发病率显著上升，而同一时期社交媒体的使用也大幅增长。许多学者据此认为，社交媒体是导致青少年心理健康问题增加的主要原因。他们指出，社交媒体上的社交比较会降低青少年的自尊心，网络欺凌行为也会造成严重的心理创伤。此外，过度使用社交媒体会减少面对面社交和睡眠时间，而这两者都是心理健康的重要保护因素。然而，也有研究表明，适度使用社交媒体可以增强社会联系，特别是对于社交孤立的青少年而言。总体而言，社交媒体对青少年心理健康具有显著的负面影响，应当加以限制。",
+    "argumentComponents": [
+      {
+        "id": "la_002_c1",
+        "text": "研究显示，过去十年中青少年抑郁和焦虑的发病率显著上升，而同一时期社交媒体的使用也大幅增长。",
+        "role": "background",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_002_c2",
+        "text": "许多学者据此认为，社交媒体是导致青少年心理健康问题增加的主要原因。",
+        "role": "subConclusion",
+        "supportsConclusionID": "la_002_c7"
+      },
+      {
+        "id": "la_002_c3",
+        "text": "他们指出，社交媒体上的社交比较会降低青少年的自尊心，网络欺凌行为也会造成严重的心理创伤。",
+        "role": "premise",
+        "supportsConclusionID": "la_002_c2"
+      },
+      {
+        "id": "la_002_c4",
+        "text": "此外，过度使用社交媒体会减少面对面社交和睡眠时间，而这两者都是心理健康的重要保护因素。",
+        "role": "premise",
+        "supportsConclusionID": "la_002_c2"
+      },
+      {
+        "id": "la_002_c5",
+        "text": "然而，也有研究表明，适度使用社交媒体可以增强社会联系，特别是对于社交孤立的青少年而言。",
+        "role": "counterpoint",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_002_c7",
+        "text": "总体而言，社交媒体对青少年心理健康具有显著的负面影响，应当加以限制。",
+        "role": "conclusion",
+        "supportsConclusionID": null
+      }
+    ],
+    "fallacyItems": [
+      {
+        "id": "la_002_f1",
+        "argumentText": "社交媒体使用量增加的同时青少年抑郁率也上升了，所以社交媒体导致了抑郁率上升。",
+        "correctFallacy": "falseCause",
+        "distractors": ["hastyGeneralization", "circularReasoning", "noFallacy"],
+        "explanation": "这是假因果（相关性≠因果性）。两个趋势同时发生不代表存在因果关系，可能有其他共同因素（如经济压力、学业压力增加等）。"
+      },
+      {
+        "id": "la_002_f2",
+        "argumentText": "要么完全禁止青少年使用社交媒体，要么就放任不管让心理健康问题继续恶化。",
+        "correctFallacy": "falseDisjunction",
+        "distractors": ["slipperySlope", "appealToEmotion", "noFallacy"],
+        "explanation": "这是假二选一谬误。实际上存在多种中间方案，如适度限制使用时间、加强媒体素养教育等。"
+      }
+    ],
+    "evaluationItems": [
+      {
+        "id": "la_002_e1",
+        "argumentText": "社交媒体导致青少年心理健康问题增加",
+        "hiddenAssumption": "社交媒体使用与心理健康之间的相关性反映了因果关系",
+        "assumptionOptions": [
+          "社交媒体使用与心理健康之间的相关性反映了因果关系",
+          "所有青少年使用社交媒体的方式相同",
+          "面对面社交对心理健康没有影响",
+          "青少年抑郁率在社交媒体出现前一直保持不变"
+        ],
+        "correctAssumptionIndex": 0,
+        "modifierStatements": [
+          {
+            "id": "la_002_m1",
+            "text": "一项对照实验发现，减少社交媒体使用两周后，参与者的抑郁症状显著减轻。",
+            "type": "strengthen",
+            "explanation": "对照实验可以建立因果关系，支持社交媒体导致心理健康问题的论点。"
+          },
+          {
+            "id": "la_002_m2",
+            "text": "研究发现，已有抑郁倾向的青少年更倾向于频繁使用社交媒体。",
+            "type": "weaken",
+            "explanation": "这暗示因果关系可能是反向的：是抑郁导致更多使用社交媒体，而非社交媒体导致抑郁。"
+          },
+          {
+            "id": "la_002_m3",
+            "text": "某国政府近期提高了心理健康服务的投入预算。",
+            "type": "irrelevant",
+            "explanation": "政府预算变化与社交媒体是否导致心理健康问题没有直接逻辑关系。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "la_003",
+    "title": "人工智能取代人类工作岗位",
+    "domainTag": "techEthics",
+    "difficulty": 1,
+    "body": "随着人工智能技术的快速发展，越来越多的工作任务正在被自动化取代。有观点认为，AI将在未来十年内取代大量人类工作岗位，导致大规模失业。支持这一观点的人指出，制造业中的机器人已经取代了数百万工人，而现在AI正在向白领领域扩展，包括法律文书、财务分析和医学诊断等。他们认为，政府应该尽快建立全民基本收入制度来应对即将到来的失业潮。",
+    "argumentComponents": [
+      {
+        "id": "la_003_c1",
+        "text": "随着人工智能技术的快速发展，越来越多的工作任务正在被自动化取代。",
+        "role": "background",
+        "supportsConclusionID": null
+      },
+      {
+        "id": "la_003_c2",
+        "text": "有观点认为，AI将在未来十年内取代大量人类工作岗位，导致大规模失业。",
+        "role": "subConclusion",
+        "supportsConclusionID": "la_003_c5"
+      },
+      {
+        "id": "la_003_c3",
+        "text": "支持这一观点的人指出，制造业中的机器人已经取代了数百万工人，而现在AI正在向白领领域扩展，包括法律文书、财务分析和医学诊断等。",
+        "role": "premise",
+        "supportsConclusionID": "la_003_c2"
+      },
+      {
+        "id": "la_003_c5",
+        "text": "他们认为，政府应该尽快建立全民基本收入制度来应对即将到来的失业潮。",
+        "role": "conclusion",
+        "supportsConclusionID": null
+      }
+    ],
+    "fallacyItems": [
+      {
+        "id": "la_003_f1",
+        "argumentText": "如果我们不立即限制AI的发展，很快所有工作都将被取代，人类将变得完全无用，社会将彻底崩溃。",
+        "correctFallacy": "slipperySlope",
+        "distractors": ["appealToEmotion", "strawMan", "noFallacy"],
+        "explanation": "这是滑坡谬误：从'不限制AI发展'直接跳到'社会彻底崩溃'，中间省略了大量不确定的因果链条。"
+      }
+    ],
+    "evaluationItems": []
+  }
+]

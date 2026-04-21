@@ -15,7 +15,10 @@ struct SchulteTrainingView: View {
 
     var body: some View {
         ZStack {
-            if let engine = coordinator.activeEngine {
+            if let summary = coordinator.lastCompletedSummary {
+                SchulteResultOverlay(summary: summary)
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+            } else if let engine = coordinator.activeEngine {
                 activeSessionView(engine: engine)
                     .transition(.opacity)
             } else if coordinator.isResting {
@@ -24,11 +27,6 @@ struct SchulteTrainingView: View {
             } else {
                 idleView
                     .transition(.opacity)
-            }
-
-            if let summary = coordinator.lastCompletedSummary {
-                SchulteResultOverlay(summary: summary)
-                    .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
         .animation(.snappy(duration: 0.3), value: coordinator.isTrainingActive)
@@ -41,48 +39,39 @@ struct SchulteTrainingView: View {
         VStack {
             Spacer()
 
-            BDTrainingStage(accent: BDColor.primaryBlue) {
-                VStack(spacing: 18) {
-                    Image(systemName: "square.grid.3x3.fill")
-                        .font(.system(size: 42))
-                        .foregroundStyle(BDColor.primaryBlue)
-
-                    VStack(spacing: 8) {
-                        Text("舒尔特方格训练")
-                            .font(.system(.title2, design: .rounded, weight: .semibold))
-
-                        Text("当前推荐难度：\(recommendedDifficulty.displayName)")
-                            .font(.system(.body, design: .rounded))
-                            .foregroundStyle(BDColor.textSecondary)
-                    }
-
-                    let cfg = appModel.settings.schulteSetRep
-                    HStack(spacing: 10) {
-                        InfoPill(title: "\(cfg.setsPerSession)组 × \(cfg.repsPerSet)次/组", accent: BDColor.primaryBlue)
+            SurfaceCard(title: "舒尔特方格", subtitle: "进入训练前先确认推荐难度、组次和视觉提示。", accent: BDColor.primaryBlue) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 12) {
+                        InfoPill(title: "推荐 \(recommendedDifficulty.displayName)", accent: BDColor.primaryBlue)
+                        let cfg = appModel.settings.schulteSetRep
+                        InfoPill(title: "\(cfg.setsPerSession) 组 × \(cfg.repsPerSet) 次", accent: BDColor.teal)
                         if appModel.settings.adaptiveDifficultyEnabled {
-                            InfoPill(title: "自动升级已开启", accent: BDColor.gold)
+                            InfoPill(title: "自动升级", accent: BDColor.gold)
                         }
                     }
+
+                    BDInsightCard(
+                        title: "训练目标",
+                        bodyText: "保持中心凝视，使用周边视觉与持续注意依次找到数字，优先减少错误再拉快速度。",
+                        accent: BDColor.primaryBlue
+                    )
 
                     if appModel.settings.showFixationDot {
                         HStack(spacing: 8) {
                             Circle().fill(.red).frame(width: 8, height: 8)
-                            Text("中心凝视点已开启，目光锁定中心，用周边视觉找数字。")
+                            Text("中心凝视点已开启，训练时请尽量锁定视线中心。")
+                                .font(.system(.caption))
+                                .foregroundStyle(BDColor.textSecondary)
                         }
-                        .font(.system(.caption, design: .rounded, weight: .medium))
-                        .foregroundStyle(BDColor.textSecondary)
                     }
 
                     Button("开始训练") {
                         appModel.startSchulteSession()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(BDPrimaryButton(accent: BDColor.primaryBlue))
                 }
-                .frame(maxWidth: 520)
-                .padding(.vertical, 10)
             }
-            .frame(maxWidth: 720)
+            .frame(maxWidth: 760)
 
             Spacer()
         }
@@ -95,7 +84,7 @@ struct SchulteTrainingView: View {
         VStack {
             Spacer()
 
-            BDTrainingStage(accent: BDColor.primaryBlue) {
+            SurfaceCard(title: "组间休息", subtitle: "准备进入下一轮。", accent: BDColor.primaryBlue) {
                 VStack(spacing: 16) {
                     Text("休息中")
                         .font(.system(.title2, design: .rounded, weight: .semibold))
@@ -112,7 +101,7 @@ struct SchulteTrainingView: View {
                     Button("跳过休息") {
                         coordinator.skipRest(settings: appModel.settings)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.primaryBlue))
                 }
                 .padding(.vertical, 8)
             }
@@ -126,12 +115,10 @@ struct SchulteTrainingView: View {
     // MARK: - Active Session
 
     private func activeSessionView(engine: SchulteEngine) -> some View {
-        VStack(spacing: 14) {
+        BDTrainingShell(accent: BDColor.primaryBlue) {
             sessionStatusBar(engine: engine)
-                .padding(.horizontal, 8)
-                .padding(.top, 8)
-
-            BDTrainingStage(accent: BDColor.primaryBlue) {
+        } stage: {
+            ZStack {
                 ZStack {
                     gridView(engine: engine)
                     if engine.config.showFixationDot {
@@ -141,13 +128,10 @@ struct SchulteTrainingView: View {
                             .allowsHitTesting(false)
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
+        } footer: {
             sessionBottomBar(engine: engine)
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -217,8 +201,7 @@ struct SchulteTrainingView: View {
 
             Button("取消") { appModel.cancelSchulteSession() }
                 .font(.system(.callout, design: .rounded, weight: .medium))
-                .foregroundStyle(BDColor.error)
-                .buttonStyle(.plain)
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -244,6 +227,7 @@ private struct MiniStat: View {
 // MARK: - Tile Button
 
 private struct SchulteTileButton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let tile: SchulteTile
     let engine: SchulteEngine
     let onTap: () -> Void
@@ -259,7 +243,11 @@ private struct SchulteTileButton: View {
         Button {
             guard !isCompleted else { return }
             if tile.number == engine.nextExpectedNumber {
-                withAnimation(.spring(duration: 0.25, bounce: 0.4)) { showCorrect = true }
+                if reduceMotion {
+                    showCorrect = true
+                } else {
+                    withAnimation(.spring(duration: 0.25, bounce: 0.4)) { showCorrect = true }
+                }
             }
             onTap()
         } label: {
@@ -276,7 +264,11 @@ private struct SchulteTileButton: View {
         .onChange(of: showCorrect) { _, val in
             if val {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    withAnimation(.easeOut(duration: 0.15)) { showCorrect = false }
+                    if reduceMotion {
+                        showCorrect = false
+                    } else {
+                        withAnimation(.easeOut(duration: 0.15)) { showCorrect = false }
+                    }
                 }
             }
         }
@@ -292,7 +284,7 @@ private struct SchulteTileButton: View {
     private var background: some View {
         let r: CGFloat = engine.config.difficulty.gridSize <= 5 ? 12 : (engine.config.difficulty.gridSize <= 7 ? 8 : 6)
         if isCompleted {
-            RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDColor.tileCompleted)
+            RoundedRectangle(cornerRadius: r, style: .continuous).fill(Color.gray.opacity(0.15))
         } else if isTarget {
             RoundedRectangle(cornerRadius: r, style: .continuous)
                 .fill(BDColor.primaryBlue.opacity(0.92))
@@ -309,7 +301,7 @@ private struct SchulteTileButton: View {
     }
 
     private var foregroundColor: Color {
-        if isCompleted { return BDColor.tileCompletedText }
+        if isCompleted { return Color.gray.opacity(0.3) }
         if isTarget { return .white }
         if let idx = distractionColorIndex { return BDColor.distractionColors[idx] }
         return .primary
@@ -329,6 +321,7 @@ private struct TilePressStyle: ButtonStyle {
 
 private struct SchulteResultOverlay: View {
     @Environment(AppModel.self) private var appModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let summary: CompletedSchulteSummary
     @State private var appeared = false
 
@@ -336,6 +329,10 @@ private struct SchulteResultOverlay: View {
         ZStack {
             Color.black.opacity(appeared ? 0.35 : 0).ignoresSafeArea().onTapGesture { dismiss() }
             BDResultPanel(title: "第\(summary.setIndex + 1)组 第\(summary.repIndex + 1)次 完成", accent: BDColor.primaryBlue) {
+                Text("训练已完成，确认本次表现后再进入下一步。")
+                    .font(.system(.callout))
+                    .foregroundStyle(BDColor.textSecondary)
+
                 if summary.didSetPersonalBest {
                     HStack(spacing: 8) {
                         Image(systemName: "trophy.fill")
@@ -352,33 +349,46 @@ private struct SchulteResultOverlay: View {
                     ResultMetric(label: "错误", value: "\(summary.result.mistakeCount)", color: BDColor.error)
                     ResultMetric(label: "难度", value: summary.result.difficulty.shortLabel, color: BDColor.green)
                 }
+                .frame(maxWidth: 520)
 
                 if let eval = summary.difficultyEvaluation, case let .promote(to) = eval.recommendation {
                     Button("接受升级到 \(to.displayName)") {
                         appModel.acceptSchulteDifficultyRecommendation(to)
                         dismiss()
                     }
-                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    .buttonStyle(BDPrimaryButton(accent: BDColor.gold))
+                    .controlSize(.small)
                 }
 
                 HStack(spacing: 16) {
-                    Button("继续") { dismiss() }
-                        .buttonStyle(.borderedProminent)
+                    Button("继续下一轮") { dismiss() }
+                        .buttonStyle(BDPrimaryButton(accent: BDColor.primaryBlue))
 
                     Button("结束训练") {
                         appModel.cancelSchulteSession()
                         dismiss()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
                 }
+                .frame(maxWidth: 320)
             }
             .scaleEffect(appeared ? 1 : 0.92).opacity(appeared ? 1 : 0)
         }
-        .onAppear { withAnimation(.spring(duration: 0.4, bounce: 0.25)) { appeared = true } }
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.spring(duration: 0.4, bounce: 0.25)) { appeared = true }
+            }
+        }
     }
 
     private func dismiss() {
-        withAnimation(.easeOut(duration: 0.2)) { appeared = false }
+        if reduceMotion {
+            appeared = false
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) { appeared = false }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { appModel.dismissSchulteResult() }
     }
 }
