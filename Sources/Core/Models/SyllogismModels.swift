@@ -142,38 +142,243 @@ enum SyllogismContentBank {
 
 // MARK: - Syllogism Types
 
+enum SyllogismTypeCategory: String, Codable, CaseIterable, Identifiable {
+    case propositional      // 命题逻辑
+    case categorical        // 直言三段论
+    case quantifier         // 量词逻辑
+    case compound           // 链式与复合推理
+    case causalStatistical  // 因果与统计推理
+    case argumentStructure  // 论证结构谬误
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .propositional:     "命题逻辑"
+        case .categorical:       "直言三段论"
+        case .quantifier:        "量词逻辑"
+        case .compound:          "链式与复合推理"
+        case .causalStatistical: "因果与统计推理"
+        case .argumentStructure: "论证结构谬误"
+        }
+    }
+}
+
 enum SyllogismType: String, Codable, CaseIterable {
-    case categoricalValid       // 有效直言三段论
-    case categoricalInvalid     // 无效直言三段论（未分配中项等）
+
+    // ── A. 命题逻辑 (Propositional Logic) ──
     case modusPonens            // 肯定前件 ✓
     case modusTollens           // 否定后件 ✓
     case affirmConsequent       // 肯定后件 ✗
     case denyAntecedent         // 否定前件 ✗
-    case quantifierTrap         // 量词陷阱（"有些" → "所有"偷换）
-    case chainReasoning         // 多步链式推理
+    case disjunctiveSyllogism   // 析取三段论 ✓
+    case disjunctiveFallacy     // 析取谬误 ✗
+    case constructiveDilemma    // 构造性两难 ✓
+    case biconditional          // 双条件推理 ✓
+    case biconditionalValid     // 双条件逆向 ✓ (P↔Q, Q ∴ P)
+
+    // ── B. 直言三段论 (Categorical Syllogisms) ──
+    case categoricalValid       // Barbara AAA-1 ✓
+    case categoricalInvalid     // 未分配中项 ✗
+    case celarent               // Celarent EAE-1 ✓
+    case darii                  // Darii AII-1 ✓
+    case ferio                  // Ferio EIO-1 ✓
+    case illicitMajor           // 大项不当周延 ✗
+    case fourTerms              // 四项谬误 ✗
+
+    // ── C. 量词逻辑 (Quantifier Logic) ──
+    case quantifierTrap         // 量词偷换 ✗
+    case universalInstantiation // 全称实例化 ✓
+    case existentialFallacy     // 存在泛化谬误 ✗
+    case quantifierNegation     // 量词否定 ✓
+    case scopeAmbiguity         // 量词辖域歧义 (判断歧义)
+
+    // ── D. 链式与复合推理 (Chain & Compound) ──
+    case chainReasoning         // 假言连锁 ✓
+    case contraposition         // 逆否命题 ✓
+    case deMorgan               // 德摩根定律 ✓
+    case absorption             // 吸收律 ✓
+
+    // ── E. 因果与统计推理 (Causal & Statistical) ──
+    case correlationCausation   // 相关≠因果 ✗
+    case reverseCausation       // 倒果为因 ✗
+    case baseRateNeglect        // 基率忽略 ✗
+    case gamblerFallacy         // 赌徒谬误 ✗
+    case conjunctionFallacy     // 合取谬误 ✗
+    case slipperySlope          // 滑坡谬误 ✗
+
+    // ── F. 论证结构谬误 (Argument Structure) ──
+    case falseDilemma           // 虚假二分 ✗
+    case circularReasoning      // 循环论证 ✗
+    case equivocation           // 歧义谬误 ✗
+    case hastyGeneralization    // 以偏概全 ✗
+    case compositionDivision    // 合成/分割谬误 ✗
+
+    // MARK: - Properties
 
     var isValid: Bool {
         switch self {
-        case .categoricalValid, .modusPonens, .modusTollens, .chainReasoning:
+        // Valid
+        case .modusPonens, .modusTollens, .disjunctiveSyllogism,
+             .constructiveDilemma, .biconditional, .biconditionalValid,
+             .categoricalValid, .celarent, .darii, .ferio,
+             .universalInstantiation, .quantifierNegation,
+             .chainReasoning, .contraposition, .deMorgan, .absorption:
             return true
-        case .categoricalInvalid, .affirmConsequent, .denyAntecedent, .quantifierTrap:
+        // Invalid / Fallacy
+        case .affirmConsequent, .denyAntecedent, .disjunctiveFallacy,
+             .categoricalInvalid, .illicitMajor, .fourTerms,
+             .quantifierTrap, .existentialFallacy,
+             .correlationCausation, .reverseCausation, .baseRateNeglect,
+             .gamblerFallacy, .conjunctionFallacy, .slipperySlope,
+             .falseDilemma, .circularReasoning, .equivocation,
+             .hastyGeneralization, .compositionDivision:
             return false
+        // Ambiguous (shown as "判断歧义" — special handling)
+        case .scopeAmbiguity:
+            return false // treated as fallacy for training purposes
+        }
+    }
+
+    var category: SyllogismTypeCategory {
+        switch self {
+        case .modusPonens, .modusTollens, .affirmConsequent, .denyAntecedent,
+             .disjunctiveSyllogism, .disjunctiveFallacy, .constructiveDilemma,
+             .biconditional, .biconditionalValid:
+            return .propositional
+        case .categoricalValid, .categoricalInvalid, .celarent, .darii,
+             .ferio, .illicitMajor, .fourTerms:
+            return .categorical
+        case .quantifierTrap, .universalInstantiation, .existentialFallacy,
+             .quantifierNegation, .scopeAmbiguity:
+            return .quantifier
+        case .chainReasoning, .contraposition, .deMorgan, .absorption:
+            return .compound
+        case .correlationCausation, .reverseCausation, .baseRateNeglect,
+             .gamblerFallacy, .conjunctionFallacy, .slipperySlope:
+            return .causalStatistical
+        case .falseDilemma, .circularReasoning, .equivocation,
+             .hastyGeneralization, .compositionDivision:
+            return .argumentStructure
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .modusPonens:            "肯定前件"
+        case .modusTollens:           "否定后件"
+        case .affirmConsequent:       "肯定后件"
+        case .denyAntecedent:         "否定前件"
+        case .disjunctiveSyllogism:   "析取三段论"
+        case .disjunctiveFallacy:     "析取谬误"
+        case .constructiveDilemma:    "构造性两难"
+        case .biconditional:          "双条件推理"
+        case .biconditionalValid:     "双条件逆向"
+        case .categoricalValid:       "有效三段论"
+        case .categoricalInvalid:     "未分配中项"
+        case .celarent:               "Celarent 否定"
+        case .darii:                  "Darii 特称"
+        case .ferio:                  "Ferio 特称否定"
+        case .illicitMajor:           "大项不当周延"
+        case .fourTerms:              "四项谬误"
+        case .quantifierTrap:         "量词偷换"
+        case .universalInstantiation: "全称实例化"
+        case .existentialFallacy:     "存在泛化谬误"
+        case .quantifierNegation:     "量词否定"
+        case .scopeAmbiguity:         "量词辖域歧义"
+        case .chainReasoning:         "假言连锁"
+        case .contraposition:         "逆否命题"
+        case .deMorgan:               "德摩根定律"
+        case .absorption:             "吸收律"
+        case .correlationCausation:   "相关≠因果"
+        case .reverseCausation:       "倒果为因"
+        case .baseRateNeglect:        "基率忽略"
+        case .gamblerFallacy:         "赌徒谬误"
+        case .conjunctionFallacy:     "合取谬误"
+        case .slipperySlope:          "滑坡谬误"
+        case .falseDilemma:           "虚假二分"
+        case .circularReasoning:      "循环论证"
+        case .equivocation:           "歧义谬误"
+        case .hastyGeneralization:    "以偏概全"
+        case .compositionDivision:    "合成/分割谬误"
+        }
+    }
+
+    /// Which lesson group (1-13) this type belongs to
+    var lessonGroup: Int {
+        switch self {
+        case .modusPonens, .affirmConsequent:                                    return 1
+        case .categoricalValid, .categoricalInvalid:                             return 2
+        case .disjunctiveSyllogism, .disjunctiveFallacy:                         return 3
+        case .correlationCausation, .falseDilemma, .hastyGeneralization:          return 4
+        case .modusTollens, .denyAntecedent, .contraposition:                    return 5
+        case .celarent, .darii, .illicitMajor:                                   return 6
+        case .quantifierTrap, .existentialFallacy:                               return 7
+        case .chainReasoning, .biconditional, .biconditionalValid:               return 8
+        case .reverseCausation, .gamblerFallacy, .slipperySlope:                 return 9
+        case .ferio, .constructiveDilemma, .deMorgan:                            return 10
+        case .quantifierNegation, .scopeAmbiguity, .fourTerms:                   return 11
+        case .baseRateNeglect, .conjunctionFallacy:                              return 12
+        case .circularReasoning, .equivocation, .compositionDivision, .absorption: return 13
+        case .universalInstantiation:                                            return 7
         }
     }
 
     var difficultyRange: ClosedRange<Int> {
+        switch lessonGroup {
+        case 1...4:  return 1...3
+        case 5...9:  return 2...3
+        case 10...13: return 3...3
+        default:      return 1...3
+        }
+    }
+
+    /// Types commonly confused with this one
+    var confusibleWith: [SyllogismType] {
         switch self {
-        case .categoricalValid, .categoricalInvalid, .modusPonens:
-            return 1...3
-        case .modusTollens, .affirmConsequent, .denyAntecedent:
-            return 2...3
-        case .quantifierTrap, .chainReasoning:
-            return 3...3
+        case .modusPonens:            return [.affirmConsequent]
+        case .affirmConsequent:       return [.modusPonens]
+        case .modusTollens:           return [.denyAntecedent]
+        case .denyAntecedent:         return [.modusTollens]
+        case .contraposition:         return [.modusTollens, .affirmConsequent]
+        case .disjunctiveSyllogism:   return [.disjunctiveFallacy]
+        case .disjunctiveFallacy:     return [.disjunctiveSyllogism]
+        case .categoricalValid:       return [.categoricalInvalid]
+        case .categoricalInvalid:     return [.categoricalValid]
+        case .quantifierTrap:         return [.universalInstantiation]
+        case .existentialFallacy:     return [.universalInstantiation]
+        case .correlationCausation:   return [.reverseCausation]
+        case .reverseCausation:       return [.correlationCausation]
+        case .biconditional:          return [.modusPonens]
+        case .biconditionalValid:     return [.affirmConsequent]
+        default:                      return []
         }
     }
 
     static func available(for difficulty: Int) -> [SyllogismType] {
         allCases.filter { $0.difficultyRange.contains(difficulty) }
+    }
+
+    static func typesInLesson(_ lessonGroup: Int) -> [SyllogismType] {
+        allCases.filter { $0.lessonGroup == lessonGroup }
+    }
+}
+
+// MARK: - Type Statistics (cross-session persistence)
+
+struct SyllogismTypeStats: Codable, Equatable {
+    var totalAttempts: Int = 0
+    var correctCount: Int = 0
+
+    var accuracy: Double {
+        totalAttempts > 0 ? Double(correctCount) / Double(totalAttempts) : 0
+    }
+
+    var isWeak: Bool { totalAttempts >= 3 && accuracy < 0.6 }
+
+    mutating func record(correct: Bool) {
+        totalAttempts += 1
+        if correct { correctCount += 1 }
     }
 }
 

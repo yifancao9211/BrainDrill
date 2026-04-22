@@ -52,6 +52,9 @@
 		56A660DDD2AB5590B1EEABF2 /* FlankerTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C015BB4ED14489EC8ACF40F /* FlankerTrainingView.swift */; };
 		5756E7E1E63C3CC68A0FF7F2 /* StopSignalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56D304010011B8B958BF06D /* StopSignalModels.swift */; };
 		581D93552409668E8E736CB8 /* SyllogismModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E62565E0961C4FDE18B014 /* SyllogismModels.swift */; };
+		AA0000000000000000000001 /* SyllogismLesson.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000011 /* SyllogismLesson.swift */; };
+		AA0000000000000000000002 /* SyllogismLearningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000012 /* SyllogismLearningView.swift */; };
+		AA0000000000000000000003 /* SyllogismPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000013 /* SyllogismPracticeView.swift */; };
 		61478B3797EDCE4E89062F30 /* SpeedAccuracyAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C72DE94982FDD6CAE55CAF /* SpeedAccuracyAnalyzer.swift */; };
 		614F2F73F1B448AAA964F68A /* WarmupDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55A6AA085AFF305D9FEB1DA4 /* WarmupDetector.swift */; };
 		62AD9EFBF19F7A235D21FF6D /* NBackCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E56888D4756A7600BE8441 /* NBackCoordinatorTests.swift */; };
@@ -253,6 +256,9 @@
 		E70478BD6CD6784CC4139026 /* AppModelFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelFeedbackTests.swift; sourceTree = "<group>"; };
 		E7AC0B934CC1B8E94961CBD9 /* BrainDrillApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrainDrillApp.swift; sourceTree = "<group>"; };
 		E7E62565E0961C4FDE18B014 /* SyllogismModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyllogismModels.swift; sourceTree = "<group>"; };
+		AA0000000000000000000011 /* SyllogismLesson.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyllogismLesson.swift; sourceTree = "<group>"; };
+		AA0000000000000000000012 /* SyllogismLearningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyllogismLearningView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000013 /* SyllogismPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyllogismPracticeView.swift; sourceTree = "<group>"; };
 		E8238787423533BE073924F1 /* AdaptiveDifficulty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveDifficulty.swift; sourceTree = "<group>"; };
 		E8EC8A3CAA5A4F242BC2C6D2 /* CorsiBlockEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorsiBlockEngineTests.swift; sourceTree = "<group>"; };
 		E907A859284C945145B5DF97 /* StopSignalEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopSignalEngineTests.swift; sourceTree = "<group>"; };
@@ -304,6 +310,7 @@
 				6AD7981D04DEA2F51D52500F /* SessionResult.swift */,
 				E56D304010011B8B958BF06D /* StopSignalModels.swift */,
 				E7E62565E0961C4FDE18B014 /* SyllogismModels.swift */,
+				AA0000000000000000000011 /* SyllogismLesson.swift */,
 				B95F8D55744E27A547A86A88 /* TrainingModule.swift */,
 				5000C17D50280A5A526D5373 /* TrainingSettings.swift */,
 				F79FA2BD3E5D199AF3874281 /* TrainingStatistics.swift */,
@@ -397,6 +404,8 @@
 			isa = PBXGroup;
 			children = (
 				9C5E1F5D14535F624A42A8B1 /* LogicArgumentTrainingView.swift */,
+				AA0000000000000000000012 /* SyllogismLearningView.swift */,
+				AA0000000000000000000013 /* SyllogismPracticeView.swift */,
 				55D3B38D5DD15F5736A7D085 /* SyllogismTrainingView.swift */,
 			);
 			path = Logic;
@@ -859,6 +868,9 @@
 				C690811D91180E3DD1061B63 /* SyllogismEngine.swift in Sources */,
 				581D93552409668E8E736CB8 /* SyllogismModels.swift in Sources */,
 				9E629F1B8A85B13EA27AFC25 /* SyllogismTrainingView.swift in Sources */,
+				AA0000000000000000000001 /* SyllogismLesson.swift in Sources */,
+				AA0000000000000000000002 /* SyllogismLearningView.swift in Sources */,
+				AA0000000000000000000003 /* SyllogismPracticeView.swift in Sources */,
 				9A61413F5AC2A7E32D09E43A /* Theme.swift in Sources */,
 				831E6BB5075D4F6EDA665761 /* TimeOfDayAnalyzer.swift in Sources */,
 				5056413F8B0FB28BB5379AF1 /* TrainingModule.swift in Sources */,

@@ -19,13 +19,24 @@ struct SyllogismTrainingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let engine = appModel.syllogismCoord.engine {
-                trainingContent(engine: engine)
-            } else if let result = appModel.syllogismCoord.lastResult,
-                      let metrics = result.syllogismMetrics {
-                resultPanel(metrics: metrics)
-            } else {
-                startPanel
+            switch appModel.syllogismCoord.mode {
+            case .learning(let group):
+                SyllogismLearningView(lessonGroup: group)
+            case .practice(let group):
+                SyllogismPracticeView(lessonGroup: group)
+            case .training:
+                if let engine = appModel.syllogismCoord.engine {
+                    trainingContent(engine: engine)
+                } else {
+                    startPanel
+                }
+            case .idle:
+                if let result = appModel.syllogismCoord.lastResult,
+                   let metrics = result.syllogismMetrics {
+                    resultPanel(metrics: metrics)
+                } else {
+                    startPanel
+                }
             }
         }
         .padding(.horizontal, 8)
@@ -52,27 +63,40 @@ struct SyllogismTrainingView: View {
     // MARK: - Start Panel
 
     private var startPanel: some View {
-        SurfaceCard(title: "逻辑快判", subtitle: "统一进入训练壳层，限时判断推理是否逻辑有效。", accent: BDColor.syllogismAccent) {
-            let difficulty = appModel.adaptiveState(for: .syllogism).recommendedStartLevel
+        let difficulty = appModel.adaptiveState(for: .syllogism).recommendedStartLevel
+        let hasLearned = appModel.syllogismCoord.hasCompletedLearning(for: difficulty)
+        let weakTypes = appModel.syllogismCoord.weakTypes(for: difficulty)
+
+        return SurfaceCard(title: "逻辑快判", subtitle: "学习逻辑推理规则，限时判断推理是否有效。", accent: BDColor.syllogismAccent) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
                     InfoPill(title: "推荐 Level \(difficulty)", accent: BDColor.syllogismAccent)
                     InfoPill(title: "核心指标 d'", accent: BDColor.green)
+                    if !weakTypes.isEmpty {
+                        InfoPill(title: "\(weakTypes.count) 个薄弱类型", accent: BDColor.error)
+                    }
                 }
 
                 BDInsightCard(
-                    title: "训练说明",
-                    bodyText: "阅读前提与结论，快速判断推理是否有效。先稳住正确率，再逐步压缩反应时。",
+                    title: hasLearned ? "训练说明" : "推荐先学习",
+                    bodyText: hasLearned
+                        ? "阅读前提与结论，快速判断推理是否有效。薄弱类型会优先出现。"
+                        : "首次建议先学习逻辑推理规则，建立概念框架后再做限时训练。",
                     accent: BDColor.syllogismAccent
                 )
 
-                HStack(spacing: 4) {
-                    ForEach(1...3, id: \.self) { level in
-                        Circle()
-                            .fill(level <= difficulty ? BDColor.syllogismAccent : BDColor.panelSecondaryFill)
-                            .frame(width: 10, height: 10)
+                // Lesson list button
+                Button {
+                    appModel.syllogismCoord.startLearning(lessonGroup: 1)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "book.fill")
+                        Text(hasLearned ? "复习知识点" : "开始学习")
                     }
                 }
+                .buttonStyle(hasLearned
+                    ? BDSecondaryButton(accent: BDColor.syllogismAccent)
+                    : BDSecondaryButton(accent: BDColor.syllogismAccent))
 
                 Button("开始训练") {
                     let state = appModel.adaptiveState(for: .syllogism)
