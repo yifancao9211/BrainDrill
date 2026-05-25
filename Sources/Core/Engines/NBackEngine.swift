@@ -16,15 +16,13 @@ final class NBackEngine {
     private(set) var phase: Phase = .idle
     private(set) var stimulusOnsetTime: Date?
     private(set) var respondedThisTrial: Bool = false
+    private var responseTimeThisTrial: TimeInterval?
     private var slowDownNextBlock: Bool = false
-
-    let feedbackDurationMs: Int = 500
 
     enum Phase: Equatable, Hashable {
         case idle
         case stimulus
         case feedback(correct: Bool)
-        case isi
         case blockBreak(blockIndex: Int, nextN: Int)
         case completed
     }
@@ -54,6 +52,10 @@ final class NBackEngine {
 
     var isComplete: Bool { phase == .completed }
 
+    private var absoluteTrialIndex: Int {
+        currentBlock * trialsInCurrentBlock + currentTrialIndex
+    }
+
     init(config: NBackSessionConfig, startedAt: Date = Date()) {
         self.config = config
         self.startedAt = startedAt
@@ -64,51 +66,59 @@ final class NBackEngine {
         self.sequence = Self.generateSequence(config: config, n: config.startingN)
     }
 
-    func showStimulus() {
+    func showStimulus(at date: Date = Date()) {
         phase = .stimulus
-        stimulusOnsetTime = Date()
+        stimulusOnsetTime = date
         respondedThisTrial = false
+        responseTimeThisTrial = nil
     }
 
-    func enterISI() {
-        if !respondedThisTrial && currentTrialIndex >= currentN {
-            let result = NBackTrialResult(
-                trialIndex: currentTrialIndex,
-                isTarget: isTarget,
-                responded: false,
-                reactionTime: nil
-            )
-            results.append(result)
-            if isTarget {
-                // Missed a target — show brief feedback
-                phase = .feedback(correct: false)
-                return
-            }
-        }
-        phase = .isi
+    func enterISI(at date: Date = Date()) {
+        finishCurrentTrialIfNeeded(at: date)
+        phase = .idle
     }
 
     func recordMatch(at date: Date) -> NBackTrialResult? {
-        guard phase == .stimulus || phase == .isi, !respondedThisTrial else { return nil }
+        recordResponse(isMatch: true, at: date)
+    }
+
+    func recordNonMatch(at date: Date) -> NBackTrialResult? {
+        recordResponse(isMatch: false, at: date)
+    }
+
+    func recordResponse(isMatch: Bool, at date: Date) -> NBackTrialResult? {
+        guard phase == .stimulus, !respondedThisTrial else { return nil }
         respondedThisTrial = true
         let rt = stimulusOnsetTime.map { date.timeIntervalSince($0) }
-        let result = NBackTrialResult(
-            trialIndex: currentTrialIndex,
-            isTarget: isTarget,
-            responded: true,
-            reactionTime: rt
-        )
-        results.append(result)
-        phase = .feedback(correct: isTarget)
+        responseTimeThisTrial = rt
+        let result: NBackTrialResult?
+        if currentTrialIndex >= currentN {
+            let trialResult = NBackTrialResult(
+                trialIndex: absoluteTrialIndex,
+                isTarget: isTarget,
+                responded: isMatch,
+                reactionTime: rt,
+                decisionInterval: rt
+            )
+            results.append(trialResult)
+            result = trialResult
+        } else {
+            result = nil
+        }
+        advanceToNext(at: date)
+        if phase == .idle {
+            showStimulus(at: date)
+        }
         return result
     }
 
     func dismissFeedback() {
         guard case .feedback = phase else { return }
-        phase = .isi
+        phase = .stimulus
     }
 
-    func advanceToNext() {
+    func advanceToNext(at date: Date = Date()) {
+        finishCurrentTrialIfNeeded(at: date)
         currentTrialIndex += 1
 
         if currentTrialIndex >= sequence.count {
@@ -135,6 +145,23 @@ final class NBackEngine {
         }
     }
 
+    func advanceByUser(at date: Date = Date()) {
+        switch phase {
+        case .idle:
+            showStimulus(at: date)
+        case .stimulus, .feedback:
+            advanceToNext(at: date)
+            if phase == .idle {
+                showStimulus(at: date)
+            }
+        case let .blockBreak(_, nextN):
+            startNextBlock(n: nextN)
+            showStimulus(at: date)
+        case .completed:
+            break
+        }
+    }
+
     func startNextBlock(n: Int) {
         currentN = n
         currentTrialIndex = 0
@@ -158,19 +185,20 @@ final class NBackEngine {
         let hr = min(max(hitRate, 0.01), 0.99)
         let fa = min(max(faRate, 0.01), 0.99)
         let dPrime = Self.zScore(hr) - Self.zScore(fa)
+        let averageDecisionInterval = results.compactMap(\.decisionInterval).average ?? 0
 
         return NBackMetrics(
             nLevel: currentN,
             totalTrials: results.count,
             hitRate: hitRate,
             falseAlarmRate: faRate,
-            dPrime: dPrime
+            dPrime: dPrime,
+            averageDecisionInterval: averageDecisionInterval
         )
     }
 
     private func computeBlockAccuracy() -> Double {
-        let blockStart = currentBlock * trialsInCurrentBlock + currentN
-        let blockResults = results.filter { $0.trialIndex >= blockStart }
+        let blockResults = Array(results.suffix(config.trialsPerBlock))
         guard !blockResults.isEmpty else { return 0 }
 
         let correct = blockResults.filter { result in
@@ -188,6 +216,21 @@ final class NBackEngine {
         let hitRate = targets.isEmpty ? 0 : Double(targets.filter(\.responded).count) / Double(targets.count)
         let falseAlarmRate = nonTargets.isEmpty ? 0 : Double(nonTargets.filter(\.responded).count) / Double(nonTargets.count)
         return (hitRate, falseAlarmRate)
+    }
+
+    private func finishCurrentTrialIfNeeded(at date: Date) {
+        guard currentTrialIndex >= currentN, currentTrialIndex < sequence.count else { return }
+        guard !results.contains(where: { $0.trialIndex == absoluteTrialIndex }) else { return }
+
+        let decisionInterval = stimulusOnsetTime.map { date.timeIntervalSince($0) }
+        let result = NBackTrialResult(
+            trialIndex: absoluteTrialIndex,
+            isTarget: isTarget,
+            responded: respondedThisTrial,
+            reactionTime: responseTimeThisTrial,
+            decisionInterval: decisionInterval
+        )
+        results.append(result)
     }
 
     private static func zScore(_ p: Double) -> Double {

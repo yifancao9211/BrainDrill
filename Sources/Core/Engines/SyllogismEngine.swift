@@ -15,6 +15,10 @@ final class SyllogismEngine {
     private(set) var trialStartTime: Date?
     var hintShownForCurrentTrial: Bool = false
 
+    private let localTrials: [SyllogismTrial]
+    private var usedTrialFingerprints: Set<String> = []
+    private var recentTypes: [SyllogismType] = []
+
     enum Phase: Equatable {
         case idle
         case presenting
@@ -34,9 +38,10 @@ final class SyllogismEngine {
 
     // MARK: - Init
 
-    init(difficulty: Int, totalTrials: Int? = nil, startedAt: Date = Date()) {
+    init(difficulty: Int, totalTrials: Int? = nil, startedAt: Date = Date(), localTrials: [SyllogismTrial] = []) {
         self.difficulty = difficulty
         self.startedAt = startedAt
+        self.localTrials = localTrials
 
         if let totalTrials {
             self.totalTrials = totalTrials
@@ -142,9 +147,29 @@ final class SyllogismEngine {
         let candidates = shouldBeValid ? validTypes : invalidTypes
         let fallback: SyllogismType = shouldBeValid ? .categoricalValid : .categoricalInvalid
 
-        // Weighted random selection: weak types get 2x probability
-        let type = weightedRandom(from: candidates) ?? fallback
-        return buildTrial(type: type)
+        if let localTrial = drawLocalTrial(shouldBeValid: shouldBeValid) {
+            registerGeneratedTrial(localTrial)
+            return localTrial
+        }
+
+        let cooledCandidates = candidatesExcludingRecentTypes(candidates)
+        var fallbackTrial: SyllogismTrial?
+
+        // Try several draws so a small template bank does not repeat exact items in the same session.
+        for _ in 0..<24 {
+            let type = weightedRandom(from: cooledCandidates) ?? weightedRandom(from: candidates) ?? fallback
+            let trial = buildTrial(type: type)
+            fallbackTrial = fallbackTrial ?? trial
+
+            if !usedTrialFingerprints.contains(trial.repetitionFingerprint) {
+                registerGeneratedTrial(trial)
+                return trial
+            }
+        }
+
+        let trial = fallbackTrial ?? buildTrial(type: fallback)
+        registerGeneratedTrial(trial)
+        return trial
     }
 
     private func weightedRandom(from types: [SyllogismType]) -> SyllogismType? {
@@ -157,6 +182,40 @@ final class SyllogismEngine {
             if roll < 0 { return types[i] }
         }
         return types.last
+    }
+
+    private func drawLocalTrial(shouldBeValid: Bool) -> SyllogismTrial? {
+        let candidates = localTrials.filter {
+            $0.isValid == shouldBeValid && $0.type.difficultyRange.contains(difficulty)
+        }
+        guard !candidates.isEmpty else { return nil }
+
+        let fresh = candidates.filter {
+            !usedTrialFingerprints.contains($0.repetitionFingerprint) && !recentTypes.contains($0.type)
+        }
+        if let trial = fresh.randomElement() {
+            return trial
+        }
+
+        let unrepeated = candidates.filter {
+            !usedTrialFingerprints.contains($0.repetitionFingerprint)
+        }
+        return unrepeated.randomElement()
+    }
+
+    private func candidatesExcludingRecentTypes(_ types: [SyllogismType]) -> [SyllogismType] {
+        let filtered = types.filter { !recentTypes.contains($0) }
+        return filtered.isEmpty ? types : filtered
+    }
+
+    private func registerGeneratedTrial(_ trial: SyllogismTrial) {
+        usedTrialFingerprints.insert(trial.repetitionFingerprint)
+        recentTypes.append(trial.type)
+
+        let maxRecentTypes = min(6, max(2, SyllogismType.available(for: difficulty).count / 3))
+        if recentTypes.count > maxRecentTypes {
+            recentTypes.removeFirst(recentTypes.count - maxRecentTypes)
+        }
     }
 
     func buildTrial(type: SyllogismType) -> SyllogismTrial {

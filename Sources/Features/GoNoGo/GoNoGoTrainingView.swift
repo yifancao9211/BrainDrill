@@ -50,7 +50,11 @@ struct GoNoGoTrainingView: View {
         SurfaceCard(title: "Go/No-Go", subtitle: "在统一训练壳层中完成启动控制与抑制控制。", accent: BDColor.goNoGoAccent) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
+                    #if os(iOS)
+                    InfoPill(title: "Go 点击响应", accent: BDColor.goNoGoAccent)
+                    #else
                     InfoPill(title: "Go 用空格响应", accent: BDColor.goNoGoAccent)
+                    #endif
                     InfoPill(title: "No-Go 保持抑制", accent: BDColor.error)
                 }
 
@@ -93,6 +97,20 @@ struct GoNoGoTrainingView: View {
                 .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
         } footer: {
             VStack(spacing: 16) {
+                #if os(iOS)
+                if engine.phase == .stimulus {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture { appModel.handleGoNoGoTap() }
+                        .overlay(alignment: .bottom) {
+                            Text("点击屏幕任意位置 = Go")
+                                .font(.system(.caption, design: .rounded, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, 8)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: 80)
+                }
+                #else
                 if engine.phase == .stimulus {
                     Button("按空格或点击") {
                         appModel.handleGoNoGoTap()
@@ -101,6 +119,7 @@ struct GoNoGoTrainingView: View {
                     .keyboardShortcut(.space, modifiers: [])
                     .focused($focusedTarget, equals: .respond)
                 }
+                #endif
 
                 ProgressView(value: engine.completionFraction)
                     .tint(BDColor.goNoGoAccent)

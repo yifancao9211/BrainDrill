@@ -243,6 +243,15 @@ enum BDColor {
         Color(light: .init(red: 0.600, green: 0.447, blue: 0.776), dark: .init(red: 0.706, green: 0.553, blue: 0.878)),
         Color(light: .init(red: 0.875, green: 0.561, blue: 0.318), dark: .init(red: 0.925, green: 0.631, blue: 0.388))
     ]
+
+    static let schulteNumberColors: [Color] = [
+        Color(light: .init(red: 0.710, green: 0.162, blue: 0.184), dark: .init(red: 1.000, green: 0.420, blue: 0.455)),
+        Color(light: .init(red: 0.055, green: 0.344, blue: 0.690), dark: .init(red: 0.390, green: 0.682, blue: 1.000)),
+        Color(light: .init(red: 0.646, green: 0.390, blue: 0.000), dark: .init(red: 1.000, green: 0.714, blue: 0.255)),
+        Color(light: .init(red: 0.037, green: 0.478, blue: 0.282), dark: .init(red: 0.347, green: 0.824, blue: 0.557)),
+        Color(light: .init(red: 0.467, green: 0.250, blue: 0.686), dark: .init(red: 0.780, green: 0.612, blue: 1.000)),
+        Color(light: .init(red: 0.778, green: 0.282, blue: 0.063), dark: .init(red: 1.000, green: 0.557, blue: 0.298))
+    ]
 }
 
 enum BDGradient {
@@ -285,10 +294,25 @@ enum BDGradient {
 
 extension Color {
     init(light: Color, dark: Color) {
+        #if os(iOS)
+        self.init(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
+        #else
         self.init(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             return isDark ? NSColor(dark) : NSColor(light)
         })
+        #endif
+    }
+
+    /// Cross-platform separator color.
+    static var bdSeparator: Color {
+        #if os(iOS)
+        Color(uiColor: .separator)
+        #else
+        Color(nsColor: .separatorColor)
+        #endif
     }
 }
 
@@ -297,13 +321,63 @@ enum BDMetrics {
     static let controlHeightRegular: CGFloat = 44
     static let sidebarWidthDefault: CGFloat = 220
     static let sidebarWidthExpanded: CGFloat = 260
-    static let contentMaxReadableWidth: CGFloat = 860
-    static let contentMaxWorkbenchWidth: CGFloat = 1180
-    static let contentMaxAnalysisWidth: CGFloat = 1260
-    static let contentMaxTrainingWidth: CGFloat = 1120
     static let spacingCompact: CGFloat = 16
     static let spacingRegular: CGFloat = 20
     static let cornerRadiusSmall: CGFloat = 6
     static let cornerRadiusMedium: CGFloat = 10
     static let cornerRadiusLarge: CGFloat = 12
+
+    // MARK: - Platform-aware content widths
+
+    static var contentMaxReadableWidth: CGFloat {
+        #if os(iOS)
+        .infinity
+        #else
+        860
+        #endif
+    }
+
+    static var contentMaxWorkbenchWidth: CGFloat {
+        #if os(iOS)
+        .infinity
+        #else
+        1180
+        #endif
+    }
+
+    static var contentMaxAnalysisWidth: CGFloat {
+        #if os(iOS)
+        .infinity
+        #else
+        1260
+        #endif
+    }
+
+    static var contentMaxTrainingWidth: CGFloat {
+        #if os(iOS)
+        .infinity
+        #else
+        1120
+        #endif
+    }
+
+    // MARK: - Training interaction sizing
+
+    /// Minimum touch target for training response buttons.
+    static var trainingButtonSize: CGFloat {
+        #if os(iOS)
+        100
+        #else
+        80
+        #endif
+    }
+
+    /// Spacing between training response buttons.
+    static var trainingButtonSpacing: CGFloat {
+        #if os(iOS)
+        60
+        #else
+        40
+        #endif
+    }
 }

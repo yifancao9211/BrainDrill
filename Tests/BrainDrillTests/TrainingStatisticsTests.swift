@@ -22,13 +22,13 @@ struct TrainingStatisticsTests {
 
         let stats = TrainingStatistics(sessions: sessions)
 
-        #expect(stats.totalSessions == 3)
+        #expect(stats.totalSessions == 4)
         #expect(stats.readingSessionCount == 1)
-        #expect(stats.supportSessionCount == 2)
+        #expect(stats.supportSessionCount == 3)
         #expect(stats.lastReadingModuleName == "主旨")
         #expect(stats.count(for: .mainIdea) == 1)
         #expect(stats.count(for: .schulte) == 1)
         #expect(stats.count(for: .nBack) == 1)
-        #expect(stats.count(for: .flanker) == 0)
+        #expect(stats.count(for: .flanker) == 1)
     }
 }

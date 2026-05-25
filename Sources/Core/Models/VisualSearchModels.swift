@@ -4,12 +4,21 @@ enum SearchShape: Int, CaseIterable, Codable, Equatable {
     case circle = 0
     case square = 1
     case triangle = 2
+    case diamond = 3
+    case pentagon = 4
+    case hexagon = 5
+    case star = 6
+    case capsule = 7
 }
 
 enum SearchColor: Int, CaseIterable, Codable, Equatable {
     case red = 0
     case blue = 1
     case green = 2
+    case yellow = 3
+    case purple = 4
+    case orange = 5
+    case pink = 6
 }
 
 struct SearchItem: Identifiable, Equatable {
@@ -17,6 +26,8 @@ struct SearchItem: Identifiable, Equatable {
     let shape: SearchShape
     let color: SearchColor
     let position: CGPoint
+    let rotationDegrees: Double
+    let spinDegreesPerSecond: Double
 }
 
 struct VisualSearchTarget: Equatable {
@@ -41,16 +52,28 @@ struct VisualSearchTrialResult: Equatable {
     let setSize: Int
     let targetPresent: Bool
     let userSaidPresent: Bool
+    let selectedItemID: Int?
+    let selectedTarget: Bool
     let correct: Bool
     let reactionTime: TimeInterval?
 
-    init(trial: VisualSearchTrial, userSaidPresent: Bool, reactionTime: TimeInterval?) {
+    init(trial: VisualSearchTrial, userSaidPresent: Bool, selectedItemID: Int?, reactionTime: TimeInterval?) {
         self.trialIndex = trial.id
         self.setSize = trial.setSize
         self.targetPresent = trial.targetPresent
         self.userSaidPresent = userSaidPresent
+        self.selectedItemID = selectedItemID
+        self.selectedTarget = selectedItemID.map { id in
+            trial.items.contains { item in
+                item.id == id && item.shape == trial.target.shape && item.color == trial.target.color
+            }
+        } ?? false
         self.reactionTime = reactionTime
-        self.correct = (targetPresent == userSaidPresent)
+        if targetPresent {
+            self.correct = userSaidPresent && selectedTarget
+        } else {
+            self.correct = !userSaidPresent && selectedItemID == nil
+        }
     }
 }
 

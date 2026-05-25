@@ -172,10 +172,35 @@ struct SchulteSessionResult: Identifiable, Codable, Equatable {
 }
 
 struct SchulteSetRepConfig: Codable, Equatable {
-    var setsPerSession: Int = 3
-    var repsPerSet: Int = 3
-    var restBetweenRepsSec: Int = 5
-    var restBetweenSetsSec: Int = 30
+    static let legacyDefault = SchulteSetRepConfig(
+        setsPerSession: 3,
+        repsPerSet: 3,
+        restBetweenRepsSec: 5,
+        restBetweenSetsSec: 30
+    )
+    static let previousShortDefault = SchulteSetRepConfig(
+        setsPerSession: 2,
+        repsPerSet: 2,
+        restBetweenRepsSec: 5,
+        restBetweenSetsSec: 20
+    )
+
+    var setsPerSession: Int
+    var repsPerSet: Int
+    var restBetweenRepsSec: Int
+    var restBetweenSetsSec: Int
+
+    init(
+        setsPerSession: Int = 1,
+        repsPerSet: Int = 2,
+        restBetweenRepsSec: Int = 5,
+        restBetweenSetsSec: Int = 0
+    ) {
+        self.setsPerSession = setsPerSession
+        self.repsPerSet = repsPerSet
+        self.restBetweenRepsSec = restBetweenRepsSec
+        self.restBetweenSetsSec = restBetweenSetsSec
+    }
 }
 
 struct CompletedSchulteSummary: Equatable {

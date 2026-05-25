@@ -25,17 +25,28 @@ struct NBackEngineTests {
         let config = NBackSessionConfig(startingN: 1, trialsPerBlock: 10, blockCount: 1)
         let engine = NBackEngine(config: config)
 
-        for i in 0..<engine.sequence.count {
-            engine.showStimulus()
-            if i >= engine.currentN && engine.isTarget {
-                _ = engine.recordMatch(at: Date())
+        while !engine.isComplete {
+            if engine.phase == .idle {
+                engine.advanceByUser()
             }
-            engine.enterISI()
-            engine.advanceToNext()
+            _ = engine.recordResponse(isMatch: engine.isTarget, at: Date())
         }
 
         let m = engine.computeMetrics()
         #expect(m.hitRate > 0.5)
         #expect(m.dPrime > 0)
+    }
+
+    @Test func userPacedAdvanceRecordsDecisionInterval() {
+        let config = NBackSessionConfig(startingN: 1, trialsPerBlock: 3, blockCount: 1)
+        let startedAt = Date(timeIntervalSince1970: 1_000)
+        let engine = NBackEngine(config: config, startedAt: startedAt)
+
+        engine.advanceByUser(at: startedAt)
+        _ = engine.recordNonMatch(at: startedAt.addingTimeInterval(1.25))
+        _ = engine.recordResponse(isMatch: engine.isTarget, at: startedAt.addingTimeInterval(3.25))
+
+        #expect(engine.results.first?.decisionInterval == 2.0)
+        #expect(engine.computeMetrics().averageDecisionInterval == 2.0)
     }
 }

@@ -59,7 +59,7 @@ struct VisualSearchTrainingView: View {
 
                     let target = engine.currentTrial?.target ?? engine.target
                     HStack(spacing: 4) {
-                        Text("找")
+                        Text("目标：")
                             .font(.system(.caption, design: .rounded))
                             .foregroundStyle(BDColor.textSecondary)
                         shapeView(shape: target.shape, color: target.color)
@@ -79,7 +79,9 @@ struct VisualSearchTrainingView: View {
                         .foregroundStyle(.secondary)
                 case .display:
                     if let trial = engine.currentTrial {
-                        searchFieldView(trial: trial)
+                        searchFieldView(trial: trial) { itemID in
+                            _ = appModel.handleVisualSearchResponse(present: true, selectedItemID: itemID)
+                        }
                     }
                 case .feedback(let correct):
                     VStack(spacing: 8) {
@@ -94,28 +96,25 @@ struct VisualSearchTrainingView: View {
                     Color.clear
                 }
             }
+            #if os(iOS)
+            .frame(width: UIScreen.main.bounds.width - 48,
+                   height: UIScreen.main.bounds.width - 48)
+            #else
             .frame(width: 400, height: 400)
+            #endif
         } footer: {
             VStack(spacing: 16) {
             HStack(spacing: 20) {
                 Button {
                     _ = appModel.handleVisualSearchResponse(present: false)
                 } label: {
-                    Text("没有")
+                    Text("没有匹配")
                 }
                 .buttonStyle(BDSecondaryButton(accent: BDColor.teal))
                 .keyboardShortcut("1", modifiers: [])
-
-                Button {
-                    _ = appModel.handleVisualSearchResponse(present: true)
-                } label: {
-                    Text("找到了")
-                }
-                .buttonStyle(BDPrimaryButton(accent: BDColor.visualSearchAccent))
-                .keyboardShortcut("2", modifiers: [])
+                .disabled(engine.phase != .display)
             }
             .opacity(engine.phase == .display ? 1 : 0)
-            .disabled(engine.phase != .display)
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.visualSearchAccent)
@@ -160,14 +159,42 @@ struct VisualSearchTrainingView: View {
         }
     }
 
-    private func searchFieldView(trial: VisualSearchTrial) -> some View {
-        GeometryReader { geo in
-            ForEach(trial.items) { item in
-                shapeView(shape: item.shape, color: item.color)
-                    .frame(width: 24, height: 24)
+    private func searchFieldView(trial: VisualSearchTrial, onSelect: @escaping (Int) -> Void) -> some View {
+        TimelineView(.animation) { timeline in
+            GeometryReader { geo in
+                ForEach(trial.items) { item in
+                    searchItemView(
+                        item: item,
+                        date: timeline.date
+                    )
                     .position(x: item.position.x * geo.size.width, y: item.position.y * geo.size.height)
+                    .onTapGesture {
+                        onSelect(item.id)
+                    }
+                }
             }
         }
+    }
+
+    private func searchItemView(item: SearchItem, date: Date) -> some View {
+        let elapsed = date.timeIntervalSinceReferenceDate
+        let rotation = item.rotationDegrees + elapsed * item.spinDegreesPerSecond
+        return ZStack {
+            ZStack {
+                shapeView(shape: item.shape, color: item.color)
+                if item.spinDegreesPerSecond != 0 {
+                    Circle()
+                        .fill(Color.white.opacity(0.72))
+                        .frame(width: 4, height: 4)
+                        .offset(x: 6, y: -6)
+                }
+            }
+                .frame(width: 24, height: 24)
+                .rotationEffect(.degrees(rotation))
+                .shadow(color: searchColor(item.color).opacity(0.12), radius: 3)
+        }
+        .frame(width: 40, height: 40)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -177,24 +204,55 @@ struct VisualSearchTrainingView: View {
         case .circle:   Circle().fill(fillColor)
         case .square:   Rectangle().fill(fillColor)
         case .triangle: TriangleShape().fill(fillColor)
+        case .diamond:  DiamondShape().fill(fillColor)
+        case .pentagon: PolygonShape(sides: 5).fill(fillColor)
+        case .hexagon:  PolygonShape(sides: 6).fill(fillColor)
+        case .star:     StarShape(points: 5).fill(fillColor)
+        case .capsule:  Capsule().fill(fillColor)
         }
     }
 
     private func searchColor(_ color: SearchColor) -> Color {
         switch color {
-        case .red: .red; case .blue: .blue; case .green: .green
+        case .red:
+            Color(light: .init(red: 0.86, green: 0.05, blue: 0.08), dark: .init(red: 1.00, green: 0.23, blue: 0.25))
+        case .blue:
+            Color(light: .init(red: 0.05, green: 0.30, blue: 0.88), dark: .init(red: 0.30, green: 0.56, blue: 1.00))
+        case .green:
+            Color(light: .init(red: 0.02, green: 0.56, blue: 0.25), dark: .init(red: 0.24, green: 0.82, blue: 0.43))
+        case .yellow:
+            Color(light: .init(red: 0.92, green: 0.72, blue: 0.02), dark: .init(red: 1.00, green: 0.84, blue: 0.18))
+        case .purple:
+            Color(light: .init(red: 0.45, green: 0.18, blue: 0.82), dark: .init(red: 0.68, green: 0.45, blue: 1.00))
+        case .orange:
+            Color(light: .init(red: 0.94, green: 0.39, blue: 0.00), dark: .init(red: 1.00, green: 0.55, blue: 0.16))
+        case .pink:
+            Color(light: .init(red: 0.86, green: 0.06, blue: 0.54), dark: .init(red: 1.00, green: 0.35, blue: 0.70))
         }
     }
 
     private func colorName(_ color: SearchColor) -> String {
         switch color {
-        case .red: "红色"; case .blue: "蓝色"; case .green: "绿色"
+        case .red: "红色"
+        case .blue: "蓝色"
+        case .green: "绿色"
+        case .yellow: "黄色"
+        case .purple: "紫色"
+        case .orange: "橙色"
+        case .pink: "粉色"
         }
     }
 
     private func shapeName(_ shape: SearchShape) -> String {
         switch shape {
-        case .circle: "圆形"; case .square: "方块"; case .triangle: "三角"
+        case .circle: "圆形"
+        case .square: "方块"
+        case .triangle: "三角"
+        case .diamond: "菱形"
+        case .pentagon: "五边形"
+        case .hexagon: "六边形"
+        case .star: "星形"
+        case .capsule: "胶囊形"
         }
     }
 
@@ -266,6 +324,72 @@ private struct TriangleShape: Shape {
         path.move(to: CGPoint(x: rect.midX, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct DiamondShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct PolygonShape: Shape {
+    let sides: Int
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let radius = min(rect.width, rect.height) / 2
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let count = max(sides, 3)
+
+        for index in 0..<count {
+            let angle = (Double(index) / Double(count) * 2 * Double.pi) - Double.pi / 2
+            let point = CGPoint(
+                x: center.x + cos(angle) * radius,
+                y: center.y + sin(angle) * radius
+            )
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct StarShape: Shape {
+    let points: Int
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let outerRadius = min(rect.width, rect.height) / 2
+        let innerRadius = outerRadius * 0.46
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let count = max(points, 3) * 2
+
+        for index in 0..<count {
+            let radius = index.isMultiple(of: 2) ? outerRadius : innerRadius
+            let angle = (Double(index) / Double(count) * 2 * Double.pi) - Double.pi / 2
+            let point = CGPoint(
+                x: center.x + cos(angle) * radius,
+                y: center.y + sin(angle) * radius
+            )
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
         path.closeSubpath()
         return path
     }

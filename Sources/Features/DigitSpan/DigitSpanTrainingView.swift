@@ -153,7 +153,7 @@ struct DigitSpanTrainingView: View {
             }
             .frame(minHeight: 40)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 14), count: 5), spacing: 14) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 5), spacing: 14) {
                 ForEach(0..<10, id: \.self) { digit in
                     Button {
                         appendDigit(digit, engine: engine)
@@ -161,7 +161,8 @@ struct DigitSpanTrainingView: View {
                         Text("\(digit)")
                             .font(.system(.title, design: .rounded, weight: .bold))
                             .foregroundStyle(BDColor.digitSpanAccent)
-                            .frame(width: 64, height: 64)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: BDMetrics.trainingButtonSize - 16)
                             .background(Color.clear.bdPanelSurface(.primary, cornerRadius: 18))
                     }
                     .buttonStyle(BDSpringPressStyle())

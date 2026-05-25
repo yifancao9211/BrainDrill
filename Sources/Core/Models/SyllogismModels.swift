@@ -133,7 +133,7 @@ enum SyllogismContentBank {
 
     // MARK: - Tech Ethics
     private static let techEthics: [ContentRelation] = [
-        ContentRelation(category: "AI伦理的关注点", members: ["算法偏见", "隐私侵犯", "透明度缺失", "责任归属不明"], domain: .techEthics),
+        ContentRelation(category: "算法伦理的关注点", members: ["算法偏见", "隐私侵犯", "透明度缺失", "责任归属不明"], domain: .techEthics),
         ContentRelation(category: "数据隐私原则", members: ["知情同意", "最小化收集", "目的限制", "数据安全"], domain: .techEthics),
         ContentRelation(category: "网络安全威胁类型", members: ["钓鱼攻击", "勒索软件", "DDoS攻击", "社会工程攻击"], domain: .techEthics),
         ContentRelation(category: "信息伦理问题", members: ["虚假信息", "信息茧房", "数字鸿沟", "网络欺凌"], domain: .techEthics),
@@ -384,7 +384,7 @@ struct SyllogismTypeStats: Codable, Equatable {
 
 // MARK: - Trial
 
-struct SyllogismTrial: Identifiable {
+struct SyllogismTrial: Identifiable, Codable, Equatable {
     let id: String
     let premises: [String]
     let conclusion: String
@@ -415,6 +415,55 @@ struct SyllogismTrial: Identifiable {
         self.explanation = explanation
         self.detailedExplanation = detailedExplanation
         self.hasUnverifiedPremise = hasUnverifiedPremise
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case premises
+        case conclusion
+        case isValid
+        case type
+        case abstractForm
+        case explanation
+        case detailedExplanation
+        case hasUnverifiedPremise
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.premises = try container.decode([String].self, forKey: .premises)
+        self.conclusion = try container.decode(String.self, forKey: .conclusion)
+        self.isValid = try container.decode(Bool.self, forKey: .isValid)
+        self.type = try container.decode(SyllogismType.self, forKey: .type)
+        self.abstractForm = try container.decode(String.self, forKey: .abstractForm)
+        self.explanation = try container.decode(String.self, forKey: .explanation)
+        self.detailedExplanation = try container.decodeIfPresent(String.self, forKey: .detailedExplanation) ?? ""
+        self.hasUnverifiedPremise = try container.decodeIfPresent(Bool.self, forKey: .hasUnverifiedPremise) ?? false
+    }
+
+    var repetitionFingerprint: String {
+        ([type.rawValue] + premises + [conclusion]).joined(separator: " | ")
+    }
+
+    var validationIssues: [String] {
+        var issues: [String] = []
+        if id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("id 不能为空。")
+        }
+        if premises.isEmpty || premises.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            issues.append("premises 至少需要 1 条，且不能包含空字符串。")
+        }
+        if conclusion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("conclusion 不能为空。")
+        }
+        if abstractForm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("abstractForm 不能为空。")
+        }
+        if explanation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("explanation 不能为空。")
+        }
+        return issues
     }
 }
 

@@ -91,7 +91,8 @@ struct ChoiceRTTrainingView: View {
                             Text(i < palette.count ? palette[i].label : "\(i+1)")
                                 .font(.system(.title2, design: .rounded, weight: .bold))
                                 .foregroundStyle(.white)
-                                .frame(width: 72, height: 64)
+                                .frame(width: BDMetrics.trainingButtonSize,
+                                       height: BDMetrics.trainingButtonSize - 8)
                                 .background(
                                     ZStack {
                                         Color.clear.bdPanelSurface(.primary, cornerRadius: 16)

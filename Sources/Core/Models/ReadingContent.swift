@@ -81,6 +81,17 @@ struct DelayedRecallPrompt: Codable, Identifiable, Equatable {
     let isTarget: Bool
 }
 
+struct MaterialReference: Codable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let authors: [String]
+    let year: Int
+    let source: String
+    let doi: String?
+    let url: String?
+    let notes: String?
+}
+
 struct ReadingPassage: Codable, Identifiable, Equatable {
     let id: String
     let title: String
@@ -95,6 +106,7 @@ struct ReadingPassage: Codable, Identifiable, Equatable {
     let evidenceItems: [EvidenceClassificationItem]
     let recallPrompts: [DelayedRecallPrompt]
     let recallKeywords: [String]
+    var references: [MaterialReference]? = nil
 
     var mainIdeaMinimumLength: Int {
         switch difficulty {

@@ -313,6 +313,33 @@ struct NBackMetrics: Codable, Equatable {
     var hitRate: Double
     var falseAlarmRate: Double
     var dPrime: Double
+    var averageDecisionInterval: TimeInterval
+
+    init(
+        nLevel: Int,
+        totalTrials: Int,
+        hitRate: Double,
+        falseAlarmRate: Double,
+        dPrime: Double,
+        averageDecisionInterval: TimeInterval = 0
+    ) {
+        self.nLevel = nLevel
+        self.totalTrials = totalTrials
+        self.hitRate = hitRate
+        self.falseAlarmRate = falseAlarmRate
+        self.dPrime = dPrime
+        self.averageDecisionInterval = averageDecisionInterval
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        nLevel = try c.decode(Int.self, forKey: .nLevel)
+        totalTrials = try c.decode(Int.self, forKey: .totalTrials)
+        hitRate = try c.decode(Double.self, forKey: .hitRate)
+        falseAlarmRate = try c.decode(Double.self, forKey: .falseAlarmRate)
+        dPrime = try c.decode(Double.self, forKey: .dPrime)
+        averageDecisionInterval = try c.decodeIfPresent(TimeInterval.self, forKey: .averageDecisionInterval) ?? 0
+    }
 }
 
 struct DigitSpanMetrics: Codable, Equatable {

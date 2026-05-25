@@ -90,11 +90,12 @@ struct FlankerTrainingView: View {
         } footer: {
             let canRespond = engine.phase == .stimulus || engine.phase == .waitingForResponse
             VStack(spacing: 16) {
-                HStack(spacing: 40) {
+                HStack(spacing: BDMetrics.trainingButtonSpacing) {
                     Button { appModel.handleFlankerResponse(.left) } label: {
                         Image(systemName: "arrow.left")
-                            .font(.system(size: 32, weight: .bold))
-                            .frame(width: 80, height: 80)
+                            .font(.system(size: 36, weight: .bold))
+                            .frame(width: BDMetrics.trainingButtonSize,
+                                   height: BDMetrics.trainingButtonSize)
                             .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
                             .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
                     }
@@ -105,8 +106,9 @@ struct FlankerTrainingView: View {
 
                     Button { appModel.handleFlankerResponse(.right) } label: {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 32, weight: .bold))
-                            .frame(width: 80, height: 80)
+                            .font(.system(size: 36, weight: .bold))
+                            .frame(width: BDMetrics.trainingButtonSize,
+                                   height: BDMetrics.trainingButtonSize)
                             .background(Circle().fill(BDColor.flankerAccent.opacity(canRespond ? 0.15 : 0.05)))
                             .foregroundStyle(BDColor.flankerAccent.opacity(canRespond ? 1 : 0.3))
                     }

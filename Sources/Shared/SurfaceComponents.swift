@@ -29,7 +29,7 @@ private struct BDPanelSurfaceModifier: ViewModifier {
 
         content
             .background(fillColor, in: shape)
-            .overlay(shape.stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5))
+            .overlay(shape.stroke(Color.bdSeparator.opacity(0.5), lineWidth: 0.5))
             .modifier(BDGlassEffectModifier(cornerRadius: cornerRadius))
     }
 }
@@ -38,11 +38,15 @@ private struct BDGlassEffectModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
+        #if os(macOS)
         if #available(macOS 26.0, *) {
             content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 
@@ -518,7 +522,7 @@ struct BDModuleCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: BDMetrics.cornerRadiusLarge, style: .continuous)
-                    .stroke(isHovering ? accent.opacity(0.18) : Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
+                    .stroke(isHovering ? accent.opacity(0.18) : Color.bdSeparator.opacity(0.3), lineWidth: 0.5)
             )
         }
         .buttonStyle(BDSpringPressStyle())
@@ -611,7 +615,7 @@ struct BDSettingsRow<Control: View>: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: BDMetrics.cornerRadiusMedium, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
+                .stroke(Color.bdSeparator.opacity(0.3), lineWidth: 0.5)
         )
     }
 }
@@ -702,7 +706,7 @@ struct BDTrainingStage<Content: View>: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 0.5)
+                .stroke(Color.bdSeparator.opacity(0.4), lineWidth: 0.5)
         )
     }
 }
@@ -767,7 +771,7 @@ struct BDResultPanel<Content: View>: View {
                     .background(Color.clear.bdPanelSurface(.overlay, cornerRadius: 16))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 0.5)
+                            .stroke(Color.bdSeparator.opacity(0.4), lineWidth: 0.5)
                     )
                     .frame(maxWidth: 600)
                     .scaleEffect(appearAnimation ? 1 : 0.97)

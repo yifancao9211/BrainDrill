@@ -24,14 +24,8 @@ final class AppModel {
     var settings: TrainingSettings
     var sessions: [SessionResult]
     var adaptiveStates: [TrainingModule: ModuleAdaptiveState]
-    var sourceConfigs: [ContentSourceConfig]
-    var materialCandidates: [MaterialCandidate]
     var approvedReadingPassages: [ApprovedReadingPassage]
-    var materialRunRecords: [MaterialRunRecord]
-    var isMaterialsRunInProgress: Bool = false
-    var materialsStatusMessage: String = "准备抓取开放来源并生成候选。"
-    var materialsPipelineProgress: MaterialsPipelineProgress?
-    var materialsLiveLogs: [String] = []
+    var approvedSyllogismTrials: [SyllogismTrial]
     var lastPersistenceError: String?
     var streakTracker: StreakTracker
     var achievementTracker: AchievementTracker
@@ -72,15 +66,12 @@ final class AppModel {
         self.adaptiveStates = TrainingModule.allCases.reduce(into: [TrainingModule: ModuleAdaptiveState]()) { partial, module in
             partial[module] = loadedAdaptiveStates[module] ?? .default(for: module)
         }
-        self.sourceConfigs = (try? store.loadSourceConfigs()) ?? ContentSourceConfig.defaults
-        self.materialCandidates = ((try? store.loadMaterialCandidates()) ?? [])
-            .filter { $0.status != .rejected }
-            .sorted { $0.updatedAt > $1.updatedAt }
         self.approvedReadingPassages = ((try? store.loadApprovedReadingPassages()) ?? []).sorted { $0.approvedAt > $1.approvedAt }
-        self.materialRunRecords = ((try? store.loadMaterialRunRecords()) ?? []).sorted { $0.endedAt > $1.endedAt }
+        self.approvedSyllogismTrials = (try? store.loadApprovedSyllogismTrials()) ?? []
         self.streakTracker = (try? store.loadStreakTracker()) ?? StreakTracker()
         self.achievementTracker = (try? store.loadAchievementTracker()) ?? AchievementTracker()
         ReadingPassageRepository.updateApprovedPassages(self.approvedReadingPassages)
+        self.syllogismCoord.localTrials = self.approvedSyllogismTrials
     }
 
     var statistics: TrainingStatistics {
@@ -93,21 +84,6 @@ final class AppModel {
 
     var skillProfile: AppSkillProfile {
         AppSkillProfile.compute(from: adaptiveStates)
-    }
-
-    var pendingMaterialCandidates: [MaterialCandidate] {
-        materialCandidates
-            .filter { $0.status == .pending }
-            .sorted { lhs, rhs in
-                if lhs.status != rhs.status {
-                    return lhs.status.rawValue < rhs.status.rawValue
-                }
-                return lhs.score > rhs.score
-            }
-    }
-
-    var latestMaterialRun: MaterialRunRecord? {
-        materialRunRecords.first
     }
 
     var isAnyModuleActive: Bool {
@@ -182,7 +158,7 @@ final class AppModel {
         case .choiceRT:
             choiceRT.statusMessage
         case .materialsWorkbench:
-            materialsStatusMessage
+            "查看和导入阅读训练素材"
         case .home:
             "查看阅读主线、支撑训练与关键统计"
         case .history:
@@ -250,8 +226,36 @@ final class AppModel {
                 return .warning
             }
             return .error
-        case .flanker, .goNoGo, .digitSpan, .choiceRT, .changeDetection, .corsiBlock, .stopSignal:
-            return .noData
+        case let .flanker(metrics):
+            if metrics.accuracy >= 0.85 && metrics.conflictCost <= 0.12 { return .success }
+            if metrics.accuracy >= 0.70 && metrics.conflictCost <= 0.25 { return .warning }
+            return .error
+        case let .goNoGo(metrics):
+            if metrics.dPrime >= 1.5 && metrics.goAccuracy >= 0.85 && metrics.noGoAccuracy >= 0.80 { return .success }
+            if metrics.dPrime >= 0.8 && metrics.goAccuracy >= 0.75 && metrics.noGoAccuracy >= 0.65 { return .warning }
+            return .error
+        case let .digitSpan(metrics):
+            let maxSpan = max(metrics.maxSpanForward, metrics.maxSpanBackward)
+            if maxSpan >= 6 && metrics.accuracy >= 0.75 { return .success }
+            if maxSpan >= 4 && metrics.accuracy >= 0.55 { return .warning }
+            return .error
+        case let .choiceRT(metrics):
+            let anticipationRate = metrics.totalTrials == 0 ? 0 : Double(metrics.anticipationCount) / Double(metrics.totalTrials)
+            if metrics.accuracy >= 0.90 && metrics.medianRT <= 0.55 && anticipationRate <= 0.05 { return .success }
+            if metrics.accuracy >= 0.75 && metrics.medianRT <= 0.85 && anticipationRate <= 0.15 { return .warning }
+            return .error
+        case let .changeDetection(metrics):
+            if metrics.dPrime >= 1.5 && metrics.accuracy >= 0.80 { return .success }
+            if metrics.dPrime >= 0.8 && metrics.accuracy >= 0.65 { return .warning }
+            return .error
+        case let .corsiBlock(metrics):
+            if metrics.maxSpan >= 5 && metrics.accuracy >= 0.70 { return .success }
+            if metrics.maxSpan >= 3 && metrics.accuracy >= 0.50 { return .warning }
+            return .error
+        case let .stopSignal(metrics):
+            if metrics.goAccuracy >= 0.80 && metrics.inhibitionRate >= 0.45 && metrics.ssrt <= 0.35 { return .success }
+            if metrics.goAccuracy >= 0.65 && metrics.inhibitionRate >= 0.30 && metrics.ssrt <= 0.50 { return .warning }
+            return .error
         case let .syllogism(metrics):
             if metrics.accuracy >= 0.80 && metrics.dPrime >= 1.5 { return .success }
             if metrics.accuracy >= 0.60 { return .warning }
@@ -265,8 +269,8 @@ final class AppModel {
 
     // MARK: - Schulte delegation
 
-    func startSchulteSession() {
-        schulte.startSession(settings: settings)
+    func startSchulteSession(preparationSeconds: Int = 3) {
+        schulte.startSession(settings: settings, preparationSeconds: preparationSeconds)
     }
 
     func cancelSchulteSession() {
@@ -367,6 +371,18 @@ final class AppModel {
 
     func handleNBackMatch(at date: Date = Date()) {
         if let result = nBack.handleMatch(at: date) {
+            appendSession(result)
+        }
+    }
+
+    func handleNBackNonMatch(at date: Date = Date()) {
+        if let result = nBack.handleNonMatch(at: date) {
+            appendSession(result)
+        }
+    }
+
+    func handleNBackNext(at date: Date = Date()) {
+        if let result = nBack.handleNext(at: date) {
             appendSession(result)
         }
     }
@@ -523,8 +539,8 @@ final class AppModel {
         visualSearch.startSession(settings: settings, adaptiveState: adaptiveState(for: .visualSearch))
     }
 
-    func handleVisualSearchResponse(present: Bool, at date: Date = Date()) -> SessionResult? {
-        if let result = visualSearch.handleResponse(userSaidPresent: present, at: date) {
+    func handleVisualSearchResponse(present: Bool, selectedItemID: Int? = nil, at date: Date = Date()) -> SessionResult? {
+        if let result = visualSearch.handleResponse(userSaidPresent: present, selectedItemID: selectedItemID, at: date) {
             appendSession(result)
             return result
         }
@@ -649,175 +665,105 @@ final class AppModel {
         persistSettings()
     }
 
-    func updateAIBaseURL(_ value: String) {
-        settings.aiBaseURL = value
-        persistSettings()
-    }
-
-    func updateAIAPIKey(_ value: String) {
-        settings.aiAPIKey = value
-        persistSettings()
-    }
-
-    func updateAIModel(_ value: String) {
-        settings.aiModel = value
-        persistSettings()
-    }
-
-    func updateMaterialsAutoSourceCount(_ value: Int) {
-        settings.materialsAutoSourceCountPerRun = value
-        persistSettings()
-    }
-
-    func updateMaterialsCandidateThreshold(_ value: Double) {
-        settings.materialsCandidateThreshold = value
-        persistSettings()
-    }
-
-    func updateSourceEnabled(_ kind: ConcreteSourceKind, isEnabled: Bool) {
-        guard let index = sourceConfigs.firstIndex(where: { $0.kind == kind }) else { return }
-        sourceConfigs[index].isEnabled = isEnabled
-        persistSourceConfigs()
-    }
-
     // MARK: - Materials
 
-    func runMaterialsHarvest() {
-        guard !isMaterialsRunInProgress else { return }
-
-        isMaterialsRunInProgress = true
-        materialsStatusMessage = "正在抓取来源并清洗候选..."
-        materialsPipelineProgress = nil
-        materialsLiveLogs.removeAll()
-        let snapshotSettings = settings
-        let snapshotConfigs = sourceConfigs
-
-        Task {
-            let outcome = await MaterialsPipeline().run(
-                sourceConfigs: snapshotConfigs,
-                settings: snapshotSettings,
-                recentMaterialHints: recentMaterialHints()
-            ) { progress in
-                Task { @MainActor in
-                    self.materialsPipelineProgress = progress
-                    if let msg = progress.logMessage {
-                        self.materialsLiveLogs.append(msg)
-                    }
-                }
-            }
-
-            await MainActor.run {
-                sourceConfigs = outcome.updatedSourceConfigs
-                materialCandidates = mergeCandidates(materialCandidates, with: outcome.candidates)
-                materialRunRecords = mergeRunRecords(materialRunRecords, with: outcome.runRecord)
-                isMaterialsRunInProgress = false
-                materialsStatusMessage = harvestSummary(for: outcome.runRecord)
-                persistSourceConfigs()
-                persistMaterialCandidates()
-                persistMaterialRunRecords()
-            }
+    func reloadApprovedMaterialsFromStore() {
+        do {
+            approvedReadingPassages = try store.loadApprovedReadingPassages().sorted { $0.approvedAt > $1.approvedAt }
+            approvedSyllogismTrials = try store.loadApprovedSyllogismTrials()
+            ReadingPassageRepository.updateApprovedPassages(approvedReadingPassages)
+            syllogismCoord.localTrials = approvedSyllogismTrials
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "素材库刷新失败：\(error.localizedDescription)"
         }
     }
 
-    func rejectMaterialCandidate(_ candidateID: String) {
-        materialCandidates.removeAll { $0.id == candidateID }
-        materialsStatusMessage = "候选已删除。"
-        persistMaterialCandidates()
-    }
+    /// Upsert ReadingPassage objects. Invalid passages are rejected.
+    func upsertPassages(_ passages: [ReadingPassage]) -> (inserted: Int, updated: Int, rejected: [String]) {
+        var inserted = 0
+        var updated = 0
+        var rejected: [String] = []
 
-    func reprocessMaterialCandidate(_ candidateID: String) {
-        guard
-            !isMaterialsRunInProgress,
-            let index = materialCandidates.firstIndex(where: { $0.id == candidateID })
-        else { return }
-
-        isMaterialsRunInProgress = true
-        materialsStatusMessage = "正在重新清洗 \(materialCandidates[index].sourceArticle.title)..."
-        materialsPipelineProgress = nil
-        materialsLiveLogs.removeAll()
-        let article = materialCandidates[index].sourceArticle
-        let snapshotSettings = settings
-
-        Task {
-            let rebuilt = await MaterialsPipeline().rebuildCandidate(
-                from: article,
-                settings: snapshotSettings,
-                existingID: candidateID,
-                recentMaterialHints: recentMaterialHints(excludingCandidateID: candidateID)
-            ) { progress in
-                Task { @MainActor in
-                    self.materialsPipelineProgress = progress
-                    if let msg = progress.logMessage {
-                        self.materialsLiveLogs.append(msg)
-                    }
-                }
+        for passage in passages {
+            let issues = passage.validationIssues
+            guard issues.isEmpty else {
+                rejected.append("\(passage.id): \(issues.joined(separator: "；"))")
+                continue
             }
 
-            await MainActor.run {
-                materialCandidates[index] = rebuilt
-                materialCandidates[index].status = .pending
-                materialCandidates[index].updatedAt = Date()
-                isMaterialsRunInProgress = false
-                materialsStatusMessage = rebuilt.failureReasons.isEmpty ? "候选已重新清洗。" : "候选重新清洗完成，但仍有风险提示。"
-                persistMaterialCandidates()
+            let approved = ApprovedReadingPassage(
+                passage: passage,
+                sourceArticle: SourceArticle(
+                    sourceKind: .openStax,
+                    title: passage.title,
+                    url: "local://\(passage.id)",
+                    summary: String(passage.body.prefix(200)),
+                    excerpt: String(passage.body.prefix(500)),
+                    domainTag: passage.domainTag
+                ),
+                approvedAt: Date(),
+                candidateID: "local-\(passage.id)",
+                score: 100
+            )
+
+            if let existingIndex = approvedReadingPassages.firstIndex(where: { $0.id == approved.id }) {
+                approvedReadingPassages[existingIndex] = approved
+                updated += 1
+            } else {
+                approvedReadingPassages.insert(approved, at: 0)
+                inserted += 1
             }
         }
-    }
 
-    func approveMaterialCandidate(_ candidateID: String) {
-        guard
-            let candidateIndex = materialCandidates.firstIndex(where: { $0.id == candidateID }),
-            let passage = materialCandidates[candidateIndex].generatedPassage
-        else { return }
-
-        let issues = passage.validationIssues
-        guard issues.isEmpty else {
-            materialCandidates[candidateIndex].failureReasons = issues
-            materialsStatusMessage = "入库前校验未通过。"
-            persistMaterialCandidates()
-            return
-        }
-
-        let candidate = materialCandidates[candidateIndex]
-        let approved = ApprovedReadingPassage(
-            passage: passage,
-            sourceArticle: candidate.sourceArticle,
-            approvedAt: Date(),
-            candidateID: candidate.id,
-            score: candidate.score
-        )
-
-        if let existingIndex = approvedReadingPassages.firstIndex(where: { $0.id == approved.id }) {
-            approvedReadingPassages[existingIndex] = approved
-        } else {
-            approvedReadingPassages.insert(approved, at: 0)
-        }
-
-        materialCandidates[candidateIndex].status = .approved
-        materialCandidates[candidateIndex].updatedAt = Date()
         ReadingPassageRepository.updateApprovedPassages(approvedReadingPassages)
-        materialsStatusMessage = "素材已通过审核并加入正式题库。"
         persistApprovedReadingPassages()
+        return (inserted, updated, rejected)
+    }
+
+    /// Delete a single approved reading passage.
+    func deleteApprovedPassage(_ passage: ApprovedReadingPassage) {
+        approvedReadingPassages.removeAll { $0.id == passage.id }
+        ReadingPassageRepository.updateApprovedPassages(approvedReadingPassages)
         persistApprovedReadingPassages()
-        persistMaterialCandidates()
     }
 
     func clearAllMaterialsData() {
-        guard !isMaterialsRunInProgress else { return }
-        materialCandidates.removeAll()
         approvedReadingPassages.removeAll()
-        materialRunRecords.removeAll()
-        for i in 0..<sourceConfigs.count {
-            sourceConfigs[i].lastError = nil
-            sourceConfigs[i].lastStatus = nil
-            sourceConfigs[i].lastCompletedAt = nil
-        }
         ReadingPassageRepository.updateApprovedPassages([])
-        materialsStatusMessage = "素材工作台缓存与抓取日志已全部清空。"
-        persistMaterialCandidates()
         persistApprovedReadingPassages()
-        persistMaterialRunRecords()
-        persistSourceConfigs()
+    }
+
+    func upsertSyllogismTrials(_ trials: [SyllogismTrial]) -> (inserted: Int, updated: Int, rejected: [String]) {
+        var inserted = 0
+        var updated = 0
+        var rejected: [String] = []
+
+        for trial in trials {
+            let issues = trial.validationIssues
+            guard issues.isEmpty else {
+                rejected.append("\(trial.id): \(issues.joined(separator: "；"))")
+                continue
+            }
+
+            if let existingIndex = approvedSyllogismTrials.firstIndex(where: { $0.id == trial.id }) {
+                approvedSyllogismTrials[existingIndex] = trial
+                updated += 1
+            } else {
+                approvedSyllogismTrials.insert(trial, at: 0)
+                inserted += 1
+            }
+        }
+
+        syllogismCoord.localTrials = approvedSyllogismTrials
+        persistApprovedSyllogismTrials()
+        return (inserted, updated, rejected)
+    }
+
+    func deleteApprovedSyllogismTrial(_ trial: SyllogismTrial) {
+        approvedSyllogismTrials.removeAll { $0.id == trial.id }
+        syllogismCoord.localTrials = approvedSyllogismTrials
+        persistApprovedSyllogismTrials()
     }
 
     // MARK: - Formatting
@@ -863,24 +809,6 @@ final class AppModel {
         }
     }
 
-    private func persistSourceConfigs() {
-        do {
-            try store.saveSourceConfigs(sourceConfigs)
-            lastPersistenceError = nil
-        } catch {
-            lastPersistenceError = "来源设置保存失败：\(error.localizedDescription)"
-        }
-    }
-
-    private func persistMaterialCandidates() {
-        do {
-            try store.saveMaterialCandidates(materialCandidates)
-            lastPersistenceError = nil
-        } catch {
-            lastPersistenceError = "候选材料保存失败：\(error.localizedDescription)"
-        }
-    }
-
     private func persistApprovedReadingPassages() {
         do {
             try store.saveApprovedReadingPassages(approvedReadingPassages)
@@ -890,12 +818,12 @@ final class AppModel {
         }
     }
 
-    private func persistMaterialRunRecords() {
+    private func persistApprovedSyllogismTrials() {
         do {
-            try store.saveMaterialRunRecords(materialRunRecords)
+            try store.saveApprovedSyllogismTrials(approvedSyllogismTrials)
             lastPersistenceError = nil
         } catch {
-            lastPersistenceError = "执行记录保存失败：\(error.localizedDescription)"
+            lastPersistenceError = "逻辑题库保存失败：\(error.localizedDescription)"
         }
     }
 
@@ -944,47 +872,6 @@ final class AppModel {
         )
     }
 
-    private func mergeCandidates(_ existing: [MaterialCandidate], with incoming: [MaterialCandidate]) -> [MaterialCandidate] {
-        var byURL = Dictionary(uniqueKeysWithValues: existing.map { ($0.sourceArticle.url, $0) })
-        for candidate in incoming {
-            byURL[candidate.sourceArticle.url] = candidate
-        }
-        return byURL.values.sorted { $0.updatedAt > $1.updatedAt }
-    }
-
-    private func mergeRunRecords(_ existing: [MaterialRunRecord], with incoming: MaterialRunRecord) -> [MaterialRunRecord] {
-        ([incoming] + existing)
-            .sorted { $0.endedAt > $1.endedAt }
-            .prefix(20)
-            .map { $0 }
-    }
-
-    private func harvestSummary(for record: MaterialRunRecord) -> String {
-        if record.candidateCount > 0 {
-            return "已生成 \(record.candidateCount) 条候选，等待审核。"
-        }
-        if let firstError = record.errorMessages.first {
-            return firstError
-        }
-        return "本轮没有生成可用候选。"
-    }
-
-    private func recentMaterialHints(excludingCandidateID: String? = nil) -> [String] {
-        let candidateHints = materialCandidates
-            .filter { $0.id != excludingCandidateID }
-            .prefix(8)
-            .map { candidate in
-                let title = candidate.displayTitle
-                let keywords = candidate.generatedPassage?.recallKeywords.prefix(5).joined(separator: "、") ?? ""
-                return "候选：\(title)；关键词：\(keywords)"
-            }
-        let approvedHints = approvedReadingPassages
-            .prefix(8)
-            .map { approved in
-                "正式：\(approved.passage.title)；关键词：\(approved.passage.recallKeywords.prefix(5).joined(separator: "、"))"
-            }
-        return Array(candidateHints + approvedHints)
-    }
 
     func appendSessionPublic(_ result: SessionResult) {
         appendSession(result)

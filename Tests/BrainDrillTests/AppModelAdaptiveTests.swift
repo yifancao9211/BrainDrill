@@ -25,7 +25,7 @@ struct AppModelAdaptiveTests {
             restBetweenSetsSec: 0
         )
 
-        appModel.startSchulteSession()
+        appModel.startSchulteSession(preparationSeconds: 0)
         for number in 1...9 {
             appModel.handleSchulteTileTap(number)
         }

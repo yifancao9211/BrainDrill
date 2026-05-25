@@ -28,9 +28,6 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .schulte,
         .visualSearch,
         .nBack,
-    ]
-
-    static let legacyCases: [TrainingModule] = [
         .flanker,
         .goNoGo,
         .digitSpan,
@@ -39,6 +36,29 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .corsiBlock,
         .stopSignal,
     ]
+
+    static let coreCases: [TrainingModule] = [
+        .mainIdea,
+        .evidenceMap,
+        .delayedRecall,
+        .syllogism,
+        .logicArgument,
+        .schulte,
+        .visualSearch,
+        .nBack,
+    ]
+
+    static let supportCases: [TrainingModule] = [
+        .flanker,
+        .goNoGo,
+        .digitSpan,
+        .choiceRT,
+        .changeDetection,
+        .corsiBlock,
+        .stopSignal,
+    ]
+
+    static let legacyCases: [TrainingModule] = supportCases
 
     enum Dimension: String, CaseIterable, Identifiable {
         case reading

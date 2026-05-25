@@ -54,11 +54,12 @@ struct StopSignalTrainingView: View {
         } footer: {
             let canRespond = engine.phase == .stimulus || engine.phase == .stopSignalShown
             VStack(spacing: 16) {
-                HStack(spacing: 40) {
+                HStack(spacing: BDMetrics.trainingButtonSpacing) {
                     Button { _ = appModel.handleStopSignalResponse(.left) } label: {
                         Image(systemName: "arrow.left")
-                            .font(.system(size: 28, weight: .bold))
-                            .frame(width: 70, height: 70)
+                            .font(.system(size: 32, weight: .bold))
+                            .frame(width: BDMetrics.trainingButtonSize,
+                                   height: BDMetrics.trainingButtonSize)
                             .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
                             .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
                     }
@@ -68,8 +69,9 @@ struct StopSignalTrainingView: View {
 
                     Button { _ = appModel.handleStopSignalResponse(.right) } label: {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 28, weight: .bold))
-                            .frame(width: 70, height: 70)
+                            .font(.system(size: 32, weight: .bold))
+                            .frame(width: BDMetrics.trainingButtonSize,
+                                   height: BDMetrics.trainingButtonSize)
                             .background(Circle().fill(BDColor.stopSignalAccent.opacity(canRespond ? 0.15 : 0.05)))
                             .foregroundStyle(BDColor.stopSignalAccent.opacity(canRespond ? 1 : 0.3))
                     }

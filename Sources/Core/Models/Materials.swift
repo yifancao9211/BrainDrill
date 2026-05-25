@@ -194,6 +194,7 @@ enum SourceCadence: String, Codable {
 }
 
 enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
+    case local
     case qstheory
     case cpc12371
     case ccps
@@ -220,6 +221,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .local:
+            "本地导入"
         case .qstheory:
             "求是网"
         case .cpc12371:
@@ -267,6 +270,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
+        case .local:
+            "通过 braindrillctl 写入的本地素材"
         case .qstheory:
             "理论路线与党政学习材料"
         case .cpc12371:
@@ -314,6 +319,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var directory: ContentDirectoryKind {
         switch self {
+        case .local:
+            .disciplineLibrary
         case .qstheory, .cpc12371, .ccps, .studyTimes, .govCnPolicy, .npcLaw, .peopleTheory, .xinhuaPolitics:
             .partyStateStudy
         case .openStax, .wikibooks, .mitOpenCourseware, .libreTexts, .ourWorldInData, .worldBank, .unesco, .nasa, .cdc, .nih, .brainFacts, .lawCornell, .oecd:
@@ -323,6 +330,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var sourceDomainLabel: String {
         switch self {
+        case .local:
+            "本地素材"
         case .qstheory, .cpc12371, .ccps, .studyTimes, .peopleTheory, .xinhuaPolitics:
             "党政学习"
         case .govCnPolicy, .npcLaw, .lawCornell:
@@ -342,6 +351,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var cadence: SourceCadence {
         switch self {
+        case .local:
+            .evergreen
         case .openStax, .wikibooks, .mitOpenCourseware, .libreTexts, .lawCornell:
             .evergreen
         case .oecd, .worldBank, .unesco:
@@ -353,6 +364,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var primaryGroup: DisciplineGroup? {
         switch self {
+        case .local:
+            .interdisciplinaryStudies
         case .qstheory, .cpc12371, .ccps, .studyTimes, .govCnPolicy, .npcLaw, .peopleTheory, .xinhuaPolitics:
             nil
         case .openStax, .wikibooks, .mitOpenCourseware, .libreTexts:
@@ -372,6 +385,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var disciplineTags: [SubdisciplineKind] {
         switch self {
+        case .local:
+            [.fundamentalSciences]
         case .qstheory:
             [.politicalScience, .philosophy, .history]
         case .cpc12371:
@@ -423,6 +438,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
             "building.columns.circle.fill"
         case .disciplineLibrary:
             switch self {
+            case .local:
+                "tray.full.fill"
             case .nasa:
                 "sparkles"
             case .cdc, .nih:
@@ -441,6 +458,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var seedURL: URL {
         switch self {
+        case .local:
+            URL(string: "local://materials")!
         case .qstheory:
             URL(string: "https://www.qstheory.cn/qswp.htm")!
         case .cpc12371:
@@ -488,6 +507,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var defaultEnabled: Bool {
         switch self {
+        case .local:
+            false
         case .worldBank, .oecd, .studyTimes, .ccps, .unesco, .wikibooks:
             false
         default:
@@ -497,6 +518,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
 
     var discoveryPatterns: [String] {
         switch self {
+        case .local:
+            []
         case .ourWorldInData:
             [#"https://ourworldindata\.org/[^"'# >]+"#]
         case .nasa:
@@ -548,6 +571,8 @@ enum ConcreteSourceKind: String, Codable, CaseIterable, Identifiable {
     func acceptsCandidateURL(_ url: URL) -> Bool {
         let path = url.path.lowercased()
         switch self {
+        case .local:
+            return url.scheme == "local"
         case .cpc12371:
             return path.hasSuffix(".shtml") && path.contains("/20")
         case .ccps:

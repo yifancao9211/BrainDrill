@@ -4,6 +4,39 @@ import Testing
 
 struct SchulteEngineTests {
     @Test
+    @MainActor
+    func coordinatorDelaysEngineUntilPreparationCompletes() async {
+        let coordinator = SchulteCoordinator()
+
+        coordinator.startSession(settings: .default, preparationSeconds: 1)
+
+        #expect(coordinator.isPreparing)
+        #expect(coordinator.preparationCountdown == 1)
+        #expect(coordinator.activeEngine == nil)
+
+        try? await Task.sleep(for: .milliseconds(1_100))
+
+        #expect(!coordinator.isPreparing)
+        #expect(coordinator.preparationCountdown == 0)
+        #expect(coordinator.activeEngine != nil)
+    }
+
+    @Test
+    @MainActor
+    func coordinatorFormatsTrainingCountdown() {
+        let coordinator = SchulteCoordinator()
+        let startedAt = Date(timeIntervalSince1970: 1_000)
+        let engine = SchulteEngine(
+            config: SchulteSessionConfig(difficulty: .expert6x6, showHints: false, startMode: .manual),
+            startedAt: startedAt
+        )
+
+        #expect(coordinator.remainingDuration(for: engine, at: startedAt.addingTimeInterval(6)) == 54)
+        #expect(coordinator.countdownTimeString(for: engine, at: startedAt.addingTimeInterval(6)) == "剩余 00:54")
+        #expect(coordinator.countdownTimeString(for: engine, at: startedAt.addingTimeInterval(63)) == "超时 00:03")
+    }
+
+    @Test
     func generatesUniqueTilesForDifficulty() {
         let engine = SchulteEngine(
             config: SchulteSessionConfig(difficulty: .challenge5x5, showHints: true, startMode: .manual)
@@ -11,6 +44,18 @@ struct SchulteEngineTests {
         #expect(engine.tiles.count == 25)
         #expect(Set(engine.tiles.map(\.number)).count == 25)
         #expect(engine.tiles.map(\.number).sorted() == Array(1...25))
+    }
+
+    @Test
+    func assignsColorToEveryTile() {
+        let tiles = (1...9).map { SchulteTile(number: $0) }
+        let engine = SchulteEngine(
+            config: SchulteSessionConfig(difficulty: .easy3x3, showHints: false, startMode: .manual),
+            tiles: tiles
+        )
+
+        #expect(Set(engine.numberColorMap.keys) == Set(tiles.map(\.number)))
+        #expect(engine.numberColorMap.values.allSatisfy { (0..<6).contains($0) })
     }
 
     @Test

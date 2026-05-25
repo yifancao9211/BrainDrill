@@ -104,7 +104,11 @@ struct CorsiBlockTrainingView: View {
     }
 
     private func blockGrid(engine: CorsiBlockEngine) -> some View {
+        #if os(iOS)
+        let size: CGFloat = max(52, (UIScreen.main.bounds.width - 80) / CGFloat(columns))
+        #else
         let size: CGFloat = 72
+        #endif
         return LazyVGrid(columns: Array(repeating: GridItem(.fixed(size), spacing: 14), count: columns), spacing: 14) {
             ForEach(0..<gridSize, id: \.self) { idx in
                 let isHighlighted = engine.phase == .presenting

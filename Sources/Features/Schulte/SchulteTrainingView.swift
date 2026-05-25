@@ -18,6 +18,9 @@ struct SchulteTrainingView: View {
             if let summary = coordinator.lastCompletedSummary {
                 SchulteResultOverlay(summary: summary)
                     .transition(.scale(scale: 0.9).combined(with: .opacity))
+            } else if coordinator.isPreparing {
+                preparationView
+                    .transition(.opacity)
             } else if let engine = coordinator.activeEngine {
                 activeSessionView(engine: engine)
                     .transition(.opacity)
@@ -39,7 +42,7 @@ struct SchulteTrainingView: View {
         VStack {
             Spacer()
 
-            SurfaceCard(title: "舒尔特方格", subtitle: "进入训练前先确认推荐难度、组次和视觉提示。", accent: BDColor.primaryBlue) {
+            SurfaceCard(title: "舒尔特方格", subtitle: "进入训练前先确认推荐难度、短训组次和凝视点。", accent: BDColor.primaryBlue) {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 12) {
                         InfoPill(title: "推荐 \(recommendedDifficulty.displayName)", accent: BDColor.primaryBlue)
@@ -79,6 +82,57 @@ struct SchulteTrainingView: View {
     }
 
     // MARK: - Rest
+
+    private var preparationView: some View {
+        BDTrainingShell(accent: BDColor.primaryBlue) {
+            HStack(spacing: 12) {
+                Label {
+                    Text("准备开始，凝视中心。")
+                        .font(.system(.callout, design: .rounded, weight: .medium))
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: "timer")
+                        .foregroundStyle(BDColor.primaryBlue)
+                }
+                Spacer()
+                Text("倒计时")
+                    .font(.system(.title3, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(BDColor.error)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .bdPanelSurface(.primary, cornerRadius: 14)
+        } stage: {
+            ZStack {
+                Circle()
+                    .stroke(BDColor.primaryBlue.opacity(0.18), lineWidth: 12)
+                    .frame(width: 260, height: 260)
+                Circle()
+                    .fill(.red)
+                    .frame(width: 12, height: 12)
+                Text("\(coordinator.preparationCountdown)")
+                    .font(.system(size: 132, weight: .black, design: .rounded))
+                    .foregroundStyle(BDColor.error)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } footer: {
+            HStack {
+                MiniStat(label: "组次", value: "\(coordinator.currentSet + 1)-\(coordinator.currentRep + 1)", color: BDColor.primaryBlue)
+                Spacer()
+                Button("取消") {
+                    appModel.cancelSchulteSession()
+                }
+                .font(.system(.callout, design: .rounded, weight: .medium))
+                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .bdPanelSurface(.primary, cornerRadius: 14)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
     private var restView: some View {
         VStack {
@@ -150,9 +204,10 @@ struct SchulteTrainingView: View {
             Spacer()
 
             TimelineView(.periodic(from: .now, by: 0.1)) { context in
-                Text(coordinator.elapsedTimeString(at: context.date))
+                let remaining = coordinator.remainingDuration(for: engine, at: context.date)
+                Text(coordinator.countdownTimeString(for: engine, at: context.date))
                     .font(.system(.title3, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(BDColor.green)
+                    .foregroundStyle(remaining <= 10 ? BDColor.error : BDColor.green)
                     .monospacedDigit()
             }
         }
@@ -163,10 +218,14 @@ struct SchulteTrainingView: View {
 
     private func gridView(engine: SchulteEngine) -> some View {
         let gridSize = engine.config.difficulty.gridSize
+        #if os(iOS)
+        let maxSide: CGFloat = UIScreen.main.bounds.width - 48
+        #else
         let maxSide: CGFloat = switch gridSize {
         case 3: 380; case 4: 440; case 5: 500; case 6: 540
         case 7: 580; case 8: 620; default: 660
         }
+        #endif
         let spacing: CGFloat = gridSize <= 5 ? 6 : (gridSize <= 7 ? 4 : 3)
 
         return LazyVGrid(
@@ -185,7 +244,7 @@ struct SchulteTrainingView: View {
     private func sessionBottomBar(engine: SchulteEngine) -> some View {
         HStack {
             HStack(spacing: 12) {
-                MiniStat(label: "目标", value: "\(engine.nextExpectedNumber)/\(engine.totalTiles)", color: BDColor.primaryBlue)
+                MiniStat(label: "已完成", value: "\(engine.completedNumbers.count)/\(engine.totalTiles)", color: BDColor.primaryBlue)
                 MiniStat(label: "错误", value: "\(engine.mistakeCount)", color: BDColor.error)
                 MiniStat(label: "进度", value: "\(coordinator.completedReps + 1)/\(coordinator.totalRepsInSession)", color: BDColor.warm)
             }
@@ -236,8 +295,7 @@ private struct SchulteTileButton: View {
     @State private var showCorrect = false
 
     private var isCompleted: Bool { engine.completedNumbers.contains(tile.number) }
-    private var isTarget: Bool { engine.config.showHints && tile.number == engine.nextExpectedNumber }
-    private var distractionColorIndex: Int? { engine.distractionMap[tile.number] }
+    private var numberColorIndex: Int { engine.numberColorMap[tile.number] ?? 0 }
 
     var body: some View {
         Button {
@@ -252,12 +310,13 @@ private struct SchulteTileButton: View {
             onTap()
         } label: {
             Text("\(tile.number)")
-                .font(.system(size: fontSize, weight: .bold, design: .rounded))
+                .font(.system(size: fontSize, weight: isCompleted ? .semibold : .black, design: .rounded))
+                .strikethrough(isCompleted, color: BDColor.textTertiary)
                 .foregroundStyle(foregroundColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .aspectRatio(1, contentMode: .fit)
-                .background(background)
-                .scaleEffect(isPressed ? 0.90 : (showCorrect ? 1.06 : 1.0))
+                .scaleEffect(isPressed ? 0.90 : (showCorrect ? 1.08 : (isCompleted ? 0.82 : 1.0)))
+                .contentShape(Rectangle())
         }
         .buttonStyle(TilePressStyle(isPressed: $isPressed))
         .disabled(isCompleted)
@@ -276,35 +335,13 @@ private struct SchulteTileButton: View {
 
     private var fontSize: CGFloat {
         switch engine.config.difficulty.gridSize {
-        case 3: 32; case 4: 26; case 5: 20; case 6: 17; case 7: 14; case 8: 12; default: 10
-        }
-    }
-
-    @ViewBuilder
-    private var background: some View {
-        let r: CGFloat = engine.config.difficulty.gridSize <= 5 ? 12 : (engine.config.difficulty.gridSize <= 7 ? 8 : 6)
-        if isCompleted {
-            RoundedRectangle(cornerRadius: r, style: .continuous).fill(Color.gray.opacity(0.15))
-        } else if isTarget {
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(BDColor.primaryBlue.opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: r, style: .continuous)
-                        .stroke(BDColor.primaryBlue.opacity(0.18), lineWidth: 1)
-                )
-        } else if let idx = distractionColorIndex {
-            RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDColor.distractionColors[idx].opacity(0.25))
-                .overlay(RoundedRectangle(cornerRadius: r, style: .continuous).stroke(BDColor.distractionColors[idx].opacity(0.4), lineWidth: 1.5))
-        } else {
-            RoundedRectangle(cornerRadius: r, style: .continuous).fill(BDColor.tileDefault)
+        case 3: 44; case 4: 36; case 5: 30; case 6: 25; case 7: 21; case 8: 18; default: 16
         }
     }
 
     private var foregroundColor: Color {
-        if isCompleted { return Color.gray.opacity(0.3) }
-        if isTarget { return .white }
-        if let idx = distractionColorIndex { return BDColor.distractionColors[idx] }
-        return .primary
+        let color = BDColor.schulteNumberColors[numberColorIndex % BDColor.schulteNumberColors.count]
+        return isCompleted ? BDColor.textTertiary.opacity(0.48) : color
     }
 }
 

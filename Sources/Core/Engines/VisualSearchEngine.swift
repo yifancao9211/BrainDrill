@@ -66,7 +66,6 @@ final class VisualSearchEngine {
         if config.isAdaptive {
             self.trials = Self.generateTrials(
                 spec: config.initialSpec,
-                sessionTarget: self.target,
                 startId: 0,
                 targetPresentRatio: config.targetPresentRatio
             )
@@ -75,7 +74,6 @@ final class VisualSearchEngine {
             for _ in 0..<config.blockCount {
                 let blockTrials = Self.generateTrials(
                     spec: config.initialSpec,
-                    sessionTarget: self.target,
                     startId: startId,
                     targetPresentRatio: config.targetPresentRatio
                 )
@@ -94,10 +92,15 @@ final class VisualSearchEngine {
         displayOnsetTime = Date()
     }
 
-    func recordResponse(userSaidPresent: Bool, at date: Date = Date()) -> VisualSearchTrialResult? {
+    func recordResponse(userSaidPresent: Bool, selectedItemID: Int? = nil, at date: Date = Date()) -> VisualSearchTrialResult? {
         guard let trial = currentTrial, phase == .display else { return nil }
         let rt = displayOnsetTime.map { date.timeIntervalSince($0) }
-        let result = VisualSearchTrialResult(trial: trial, userSaidPresent: userSaidPresent, reactionTime: rt)
+        let result = VisualSearchTrialResult(
+            trial: trial,
+            userSaidPresent: userSaidPresent,
+            selectedItemID: selectedItemID,
+            reactionTime: rt
+        )
         results.append(result)
         phase = .feedback(correct: result.correct)
         return result
@@ -131,7 +134,6 @@ final class VisualSearchEngine {
         if config.isAdaptive {
             let blockTrials = Self.generateTrials(
                 spec: currentSpec,
-                sessionTarget: target,
                 startId: trials.count,
                 targetPresentRatio: config.targetPresentRatio
             )
@@ -228,25 +230,27 @@ final class VisualSearchEngine {
 
     private static func generateTrials(
         spec: VisualSearchLevelSpec,
-        sessionTarget: VisualSearchTarget,
         startId: Int,
         targetPresentRatio: Double
     ) -> [VisualSearchTrial] {
         var trials: [VisualSearchTrial] = []
+        var previousTarget: VisualSearchTarget?
 
         for index in 0..<spec.trialsPerBlock {
             let setSize = spec.setSizes[index % spec.setSizes.count]
             let present = Double.random(in: 0...1) < targetPresentRatio
+            let trialTarget = randomTarget(excluding: previousTarget)
+            previousTarget = trialTarget
 
             let items = generateItems(
                 setSize: setSize,
-                target: sessionTarget,
+                target: trialTarget,
                 targetPresent: present,
                 startId: (startId + index) * 100
             )
             trials.append(VisualSearchTrial(
                 id: startId + index,
-                target: sessionTarget,
+                target: trialTarget,
                 items: items,
                 targetPresent: present,
                 setSize: setSize
@@ -257,20 +261,45 @@ final class VisualSearchEngine {
         return trials
     }
 
+    private static func randomTarget(excluding excludedTarget: VisualSearchTarget? = nil) -> VisualSearchTarget {
+        let allTargets = SearchShape.allCases.flatMap { shape in
+            SearchColor.allCases.map { color in
+                VisualSearchTarget(shape: shape, color: color)
+            }
+        }
+        let candidates = allTargets.filter { $0 != excludedTarget }
+        return candidates.randomElement() ?? allTargets.randomElement()!
+    }
+
     private static func generateItems(setSize: Int, target: VisualSearchTarget, targetPresent: Bool, startId: Int) -> [SearchItem] {
         var items: [SearchItem] = []
         let positions = generateRandomPositions(count: setSize)
+        let spinSpeeds = generateSpinSpeeds(count: setSize)
 
         let distractorFeatures = generateDistractorFeatures(target: target, count: setSize - (targetPresent ? 1 : 0))
 
         var posIdx = 0
         if targetPresent {
-            items.append(SearchItem(id: startId, shape: target.shape, color: target.color, position: positions[posIdx]))
+            items.append(SearchItem(
+                id: startId,
+                shape: target.shape,
+                color: target.color,
+                position: positions[posIdx],
+                rotationDegrees: Double.random(in: 0..<360),
+                spinDegreesPerSecond: spinSpeeds[posIdx]
+            ))
             posIdx += 1
         }
 
         for (i, feat) in distractorFeatures.enumerated() {
-            items.append(SearchItem(id: startId + i + 1, shape: feat.shape, color: feat.color, position: positions[posIdx]))
+            items.append(SearchItem(
+                id: startId + i + 1,
+                shape: feat.shape,
+                color: feat.color,
+                position: positions[posIdx],
+                rotationDegrees: Double.random(in: 0..<360),
+                spinDegreesPerSecond: spinSpeeds[posIdx]
+            ))
             posIdx += 1
         }
 
@@ -291,6 +320,25 @@ final class VisualSearchEngine {
             }
         }
         return features
+    }
+
+    private static func generateSpinSpeeds(count: Int) -> [Double] {
+        guard count > 1 else { return [randomSpinSpeed()] }
+
+        var speeds = (0..<count).map { _ in randomSpinSpeed() }
+        if !speeds.contains(where: { $0 == 0 }) {
+            speeds[Int.random(in: speeds.indices)] = 0
+        }
+        if !speeds.contains(where: { $0 != 0 }) {
+            speeds[Int.random(in: speeds.indices)] = randomSpinSpeed(forceMotion: true)
+        }
+        return speeds
+    }
+
+    private static func randomSpinSpeed(forceMotion: Bool = false) -> Double {
+        guard forceMotion || Double.random(in: 0...1) < 0.45 else { return 0 }
+        let magnitude = Double.random(in: 25...110)
+        return Bool.random() ? magnitude : -magnitude
     }
 
     private static func generateRandomPositions(count: Int) -> [CGPoint] {

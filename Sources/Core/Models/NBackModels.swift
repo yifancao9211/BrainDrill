@@ -11,6 +11,30 @@ struct NBackTrialResult: Codable, Equatable {
     let isTarget: Bool
     let responded: Bool
     let reactionTime: TimeInterval?
+    let decisionInterval: TimeInterval?
+
+    init(
+        trialIndex: Int,
+        isTarget: Bool,
+        responded: Bool,
+        reactionTime: TimeInterval?,
+        decisionInterval: TimeInterval? = nil
+    ) {
+        self.trialIndex = trialIndex
+        self.isTarget = isTarget
+        self.responded = responded
+        self.reactionTime = reactionTime
+        self.decisionInterval = decisionInterval
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        trialIndex = try c.decode(Int.self, forKey: .trialIndex)
+        isTarget = try c.decode(Bool.self, forKey: .isTarget)
+        responded = try c.decode(Bool.self, forKey: .responded)
+        reactionTime = try c.decodeIfPresent(TimeInterval.self, forKey: .reactionTime)
+        decisionInterval = try c.decodeIfPresent(TimeInterval.self, forKey: .decisionInterval)
+    }
 }
 
 struct NBackSessionConfig: Equatable {

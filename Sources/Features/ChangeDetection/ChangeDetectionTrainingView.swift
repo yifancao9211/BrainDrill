@@ -58,7 +58,11 @@ struct ChangeDetectionTrainingView: View {
         } stage: {
             phaseContent(engine: engine)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #if os(iOS)
+                .frame(height: UIScreen.main.bounds.width - 48)
+                #else
                 .frame(width: 360, height: 360)
+                #endif
                 .animation(.spring(response: 0.35, dampingFraction: 0.7), value: engine.phase)
         } footer: {
             VStack(spacing: 16) {

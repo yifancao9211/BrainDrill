@@ -274,8 +274,8 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
                 shellMode: .workspace,
                 tone: .analytics,
                 cluster: .materials,
-                subtitle: "抓取、清洗、审核并管理阅读素材",
-                shortDescription: "自动抓取开放来源并人工审核入库"
+                subtitle: "查看、导入并管理阅读素材",
+                shortDescription: "导入结构化素材并参与训练"
             )
         case .history:
             return ModulePresentationProfile(
@@ -292,7 +292,7 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
                 shellMode: .workspace,
                 tone: .neutral,
                 cluster: .settings,
-                subtitle: "调整训练参数、AI 配置与本地数据设置",
+                subtitle: "调整训练参数与本地数据设置",
                 shortDescription: "配置训练参数和本地工作环境"
             )
         }

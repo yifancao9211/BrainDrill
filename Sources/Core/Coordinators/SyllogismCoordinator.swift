@@ -11,6 +11,7 @@ final class SyllogismCoordinator {
 
     private(set) var sessionConditions = SessionConditions()
     private(set) var sessionsCompleted: Int = 0
+    var localTrials: [SyllogismTrial] = []
 
     // MARK: - Learning State
 
@@ -87,7 +88,11 @@ final class SyllogismCoordinator {
     func startPractice(lessonGroup: Int) {
         let types = SyllogismType.typesInLesson(lessonGroup)
         let lesson = SyllogismLessonBank.lesson(lessonGroup)
-        practiceEngine = SyllogismEngine(difficulty: lesson.difficulty, totalTrials: min(5, max(3, types.count * 2)))
+        practiceEngine = SyllogismEngine(
+            difficulty: lesson.difficulty,
+            totalTrials: min(5, max(3, types.count * 2)),
+            localTrials: localTrials
+        )
         practiceResults = []
         mode = .practice(lessonGroup: lessonGroup)
         statusMessage = "引导练习 — 不限时间，认真思考"
@@ -97,7 +102,7 @@ final class SyllogismCoordinator {
 
     func startSession(adaptiveState: ModuleAdaptiveState) {
         let difficulty = adaptiveState.recommendedStartLevel
-        let eng = SyllogismEngine(difficulty: difficulty)
+        let eng = SyllogismEngine(difficulty: difficulty, localTrials: localTrials)
 
         // Apply weak-type weights for spaced repetition
         var weights: [SyllogismType: Double] = [:]

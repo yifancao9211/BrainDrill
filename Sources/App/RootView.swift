@@ -24,7 +24,7 @@ enum BDWorkspaceDestination: String, CaseIterable, Identifiable, Hashable {
         case .controlCenter: return "推荐训练与今日状态"
         case .trainingLibrary: return "全部模块与分类入口"
         case .analysis: return "总览、历史与趋势"
-        case .materials: return "阅读素材工作台"
+        case .materials: return "阅读素材管理"
         case .settings: return "训练与应用参数"
         }
     }
@@ -242,7 +242,7 @@ struct RootView: View {
                         .background(BDColor.panelFill, in: RoundedRectangle(cornerRadius: BDMetrics.cornerRadiusMedium, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: BDMetrics.cornerRadiusMedium, style: .continuous)
-                                .stroke(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
+                                .stroke(Color.bdSeparator.opacity(0.3), lineWidth: 0.5)
                         )
                     }
                     .buttonStyle(.plain)
@@ -266,7 +266,7 @@ struct RootView: View {
             case .analysis:
                 AnalysisHubView()
             case .materials:
-                MaterialsWorkbenchView()
+                MaterialsManageView()
             case .settings:
                 SettingsView()
             }

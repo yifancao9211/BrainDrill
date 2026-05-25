@@ -28,4 +28,19 @@ struct WorkbenchNavigationTests {
         #expect(Set(AppRoute.memoryModules) == Set([.nBack, .digitSpan, .corsiBlock, .changeDetection]))
         #expect(Set(AppRoute.speedModules) == Set([.choiceRT]))
     }
+
+    @Test
+    func trainingModuleAllCasesIncludesEveryRoutableModule() {
+        let routableModules = Set(
+            (AppRoute.readingModules
+                + AppRoute.logicModules
+                + AppRoute.attentionModules
+                + AppRoute.inhibitionModules
+                + AppRoute.memoryModules
+                + AppRoute.speedModules)
+                .compactMap(\.trainingModule)
+        )
+
+        #expect(Set(TrainingModule.allCases) == routableModules)
+    }
 }

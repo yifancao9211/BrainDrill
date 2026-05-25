@@ -10,6 +10,8 @@ struct SyllogismPracticeView: View {
     @State private var lastCorrect: Bool = false
     @State private var practiceResults: [SyllogismTrialResult] = []
     @State private var completed: Bool = false
+    @State private var usedPracticeTypes: [SyllogismType] = []
+    @State private var usedPracticeFingerprints: Set<String> = []
 
     private let totalTrials = 5
     private var lesson: SyllogismLesson { SyllogismLessonBank.lesson(lessonGroup) }
@@ -202,6 +204,8 @@ struct SyllogismPracticeView: View {
                     trialIndex = 0
                     practiceResults = []
                     completed = false
+                    usedPracticeTypes = []
+                    usedPracticeFingerprints = []
                     generateTrial()
                 }
                 .buttonStyle(BDSecondaryButton(accent: BDColor.syllogismAccent))
@@ -221,9 +225,22 @@ struct SyllogismPracticeView: View {
 
     private func generateTrial() {
         let types = lesson.types
-        guard let type = types.randomElement() else { return }
-        let engine = SyllogismEngine(difficulty: lesson.difficulty, totalTrials: 1)
-        currentTrial = engine.buildTrial(type: type)
+        let availableTypes = types.filter { !usedPracticeTypes.contains($0) }
+        guard let type = (availableTypes.isEmpty ? types : availableTypes).randomElement() else { return }
+        let engine = SyllogismEngine(difficulty: lesson.difficulty, totalTrials: 1, localTrials: appModel.syllogismCoord.localTrials)
+        var trial = engine.buildTrial(type: type)
+
+        for _ in 0..<12 where usedPracticeFingerprints.contains(trial.repetitionFingerprint) {
+            guard let retryType = (availableTypes.isEmpty ? types : availableTypes).randomElement() else { break }
+            trial = engine.buildTrial(type: retryType)
+        }
+
+        currentTrial = trial
+        usedPracticeFingerprints.insert(trial.repetitionFingerprint)
+        usedPracticeTypes.append(trial.type)
+        if usedPracticeTypes.count >= types.count {
+            usedPracticeTypes = []
+        }
     }
 
     private func respond(valid: Bool) {

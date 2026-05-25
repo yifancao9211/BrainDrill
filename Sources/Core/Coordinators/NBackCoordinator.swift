@@ -18,6 +18,7 @@ final class NBackCoordinator {
             isiMs: settings.nBackISIMs
         )
         engine = NBackEngine(config: config)
+        engine?.showStimulus()
         lastResult = nil
         sessionConditions = SessionConditions(
             hintsEnabled: false,
@@ -29,8 +30,9 @@ final class NBackCoordinator {
                 "trialsPerBlock": "\(config.trialsPerBlock)",
                 "blockCount": "\(config.blockCount)",
                 "targetRatio": "\(config.targetRatio)",
-                "stimulusDurationMs": "\(config.stimulusDurationMs)",
-                "isiMs": "\(config.isiMs)"
+                "referenceStimulusDurationMs": "\(config.stimulusDurationMs)",
+                "referenceISIMs": "\(config.isiMs)",
+                "pacing": "user"
             ]
         )
         statusMessage = "\(config.startingN)-Back — 当前数字与 \(config.startingN) 步前相同时点击「匹配」"
@@ -50,6 +52,7 @@ final class NBackCoordinator {
             internalSkillScore: adaptiveState.internalSkillScore
         )
         engine = NBackEngine(config: config)
+        engine?.showStimulus()
         lastResult = nil
         sessionConditions = SessionConditions(
             hintsEnabled: false,
@@ -61,8 +64,9 @@ final class NBackCoordinator {
                 "trialsPerBlock": "\(config.trialsPerBlock)",
                 "blockCount": "\(config.blockCount)",
                 "targetRatio": "\(config.targetRatio)",
-                "stimulusDurationMs": "\(config.stimulusDurationMs)",
-                "isiMs": "\(config.isiMs)"
+                "referenceStimulusDurationMs": "\(config.stimulusDurationMs)",
+                "referenceISIMs": "\(config.isiMs)",
+                "pacing": "user"
             ]
         )
         statusMessage = "\(startLevel)-Back — 当前数字与 \(startLevel) 步前相同时点击「匹配」"
@@ -71,7 +75,19 @@ final class NBackCoordinator {
     func handleMatch(at date: Date = Date()) -> SessionResult? {
         guard let engine else { return nil }
         _ = engine.recordMatch(at: date)
-        return nil
+        return buildResultIfComplete()
+    }
+
+    func handleNonMatch(at date: Date = Date()) -> SessionResult? {
+        guard let engine else { return nil }
+        _ = engine.recordNonMatch(at: date)
+        return buildResultIfComplete()
+    }
+
+    func handleNext(at date: Date = Date()) -> SessionResult? {
+        guard let engine else { return nil }
+        engine.advanceByUser(at: date)
+        return buildResultIfComplete()
     }
 
     func buildResultIfComplete() -> SessionResult? {
@@ -91,6 +107,7 @@ final class NBackCoordinator {
         var conditions = sessionConditions
         conditions.customParameters["finalLevel"] = "\(engine.currentN)"
         conditions.customParameters["recommendedStartLevel"] = "\(engine.currentN)"
+        conditions.customParameters["averageDecisionInterval"] = String(format: "%.4f", metrics.averageDecisionInterval)
         let result = SessionResult(
             module: .nBack,
             startedAt: engine.startedAt,
@@ -100,7 +117,7 @@ final class NBackCoordinator {
             conditions: conditions
         )
         lastResult = result
-        statusMessage = "N-Back 完成 — \(metrics.nLevel)-Back d' \(String(format: "%.2f", metrics.dPrime))"
+        statusMessage = "N-Back 完成 — \(metrics.nLevel)-Back d' \(String(format: "%.2f", metrics.dPrime))，均间隔 \(String(format: "%.1f", metrics.averageDecisionInterval))s"
         self.engine = nil
         return result
     }

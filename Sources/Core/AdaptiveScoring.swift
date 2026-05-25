@@ -57,7 +57,10 @@ enum AdaptiveScoring {
 
         case let .nBack(metrics):
             let dPrimeScore = clamp((metrics.dPrime + 0.5) / 3.5)
-            return clamp(0.5 * dPrimeScore + 0.3 * metrics.hitRate + 0.2 * (1.0 - metrics.falseAlarmRate))
+            let paceScore = metrics.averageDecisionInterval > 0
+                ? inverseScore(metrics.averageDecisionInterval * 1000, good: 900, bad: 3500)
+                : 0.5
+            return clamp(0.45 * dPrimeScore + 0.25 * metrics.hitRate + 0.20 * (1.0 - metrics.falseAlarmRate) + 0.10 * paceScore)
 
         case let .changeDetection(metrics):
             let dPrimeScore = clamp(metrics.dPrime / 4.0)

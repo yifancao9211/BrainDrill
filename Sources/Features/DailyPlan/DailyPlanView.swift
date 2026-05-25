@@ -37,15 +37,15 @@ struct DailyPlanView: View {
                 subtitle: "先稳住连续训练，再针对当前短板做 1 到 2 个模块。",
                 accent: BDColor.primaryBlue
             ) {
-                HStack(spacing: 14) {
+                BDAdaptiveStatRow {
                     BDStatCard(label: "连续训练", value: appModel.streakTracker.streakLabel, note: "最长 \(appModel.streakTracker.longestStreak) 天", accent: BDColor.warm, icon: "flame.fill")
-                    BDStatCard(label: "累计训练", value: "\(appModel.statistics.totalSessions)", note: "阅读 \(appModel.statistics.readingSessionCount) · 支撑 \(appModel.statistics.supportSessionCount)", accent: BDColor.primaryBlue, icon: "chart.bar.fill")
+                    BDStatCard(label: "完成次数", value: "\(appModel.statistics.totalSessions)", note: "阅读 \(appModel.statistics.readingSessionCount) · 支撑 \(appModel.statistics.supportSessionCount)", accent: BDColor.primaryBlue, icon: "chart.bar.fill")
                     BDStatCard(label: "已解锁成就", value: "\(appModel.achievementTracker.unlockedCount)", note: "总数 \(appModel.achievementTracker.achievements.count)", accent: BDColor.green, icon: "rosette")
                     BDStatCard(label: "综合画像", value: "\(Int(appModel.skillProfile.overallInternalScore))", note: "内部评分", accent: BDColor.teal, icon: "brain.head.profile")
                 }
             }
 
-            HStack(alignment: .top, spacing: 20) {
+            BDAdaptiveColumns(secondaryWidth: 320) {
                 SurfaceCard(title: "今日推荐流", subtitle: "从系统建议的模块开始，不必自己挑。", accent: BDColor.teal) {
                     VStack(spacing: 12) {
                         if recommendedRoutes.isEmpty {
@@ -83,8 +83,7 @@ struct DailyPlanView: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity)
-
+            } secondary: {
                 SurfaceCard(title: "短板提醒", subtitle: "从当前得分较低的能力维度补齐训练。", accent: BDColor.gold) {
                     VStack(spacing: 12) {
                         ForEach(weakestCategories) { item in
@@ -96,10 +95,9 @@ struct DailyPlanView: View {
                         }
                     }
                 }
-                .frame(width: 320)
             }
 
-            HStack(alignment: .top, spacing: 20) {
+            BDAdaptiveColumns(secondaryWidth: 320) {
                 SurfaceCard(title: "最近表现", subtitle: "快速回看最近几次训练，判断自己是稳态还是波动。", accent: BDColor.primaryBlue) {
                     VStack(spacing: 10) {
                         if recentSessions.isEmpty {
@@ -129,7 +127,7 @@ struct DailyPlanView: View {
                         }
                     }
                 }
-
+            } secondary: {
                 SurfaceCard(title: "认知维度摘要", subtitle: "目前基于训练记录计算出的能力快照。", accent: BDColor.teal) {
                     VStack(spacing: 10) {
                         ForEach(appModel.cognitiveProfile.dimensions.prefix(4)) { dimension in
@@ -149,7 +147,6 @@ struct DailyPlanView: View {
                         }
                     }
                 }
-                .frame(width: 320)
             }
         }
     }
@@ -339,15 +336,15 @@ private struct AnalysisOverviewView: View {
     var body: some View {
         BDWorkbenchPage(title: "分析", subtitle: "长期表现、能力画像与模块健康度。") {
             SurfaceCard(title: "全局概览", subtitle: "把训练节奏、成就和模块覆盖放在一屏里。", accent: BDColor.primaryBlue) {
-                HStack(spacing: 14) {
-                    BDStatCard(label: "总训练", value: "\(appModel.statistics.totalSessions)", accent: BDColor.primaryBlue, icon: "waveform.path.ecg")
+                BDAdaptiveStatRow {
+                    BDStatCard(label: "完成次数", value: "\(appModel.statistics.totalSessions)", accent: BDColor.primaryBlue, icon: "waveform.path.ecg")
                     BDStatCard(label: "最近主线", value: appModel.statistics.lastReadingModuleName ?? "--", accent: BDColor.gold, icon: "book.fill")
                     BDStatCard(label: "连续训练", value: appModel.streakTracker.streakLabel, accent: BDColor.warm, icon: "flame.fill")
                     BDStatCard(label: "成就", value: "\(appModel.achievementTracker.unlockedCount)/\(appModel.achievementTracker.achievements.count)", accent: BDColor.green, icon: "star.fill")
                 }
             }
 
-            HStack(alignment: .top, spacing: 20) {
+            BDAdaptiveColumns(secondaryWidth: 460) {
                 SurfaceCard(title: "能力画像", subtitle: "按训练结果估算的核心认知维度。", accent: BDColor.teal) {
                     VStack(spacing: 12) {
                         ForEach(appModel.cognitiveProfile.dimensions) { dimension in
@@ -366,9 +363,32 @@ private struct AnalysisOverviewView: View {
                         }
                     }
                 }
-
+            } secondary: {
                 SurfaceCard(title: "模块健康度", subtitle: "按最近一次表现粗略判断是否稳定。", accent: BDColor.gold) {
                     BDTableSection(title: "最近状态", subtitle: "列对齐后更适合横向扫描模块覆盖与波动。") {
+                        #if os(iOS)
+                        VStack(spacing: 8) {
+                            ForEach(moduleHealthRows) { row in
+                                HStack(spacing: 10) {
+                                    Image(systemName: row.module.systemImage)
+                                        .foregroundStyle(color(for: row.status))
+                                        .frame(width: 20)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(row.module.displayName)
+                                            .font(.system(.subheadline, weight: .medium))
+                                        Text(row.module.skillCategory.displayName)
+                                            .font(.system(.caption))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Text("\(row.count)")
+                                        .font(.system(.footnote, design: .monospaced, weight: .semibold))
+                                    InfoPill(title: row.status.shortLabel, accent: color(for: row.status))
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        #else
                         Table(moduleHealthRows) {
                             TableColumn("模块") { row in
                                 HStack(spacing: 8) {
@@ -401,9 +421,9 @@ private struct AnalysisOverviewView: View {
                         .frame(minHeight: 320, maxHeight: 360)
                         .tableStyle(.inset(alternatesRowBackgrounds: false))
                         .scrollContentBackground(.hidden)
+                        #endif
                     }
                 }
-                .frame(width: 460)
             }
         }
     }
@@ -475,6 +495,31 @@ private struct AnalysisTrendView: View {
 
             SurfaceCard(title: "最近训练覆盖", subtitle: "按模块查看当前累计次数，判断是否有长期缺席的训练。", accent: BDColor.gold) {
                 BDTableSection(title: "模块覆盖", subtitle: "同时看累计次数、所属维度和当前优先级。") {
+                    #if os(iOS)
+                    VStack(spacing: 8) {
+                        ForEach(moduleCoverageRows) { row in
+                            HStack(spacing: 10) {
+                                Image(systemName: row.module.systemImage)
+                                    .foregroundStyle(accent(for: row.module.skillCategory))
+                                    .frame(width: 20)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(row.module.displayName)
+                                        .font(.system(.subheadline, weight: .medium))
+                                    Text(row.module.skillCategory.displayName)
+                                        .font(.system(.caption))
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text("\(row.count)")
+                                    .font(.system(.footnote, design: .monospaced, weight: .semibold))
+                                Text(recommendation(for: row))
+                                    .font(.system(.caption, weight: .semibold))
+                                    .foregroundStyle(recommendationColor(for: row))
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    #else
                     Table(moduleCoverageRows) {
                         TableColumn("模块") { row in
                             HStack(spacing: 8) {
@@ -509,6 +554,7 @@ private struct AnalysisTrendView: View {
                     .frame(minHeight: 360, maxHeight: 420)
                     .tableStyle(.inset(alternatesRowBackgrounds: false))
                     .scrollContentBackground(.hidden)
+                    #endif
                 }
             }
         }

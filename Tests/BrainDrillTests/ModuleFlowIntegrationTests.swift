@@ -181,7 +181,7 @@ struct VisualSearchFlowTests {
         #expect(engine.phase == .display)
 
         let trial = engine.currentTrial!
-        let result = engine.recordResponse(userSaidPresent: trial.targetPresent)
+        let result = engine.recordResponse(userSaidPresent: trial.targetPresent, selectedItemID: selectedItemID(for: trial))
         #expect(result?.correct == true)
 
         engine.advanceToNext()
@@ -194,11 +194,16 @@ struct VisualSearchFlowTests {
         for _ in 0..<3 {
             engine.beginTrial()
             engine.showDisplay()
-            _ = engine.recordResponse(userSaidPresent: engine.currentTrial!.targetPresent)
+            let trial = engine.currentTrial!
+            _ = engine.recordResponse(userSaidPresent: trial.targetPresent, selectedItemID: selectedItemID(for: trial))
             engine.advanceToNext()
         }
 
         #expect(engine.isComplete)
+    }
+
+    private func selectedItemID(for trial: VisualSearchTrial) -> Int? {
+        trial.targetPresent ? trial.targetItem?.id : nil
     }
 }
 
@@ -259,33 +264,34 @@ struct StopSignalFlowTests {
 }
 
 struct NBackFlowTests {
-    @Test func stimulusPhaseFlow() {
+    @Test func userPacedStimulusFlow() {
         let config = NBackSessionConfig(startingN: 1, trialsPerBlock: 5, blockCount: 1)
         let engine = NBackEngine(config: config)
 
-        engine.showStimulus()
+        engine.advanceByUser()
         #expect(engine.phase == .stimulus)
         #expect(engine.currentStimulus != nil)
 
-        engine.enterISI()
-        #expect(engine.phase == .isi)
-
-        engine.advanceToNext()
+        _ = engine.recordNonMatch(at: Date())
+        #expect(engine.phase == .stimulus)
+        #expect(engine.currentTrialIndex == 1)
     }
 
     @Test func matchResponseFlow() {
         let config = NBackSessionConfig(startingN: 1, trialsPerBlock: 10, blockCount: 1)
         let engine = NBackEngine(config: config)
 
-        for i in 0..<engine.sequence.count {
-            engine.showStimulus()
-            if i >= engine.currentN && engine.isTarget {
+        while !engine.isComplete {
+            if engine.phase == .idle {
+                engine.advanceByUser()
+            }
+            if engine.currentTrialIndex >= engine.currentN && engine.isTarget {
                 let result = engine.recordMatch(at: Date())
                 #expect(result != nil)
                 #expect(result?.isTarget == true)
+            } else {
+                _ = engine.recordNonMatch(at: Date())
             }
-            engine.enterISI()
-            engine.advanceToNext()
         }
 
         #expect(engine.isComplete)

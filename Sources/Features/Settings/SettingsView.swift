@@ -6,7 +6,7 @@ struct SettingsView: View {
     var body: some View {
         BDWorkbenchPage(
             title: "设置",
-            subtitle: "训练参数、AI 配置和本地数据都在这里统一管理。",
+            subtitle: "训练参数和本地数据都在这里统一管理。",
             maxContentWidth: BDMetrics.contentMaxWorkbenchWidth
         ) {
             SurfaceCard(title: "全局训练", subtitle: "这些开关会直接影响大多数训练模块。", accent: BDColor.primaryBlue) {
@@ -20,14 +20,6 @@ struct SettingsView: View {
                         )
                     )
                     settingToggle(
-                        title: "显示目标提示",
-                        subtitle: "在支持的训练中高亮当前目标。",
-                        isOn: Binding(
-                            get: { appModel.settings.showHints },
-                            set: { appModel.updateShowHints($0) }
-                        )
-                    )
-                    settingToggle(
                         title: "中心凝视点",
                         subtitle: "在需要稳定视线的模块中显示中心参考点。",
                         isOn: Binding(
@@ -38,7 +30,7 @@ struct SettingsView: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 18) {
+            BDAdaptiveColumns(secondaryWidth: 360) {
                 SurfaceCard(title: "舒尔特与视觉搜索", subtitle: "管理经典视觉注意训练的默认参数。", accent: BDColor.primaryBlue) {
                     VStack(spacing: 10) {
                         BDSettingsRow(title: "默认难度", subtitle: "舒尔特训练启动时使用的默认等级。") {
@@ -53,7 +45,7 @@ struct SettingsView: View {
                             .pickerStyle(.menu)
                         }
 
-                        BDSettingsRow(title: "舒尔特结构", subtitle: "当前固定组次与休息时间。", controlAlignment: .leading) {
+                        BDSettingsRow(title: "舒尔特结构", subtitle: "默认短训组次与休息时间。", controlAlignment: .leading) {
                             let cfg = appModel.settings.schulteSetRep
                             Text("\(cfg.setsPerSession) 组 × \(cfg.repsPerSet) 次，组内休息 \(cfg.restBetweenRepsSec)s，组间休息 \(cfg.restBetweenSetsSec)s")
                                 .font(.system(.footnote))
@@ -72,8 +64,7 @@ struct SettingsView: View {
                         )
                     }
                 }
-                .frame(maxWidth: .infinity)
-
+            } secondary: {
                 SurfaceCard(title: "工作记忆", subtitle: "N-Back 的默认起始负荷与呈现节奏。", accent: BDColor.nBackAccent) {
                     VStack(spacing: 10) {
                         stepperRow(
@@ -87,8 +78,8 @@ struct SettingsView: View {
                         )
 
                         stepperRow(
-                            title: "刺激时长",
-                            subtitle: "每个刺激在屏幕上的显示时长，单位毫秒。",
+                            title: "参考节奏",
+                            subtitle: "用于自适应评分的参考时长；训练中由用户推进。",
                             value: Binding(
                                 get: { appModel.settings.nBackStimulusDurationMs },
                                 set: { appModel.settings.nBackStimulusDurationMs = $0; appModel.persistSettings() }
@@ -96,58 +87,6 @@ struct SettingsView: View {
                             range: 500...1800,
                             step: 100,
                             formatter: { "\($0) ms" }
-                        )
-                    }
-                }
-                .frame(width: 360)
-            }
-
-            SurfaceCard(title: "AI 清洗与素材入库", subtitle: "影响素材抓取、候选生成和审核阈值。", accent: BDColor.warm) {
-                VStack(spacing: 10) {
-                    settingField(title: "Base URL", subtitle: "兼容 OpenAI 风格接口的网关地址。") {
-                        TextField("Base URL", text: Binding(
-                            get: { appModel.settings.aiBaseURL },
-                            set: { appModel.updateAIBaseURL($0) }
-                        ))
-                        .bdInputField()
-                    }
-
-                    settingField(title: "模型名", subtitle: "用于内容清洗与生成候选题目的模型。") {
-                        TextField("模型名", text: Binding(
-                            get: { appModel.settings.aiModel },
-                            set: { appModel.updateAIModel($0) }
-                        ))
-                        .bdInputField()
-                    }
-
-                    settingField(title: "API Key", subtitle: "本地保存的访问密钥，仅用于当前设备。") {
-                        SecureField("API Key", text: Binding(
-                            get: { appModel.settings.aiAPIKey },
-                            set: { appModel.updateAIAPIKey($0) }
-                        ))
-                        .bdInputField()
-                    }
-
-                    HStack(alignment: .top, spacing: 10) {
-                        stepperRow(
-                            title: "每源抓取",
-                            subtitle: "每次运行时每个来源尝试抓取的文章数。",
-                            value: Binding(
-                                get: { appModel.settings.materialsAutoSourceCountPerRun },
-                                set: { appModel.updateMaterialsAutoSourceCount($0) }
-                            ),
-                            range: 1...5
-                        )
-
-                        stepperRow(
-                            title: "候选阈值",
-                            subtitle: "候选材料入审核列表的最低分数线。",
-                            value: Binding(
-                                get: { Int(appModel.settings.materialsCandidateThreshold) },
-                                set: { appModel.updateMaterialsCandidateThreshold(Double($0)) }
-                            ),
-                            range: 50...95,
-                            formatter: { "\($0) 分" }
                         )
                     }
                 }

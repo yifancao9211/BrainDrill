@@ -87,8 +87,24 @@ struct HistoryView: View {
             "\(m.nLevel)-Back d' \(String(format: "%.1f", m.dPrime))"
         case let .visualSearch(m):
             "斜率 \(Int(m.searchSlope * 1000))ms"
-        default:
-            ""
+        case let .flanker(m):
+            "冲突代价 \(Int(m.conflictCost * 1000))ms · 准确 \(Int(m.accuracy * 100))%"
+        case let .goNoGo(m):
+            "d' \(String(format: "%.1f", m.dPrime)) · No-Go \(Int(m.noGoAccuracy * 100))%"
+        case let .stopSignal(m):
+            "SSRT \(Int(m.ssrt * 1000))ms · 抑制 \(Int(m.inhibitionRate * 100))%"
+        case let .digitSpan(m):
+            "最大广度 \(max(m.maxSpanForward, m.maxSpanBackward)) · 准确 \(Int(m.accuracy * 100))%"
+        case let .choiceRT(m):
+            "中位 RT \(Int(m.medianRT * 1000))ms · 准确 \(Int(m.accuracy * 100))%"
+        case let .changeDetection(m):
+            "d' \(String(format: "%.1f", m.dPrime)) · set \(m.maxSetSize)"
+        case let .corsiBlock(m):
+            "最大广度 \(m.maxSpan) · 准确 \(Int(m.accuracy * 100))%"
+        case let .syllogism(m):
+            "准确 \(Int(m.accuracy * 100))% · d' \(String(format: "%.1f", m.dPrime))"
+        case let .logicArgument(m):
+            "综合 \(Int(m.compositeScore * 100))%"
         }
     }
 
@@ -97,10 +113,18 @@ struct HistoryView: View {
         case .mainIdea:      BDColor.gold
         case .evidenceMap:   BDColor.teal
         case .delayedRecall: BDColor.green
+        case .syllogism:     BDColor.syllogismAccent
+        case .logicArgument: BDColor.logicArgumentAccent
         case .schulte:       BDColor.primaryBlue
-        case .nBack:         BDColor.nBackAccent
         case .visualSearch:  BDColor.visualSearchAccent
-        default:             BDColor.textSecondary
+        case .flanker:       BDColor.flankerAccent
+        case .goNoGo:        BDColor.goNoGoAccent
+        case .stopSignal:    BDColor.stopSignalAccent
+        case .nBack:         BDColor.nBackAccent
+        case .digitSpan:     BDColor.digitSpanAccent
+        case .corsiBlock:    BDColor.corsiBlockAccent
+        case .changeDetection: BDColor.changeDetectionAccent
+        case .choiceRT:      BDColor.choiceRTAccent
         }
     }
 }

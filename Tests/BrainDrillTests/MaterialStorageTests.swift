@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import BrainDrill
 
-struct MaterialsPipelineTests {
+struct MaterialStorageTests {
     @Test
     func readingRepositoryMergesApprovedPassagesOverBundledContent() {
         let custom = ReadingPassage(
@@ -89,106 +89,5 @@ struct MaterialsPipelineTests {
         )
 
         #expect(invalid.validationIssues.contains { $0.contains("supportsClaimID") })
-    }
-
-    @Test
-    func materialCandidatePrefersLocalizedChineseContentForDisplay() {
-        let candidate = MaterialCandidate(
-            sourceArticle: SourceArticle(
-                sourceKind: .nasa,
-                title: "How solar storms disrupt satellites",
-                url: "https://example.com/solar-storms",
-                summary: "summary",
-                excerpt: "excerpt"
-            ),
-            generatedPassage: nil,
-            localizedTitle: "太阳风暴如何干扰卫星",
-            generatedSummary: "太阳风暴会扰动地球附近的带电粒子环境，从而影响卫星通信与导航稳定性。",
-            score: 0,
-            ruleScore: 0,
-            aiScore: 0,
-            suggestedDifficulty: 2,
-            failureReasons: ["AI 返回了不兼容的响应格式。"],
-            debugLogs: ["OpenAI 端点失败"],
-            cleaningModel: "claude-opus-4-6"
-        )
-
-        #expect(candidate.displayTitle == "太阳风暴如何干扰卫星")
-        #expect(candidate.displaySummary.contains("太阳风暴"))
-        #expect(candidate.resolvedDebugLogs == ["OpenAI 端点失败"])
-    }
-
-    @Test
-    func partyStateSourceRulesMatchCurrentArticlePaths() {
-        #expect(
-            ConcreteSourceKind.ccps.acceptsCandidateURL(
-                URL(string: "https://www.ccps.gov.cn/xwpd/rdxw/202603/t20260323_170425.shtml")!
-            )
-        )
-        #expect(
-            ConcreteSourceKind.studyTimes.acceptsCandidateURL(
-                URL(string: "https://www.studytimes.cn/llsd/202603/t20260324_86781.html")!
-            )
-        )
-    }
-
-    @Test
-    func materialCandidateDisplaySummaryIsClippedForWorkbenchPerformance() {
-        let candidate = MaterialCandidate(
-            sourceArticle: SourceArticle(
-                sourceKind: .qstheory,
-                title: "source",
-                url: "https://example.com/article",
-                summary: "summary",
-                excerpt: String(repeating: "甲", count: 2_000)
-            ),
-            generatedPassage: nil,
-            generatedSummary: String(repeating: "乙", count: 1_800),
-            score: 0,
-            ruleScore: 0,
-            aiScore: 0,
-            suggestedDifficulty: 2,
-            cleaningModel: "claude-opus-4-6"
-        )
-
-        #expect(candidate.displaySummary.count == 1_200)
-    }
-
-    @Test
-    func generatedPassagePayloadNormalizesCommonAIRoleSynonyms() throws {
-        let json = """
-        {
-          "title": "测试标题",
-          "difficulty": "2",
-          "mainIdeaOptions": ["A", "B", "C", "D"],
-          "mainIdeaAnswerIndex": "1",
-          "mainIdeaRubric": {
-            "idealSummary": "总结",
-            "keywords": ["一", "二"],
-            "trapNote": "陷阱"
-          },
-          "claimAnchors": [
-            { "id": "claim-1", "text": "总论点", "scope": "overall" }
-          ],
-          "evidenceItems": [
-            { "id": "e1", "text": "限制项", "role": "concession", "supportsClaimID": "claim-1" }
-          ],
-          "recallPrompts": [
-            { "id": "r1", "text": "提示", "isTarget": true }
-          ],
-          "recallKeywords": ["关键词"],
-          "aiSelfScore": "88",
-          "scoreReason": "可用",
-          "riskNotes": []
-        }
-        """
-
-        let payload = try JSONDecoder().decode(GeneratedPassagePayload.self, from: Data(json.utf8))
-
-        #expect(payload.difficulty == 2)
-        #expect(payload.mainIdeaAnswerIndex == 1)
-        #expect(payload.claimAnchors.first?.scope == .global)
-        #expect(payload.evidenceItems.first?.role == .limitation)
-        #expect(payload.aiSelfScore == 88)
     }
 }

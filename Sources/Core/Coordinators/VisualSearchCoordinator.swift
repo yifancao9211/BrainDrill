@@ -36,9 +36,9 @@ final class VisualSearchCoordinator {
         }
     }
 
-    func handleResponse(userSaidPresent: Bool, at date: Date = Date()) -> SessionResult? {
+    func handleResponse(userSaidPresent: Bool, selectedItemID: Int? = nil, at date: Date = Date()) -> SessionResult? {
         guard let engine else { return nil }
-        _ = engine.recordResponse(userSaidPresent: userSaidPresent, at: date)
+        _ = engine.recordResponse(userSaidPresent: userSaidPresent, selectedItemID: selectedItemID, at: date)
         // Don't advanceToNext() here — let the feedback phase display first.
         // The view's schedulePhase will call advanceToNext() after feedbackMs.
         return nil
@@ -77,6 +77,10 @@ final class VisualSearchCoordinator {
         case .red:   "红色"
         case .blue:  "蓝色"
         case .green: "绿色"
+        case .yellow: "黄色"
+        case .purple: "紫色"
+        case .orange: "橙色"
+        case .pink: "粉色"
         }
     }
 
@@ -85,6 +89,11 @@ final class VisualSearchCoordinator {
         case .circle:   "圆形"
         case .square:   "方块"
         case .triangle: "三角"
+        case .diamond: "菱形"
+        case .pentagon: "五边形"
+        case .hexagon: "六边形"
+        case .star: "星形"
+        case .capsule: "胶囊形"
         }
     }
 }

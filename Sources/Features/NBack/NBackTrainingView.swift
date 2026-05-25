@@ -41,7 +41,7 @@ struct NBackTrainingView: View {
         }
         .onChange(of: coordinator.engine?.phase) { _, phase in
             switch phase {
-            case .stimulus, .feedback, .isi, .idle, .blockBreak:
+            case .stimulus, .feedback, .idle, .blockBreak:
                 focusedTarget = .respond
             case .completed:
                 focusedTarget = .close
@@ -52,7 +52,7 @@ struct NBackTrainingView: View {
     }
 
     private var idleView: some View {
-        SurfaceCard(title: "N-Back", subtitle: "进入训练前先确认推荐负荷、节奏和目标指标。", accent: BDColor.nBackAccent) {
+        SurfaceCard(title: "N-Back", subtitle: "进入训练前先确认推荐负荷和目标指标。", accent: BDColor.nBackAccent) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
                     InfoPill(title: "推荐 \(recommendedStartN)-Back", accent: BDColor.nBackAccent)
@@ -66,8 +66,8 @@ struct NBackTrainingView: View {
                 )
 
                 HStack(spacing: 14) {
-                    BDStatCard(label: "刺激时长", value: "\(appModel.settings.nBackStimulusDurationMs) ms", accent: BDColor.nBackAccent)
-                    BDStatCard(label: "刺激间隔", value: "\(appModel.settings.nBackISIMs) ms", accent: BDColor.teal)
+                    BDStatCard(label: "推进方式", value: "自主", accent: BDColor.nBackAccent)
+                    BDStatCard(label: "节奏记录", value: "每题间隔", accent: BDColor.teal)
                 }
 
                 Button("开始训练") {
@@ -87,7 +87,7 @@ struct NBackTrainingView: View {
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(BDColor.textSecondary)
 
-                Text("显示 \(engine.currentStimulusDurationMs)ms  ·  间隔 \(engine.currentISIMs)ms")
+                Text("自主推进 · 记录每题决策间隔")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -96,15 +96,44 @@ struct NBackTrainingView: View {
                 .frame(height: 180)
         } footer: {
             VStack(spacing: 16) {
-            Button {
-                appModel.handleNBackMatch()
-            } label: {
-                Text(engine.respondedThisTrial ? "已记录" : "匹配")
-            }
-            .buttonStyle(BDPrimaryButton(accent: engine.phase == .stimulus && !engine.respondedThisTrial ? BDColor.nBackAccent : BDColor.nBackAccent.opacity(0.5)))
-            .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
-            .keyboardShortcut(.space, modifiers: [])
-            .focused($focusedTarget, equals: .respond)
+                if case .blockBreak = engine.phase {
+                    Button {
+                        appModel.handleNBackNext()
+                    } label: {
+                        Text("开始下一组")
+                    }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
+                    .keyboardShortcut(.return, modifiers: [])
+                } else if engine.phase == .idle {
+                    Button {
+                        appModel.handleNBackNext()
+                    } label: {
+                        Text("开始本题")
+                    }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
+                    .keyboardShortcut(.return, modifiers: [])
+                } else {
+                    HStack(spacing: 12) {
+                        Button {
+                            appModel.handleNBackMatch()
+                        } label: {
+                            Text("匹配")
+                        }
+                        .buttonStyle(BDPrimaryButton(accent: BDColor.nBackAccent))
+                        .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
+                        .keyboardShortcut("1", modifiers: [])
+                        .focused($focusedTarget, equals: .respond)
+
+                        Button {
+                            appModel.handleNBackNonMatch()
+                        } label: {
+                            Text("不匹配")
+                        }
+                        .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
+                        .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
+                        .keyboardShortcut("2", modifiers: [])
+                    }
+                }
 
             ProgressView(value: engine.completionFraction)
                 .tint(BDColor.nBackAccent)
@@ -116,8 +145,6 @@ struct NBackTrainingView: View {
                 .focused($focusedTarget, equals: .cancel)
         }
         }
-        .onAppear { schedulePhase(engine) }
-        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
     }
 
     @ViewBuilder
@@ -141,48 +168,21 @@ struct NBackTrainingView: View {
                     .foregroundStyle(correct ? BDColor.green : BDColor.error)
             }
             .transition(reduceMotion ? .identity : .opacity)
-        case .isi:
-            Text("+")
-                .font(.system(size: 36, weight: .light, design: .rounded))
-                .foregroundStyle(.secondary)
-        default:
-            Color.clear
-        }
-    }
-
-    private func schedulePhase(_ engine: NBackEngine) {
-        switch engine.phase {
+        case let .blockBreak(blockIndex, nextN):
+            VStack(spacing: 8) {
+                Text("第 \(blockIndex) 组完成")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .foregroundStyle(BDColor.nBackAccent)
+                Text("下一组：\(nextN)-Back")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
         case .idle:
-            engine.showStimulus()
-        case .stimulus:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentStimulusDurationMs)) {
-                guard engine.phase == .stimulus else { return }
-                engine.enterISI()
-            }
-        case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.feedbackDurationMs)) {
-                guard case .feedback = engine.phase else { return }
-                engine.dismissFeedback()
-            }
-        case .isi:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.currentISIMs)) {
-                guard engine.phase == .isi else { return }
-                engine.advanceToNext()
-                if !engine.isComplete {
-                    engine.showStimulus()
-                } else {
-                    if let result = coordinator.buildResultIfComplete() {
-                        appModel.recordNBackResult(result)
-                    }
-                }
-            }
-        case let .blockBreak(_, nextN):
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(3)) {
-                engine.startNextBlock(n: nextN)
-                engine.showStimulus()
-            }
-        default:
-            break
+            Text("准备好后开始本题")
+                .font(.system(.title3, design: .rounded, weight: .semibold))
+                .foregroundStyle(BDColor.textSecondary)
+        case .completed:
+            Color.clear
         }
     }
 
@@ -197,8 +197,9 @@ struct NBackTrainingView: View {
                 NResultCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
                 NResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
                 NResultCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
+                NResultCard(label: "均间隔", value: String(format: "%.1fs", metrics.averageDecisionInterval), color: BDColor.teal)
             }
-            .frame(maxWidth: 400)
+            .frame(maxWidth: 520)
 
             Text(feedback.note)
                 .font(.system(.callout))

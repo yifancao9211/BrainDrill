@@ -2,14 +2,11 @@ name: BrainDrill
 options:
   bundleIdPrefix: com.yifancao
   createIntermediateGroups: true
-packages:
-  OpenAI:
-    url: https://github.com/MacPaw/OpenAI.git
-    from: "0.3.0"
 settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: 14.0
+    IPHONEOS_DEPLOYMENT_TARGET: 18.0
     MARKETING_VERSION: 0.2.2
     CURRENT_PROJECT_VERSION: 1
 targets:
@@ -23,23 +20,50 @@ targets:
         type: folder
       - path: AppIcon.icns
         buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yifancao.BrainDrill
+        PRODUCT_NAME: BrainDrill
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: BrainDrill
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        INFOPLIST_KEY_CFBundleIconFile: AppIcon
+        INFOPLIST_KEY_CFBundleIconName: AppIcon
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: VCN96J68CU
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
-      - package: OpenAI
+      - sdk: libsqlite3.tbd
+    scheme:
+      testTargets:
+        - BrainDrillTests
+  BrainDrill-iOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Sources
+      - path: Resources
+        type: folder
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yifancao.BrainDrill
         PRODUCT_NAME: BrainDrill
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: BrainDrill
-        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
-        INFOPLIST_KEY_NSPrincipalClass: NSApplication
-        INFOPLIST_KEY_CFBundleIconFile: AppIcon
-        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: VCN96J68CU
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    scheme:
-      testTargets:
-        - BrainDrillTests
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
+    dependencies:
+      - sdk: libsqlite3.tbd
   BrainDrillTests:
     type: bundle.unit-test
     platform: macOS
@@ -52,3 +76,18 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.yifancao.BrainDrillTests
     dependencies:
       - target: BrainDrill
+  BrainDrillCLI:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tools/BrainDrillCLI
+      - path: Resources/Reading
+        type: folder
+    settings:
+      base:
+        PRODUCT_NAME: braindrillctl
+        SWIFT_VERSION: 6.0
+    dependencies:
+      - sdk: libsqlite3.tbd
+    scheme: {}

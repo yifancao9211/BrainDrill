@@ -18,7 +18,12 @@ enum TrainingScheduler {
 
         for module in allModules {
             let moduleSessions = sessions.filter { $0.module == module }
-            let (priority, reason) = computePriority(module: module, sessions: moduleSessions, allSessions: sessions)
+            let (priority, reason) = computePriority(
+                module: module,
+                sessions: moduleSessions,
+                allSessions: sessions,
+                moduleCount: allModules.count
+            )
             scored.append((module, priority, reason))
         }
 
@@ -29,7 +34,12 @@ enum TrainingScheduler {
         }
     }
 
-    private static func computePriority(module: TrainingModule, sessions: [SessionResult], allSessions: [SessionResult]) -> (Double, String) {
+    private static func computePriority(
+        module: TrainingModule,
+        sessions: [SessionResult],
+        allSessions: [SessionResult],
+        moduleCount: Int
+    ) -> (Double, String) {
         if sessions.isEmpty {
             return (100, "尚未训练过，建议尝试")
         }
@@ -64,7 +74,7 @@ enum TrainingScheduler {
         }
 
         // Frequency balance: less trained relative to others = higher priority
-        let avgCount = Double(allSessions.count) / Double(max(TrainingModule.allCases.count, 1))
+        let avgCount = Double(allSessions.count) / Double(max(moduleCount, 1))
         if Double(sessions.count) < avgCount * 0.5 {
             priority += 15
             reasons.append("训练次数偏少")
