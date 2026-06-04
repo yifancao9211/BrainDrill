@@ -52,16 +52,6 @@ struct SettingsView: View {
                                 .foregroundStyle(BDColor.textSecondary)
                                 .frame(maxWidth: 280, alignment: .leading)
                         }
-
-                        stepperRow(
-                            title: "视觉搜索每组试次",
-                            subtitle: "控制视觉搜索在每个集合大小下的试次数。",
-                            value: Binding(
-                                get: { appModel.settings.visualSearchTrialsPerSize },
-                                set: { appModel.settings.visualSearchTrialsPerSize = $0; appModel.persistSettings() }
-                            ),
-                            range: 5...20
-                        )
                     }
                 }
             } secondary: {

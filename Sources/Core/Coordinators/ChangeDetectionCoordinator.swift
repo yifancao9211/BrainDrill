@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class ChangeDetectionCoordinator {
+final class ChangeDetectionCoordinator: TrainingModuleCoordinator {
     var engine: ChangeDetectionEngine?
     var statusMessage: String = "变更检测训练：记住颜色方块，判断是否变化。"
     var lastResult: SessionResult?

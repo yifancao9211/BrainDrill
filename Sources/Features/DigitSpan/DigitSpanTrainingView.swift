@@ -8,6 +8,8 @@ struct DigitSpanTrainingView: View {
 
     @State private var userInput: [Int] = []
     @State private var selectedMode: DigitSpanMode = .forward
+    @State private var showCancelConfirmation = false
+    @State private var countdown = CountdownState()
 
     var body: some View {
         VStack(spacing: 28) {
@@ -24,40 +26,38 @@ struct DigitSpanTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { BDCountdownOverlay(countdown: countdown) }
     }
 
     private var idleView: some View {
-        SurfaceCard(title: "数字广度训练", subtitle: "在统一训练壳层中完成数字编码、复述和结果回看。", accent: BDColor.digitSpanAccent) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    InfoPill(title: "起始广度 \(appModel.settings.digitSpanStartingLength)", accent: BDColor.digitSpanAccent)
-                    InfoPill(title: "核心指标 Span", accent: BDColor.green)
-                }
-
-                BDInsightCard(
-                    title: "训练说明",
-                    bodyText: "正序更看保持，倒序更看操作更新。先稳定正确率，再尝试抬高广度。",
-                    accent: BDColor.digitSpanAccent
-                )
-
-                Picker("模式", selection: $selectedMode) {
-                    ForEach(DigitSpanMode.allCases) { mode in
-                        Text(mode.displayName).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 220)
-
-                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
-                    .font(.system(.caption))
-                    .foregroundStyle(BDColor.textSecondary)
-
-                Button("开始训练") {
-                    userInput = []
-                    appModel.startDigitSpanSession(mode: selectedMode)
-                }
-                .buttonStyle(BDPrimaryButton(accent: BDColor.digitSpanAccent))
+        BDTrainingIdleCard(
+            title: "数字广度训练",
+            subtitle: "在统一训练壳层中完成数字编码、复述和结果回看。",
+            accent: BDColor.digitSpanAccent,
+            insightTitle: "训练说明",
+            insightBody: "正序更看保持，倒序更看操作更新。先稳定正确率，再尝试抬高广度。"
+        ) {
+            let mode = selectedMode
+            countdown.onComplete = {
+                userInput = []
+                appModel.startDigitSpanSession(mode: mode)
             }
+            countdown.start()
+        } pills: {
+            InfoPill(title: "起始广度 \(appModel.settings.digitSpanStartingLength)", accent: BDColor.digitSpanAccent)
+            InfoPill(title: "核心指标 Span", accent: BDColor.green)
+        } extra: {
+            Picker("模式", selection: $selectedMode) {
+                ForEach(DigitSpanMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 220)
+
+            Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+                .font(.system(.caption))
+                .foregroundStyle(BDColor.textSecondary)
         }
     }
 
@@ -90,8 +90,14 @@ struct DigitSpanTrainingView: View {
             VStack(spacing: 16) {
                 staircaseStatus(engine: engine)
 
-                Button("取消") { appModel.cancelDigitSpanSession() }
+                Button("取消") { showCancelConfirmation = true }
                     .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                        Button("取消训练", role: .destructive) { appModel.cancelDigitSpanSession() }
+                        Button("继续训练", role: .cancel) {}
+                    } message: {
+                        Text("本次训练不会计入记录。")
+                    }
             }
         }
     }
@@ -246,9 +252,9 @@ struct DigitSpanTrainingView: View {
                 .foregroundStyle(BDColor.digitSpanAccent)
 
             HStack(spacing: 16) {
-                DSResultCard(label: "最大广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.digitSpanAccent)
-                DSResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                DSResultCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
+                BDResultMetricCard(label: "最大广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.digitSpanAccent)
+                BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
+                BDResultMetricCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -362,14 +368,3 @@ private func staircaseBadge(title: String, value: String, color: Color) -> some 
     .bdPanelSurface(.secondary, cornerRadius: 14)
 }
 
-private struct DSResultCard: View {
-    let label: String; let value: String; let color: Color
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(label).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity).padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.08)))
-    }
-}

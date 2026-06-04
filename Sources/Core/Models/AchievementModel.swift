@@ -66,7 +66,7 @@ struct AchievementTracker: Codable, Equatable {
         if streak.currentStreak >= 30 { unlock("streak-30") }
 
         // All modules
-        let activeModules: Set<TrainingModule> = [.mainIdea, .evidenceMap, .delayedRecall, .schulte, .visualSearch, .nBack]
+        let activeModules: Set<TrainingModule> = [.mainIdea, .evidenceMap, .delayedRecall, .schulte, .nBack]
         let trainedModules = Set(sessions.map(\.module))
         if activeModules.isSubset(of: trainedModules) {
             unlock("all-modules")
@@ -89,7 +89,7 @@ struct AchievementTracker: Codable, Equatable {
         func dimScore(_ id: String) -> Double {
             cognitiveProfile.dimensions.first(where: { $0.id == id })?.score ?? 0
         }
-        let scores = ["memoryCapacity", "reactionSpeed", "inhibitionControl", "visualSearch", "visualWorkingMemory"]
+        let scores = ["memoryCapacity", "visualWorkingMemory"]
             .map { dimScore($0) }
         if !scores.isEmpty && scores.allSatisfy({ $0 >= 60 }) {
             unlock("cognitive-balanced")

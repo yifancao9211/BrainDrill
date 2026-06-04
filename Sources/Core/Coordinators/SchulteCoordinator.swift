@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class SchulteCoordinator: @unchecked Sendable {
+final class SchulteCoordinator: TrainingModuleCoordinator, @unchecked Sendable {
     var activeEngine: SchulteEngine?
     var statusMessage: String
     var lastCompletedSummary: CompletedSchulteSummary?
@@ -20,6 +20,10 @@ final class SchulteCoordinator: @unchecked Sendable {
     @ObservationIgnored nonisolated(unsafe) private var preparationTask: Task<Void, Never>?
 
     var isTrainingActive: Bool { activeEngine != nil || isResting || isPreparing }
+
+    /// `TrainingModuleCoordinator` conformance. Schulte's training (including the
+    /// preparation countdown and inter-set rest) all count as active.
+    var isActive: Bool { isTrainingActive }
 
     var totalRepsInSession: Int {
         sessionSetRepConfig.setsPerSession * sessionSetRepConfig.repsPerSet

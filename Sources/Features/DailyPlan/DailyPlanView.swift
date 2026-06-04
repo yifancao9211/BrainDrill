@@ -53,7 +53,11 @@ struct DailyPlanView: View {
                         } else {
                             ForEach(Array(recommendedRoutes.enumerated()), id: \.offset) { index, route in
                                 BDInteractiveRow(accent: route.presentationProfile.accent, action: {
-                                    appModel.selectedRoute = route
+                                    if route.trainingModule?.isQuickStartable == true {
+                                        appModel.quickStartModule(route)
+                                    } else {
+                                        appModel.selectedRoute = route
+                                    }
                                 }) {
                                     HStack(spacing: 14) {
                                         RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -75,9 +79,18 @@ struct DailyPlanView: View {
 
                                     }
                                 } trailing: {
-                                    Text(scheduleLabel(for: route))
-                                        .font(.system(.caption, weight: .semibold))
-                                        .foregroundStyle(route.presentationProfile.accent)
+                                    HStack(spacing: 8) {
+                                        Text(scheduleLabel(for: route))
+                                            .font(.system(.caption, weight: .semibold))
+                                            .foregroundStyle(route.presentationProfile.accent)
+                                        if route.trainingModule?.isQuickStartable == true {
+                                            Image(systemName: "play.fill")
+                                                .font(.system(.caption2))
+                                                .foregroundStyle(.white)
+                                                .frame(width: 28, height: 28)
+                                                .background(Circle().fill(route.presentationProfile.accent))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -169,8 +182,6 @@ struct DailyPlanView: View {
         case .readingComprehension: return BDColor.gold
         case .logicalReasoning: return BDColor.logicArgumentAccent
         case .memory: return BDColor.nBackAccent
-        case .reactionSpeed: return BDColor.choiceRTAccent
-        case .inhibitionControl: return BDColor.goNoGoAccent
         case .visualAttentionSearch: return BDColor.primaryBlue
         }
     }
@@ -183,15 +194,10 @@ struct DailyPlanView: View {
         case .syllogism: return BDColor.syllogismAccent
         case .logicArgument: return BDColor.logicArgumentAccent
         case .schulte: return BDColor.primaryBlue
-        case .visualSearch: return BDColor.visualSearchAccent
         case .nBack: return BDColor.nBackAccent
         case .digitSpan: return BDColor.digitSpanAccent
-        case .choiceRT: return BDColor.choiceRTAccent
         case .changeDetection: return BDColor.changeDetectionAccent
         case .corsiBlock: return BDColor.corsiBlockAccent
-        case .flanker: return BDColor.flankerAccent
-        case .goNoGo: return BDColor.goNoGoAccent
-        case .stopSignal: return BDColor.stopSignalAccent
         }
     }
 }
@@ -201,7 +207,7 @@ struct GameLibraryView: View {
     @State private var query = ""
     @State private var selectedCategory = "全部"
 
-    private let categories = ["全部", "阅读理解", "逻辑推理", "注意控制", "抑制控制", "工作记忆", "处理速度"]
+    private let categories = ["全部", "阅读理解", "逻辑推理", "注意控制", "抑制控制", "工作记忆"]
 
     var body: some View {
         BDWorkbenchPage(
@@ -222,9 +228,7 @@ struct GameLibraryView: View {
             moduleSection(title: "阅读理解", routes: AppRoute.readingModules)
             moduleSection(title: "逻辑推理", routes: AppRoute.logicModules)
             moduleSection(title: "注意控制", routes: AppRoute.attentionModules)
-            moduleSection(title: "抑制控制", routes: AppRoute.inhibitionModules)
             moduleSection(title: "工作记忆", routes: AppRoute.memoryModules)
-            moduleSection(title: "处理速度", routes: AppRoute.speedModules)
         }
     }
 
@@ -246,10 +250,14 @@ struct GameLibraryView: View {
                             status: statusLabel(for: route),
                             recommendation: recommendation(for: route),
                             accent: route.presentationProfile.accent,
-                            icon: route.systemImage
-                        ) {
-                            appModel.selectedRoute = route
-                        }
+                            icon: route.systemImage,
+                            action: {
+                                appModel.selectedRoute = route
+                            },
+                            quickStartAction: route.trainingModule?.isQuickStartable == true ? {
+                                appModel.quickStartModule(route)
+                            } : nil
+                        )
                     }
                 }
             }
@@ -274,9 +282,7 @@ struct GameLibraryView: View {
         case "阅读理解": return BDColor.gold
         case "逻辑推理": return BDColor.logicArgumentAccent
         case "注意控制": return BDColor.primaryBlue
-        case "抑制控制": return BDColor.goNoGoAccent
         case "工作记忆": return BDColor.nBackAccent
-        case "处理速度": return BDColor.choiceRTAccent
         default: return BDColor.teal
         }
     }
@@ -565,8 +571,6 @@ private struct AnalysisTrendView: View {
         case .readingComprehension: return BDColor.gold
         case .logicalReasoning: return BDColor.logicArgumentAccent
         case .memory: return BDColor.nBackAccent
-        case .reactionSpeed: return BDColor.choiceRTAccent
-        case .inhibitionControl: return BDColor.goNoGoAccent
         case .visualAttentionSearch: return BDColor.primaryBlue
         }
     }

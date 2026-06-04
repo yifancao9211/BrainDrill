@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class DigitSpanCoordinator {
+final class DigitSpanCoordinator: TrainingModuleCoordinator {
     var engine: DigitSpanEngine?
     var statusMessage: String = "数字广度训练：记住数字序列并按顺序复述。"
     var lastResult: SessionResult?

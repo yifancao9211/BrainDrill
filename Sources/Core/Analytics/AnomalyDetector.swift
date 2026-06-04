@@ -58,25 +58,12 @@ enum AnomalyDetector {
             result.append(("结构准确率", m.accuracy, history.compactMap { $0.evidenceMapMetrics?.accuracy }))
         case let .delayedRecall(m):
             result.append(("回忆命中率", m.accuracy, history.compactMap { $0.delayedRecallMetrics?.accuracy }))
-        case let .choiceRT(m):
-            result.append(("中位RT", m.medianRT, history.compactMap { $0.choiceRTMetrics?.medianRT }))
-            result.append(("正确率", m.accuracy, history.compactMap { $0.choiceRTMetrics?.accuracy }))
-        case let .goNoGo(m):
-            result.append(("d'", m.dPrime, history.compactMap { $0.goNoGoMetrics?.dPrime }))
-            result.append(("Go RT", m.goRT, history.compactMap { $0.goNoGoMetrics?.goRT }))
-        case let .flanker(m):
-            result.append(("冲突代价", m.conflictCost, history.compactMap { $0.flankerMetrics?.conflictCost }))
-            result.append(("正确率", m.accuracy, history.compactMap { $0.flankerMetrics?.accuracy }))
         case let .digitSpan(m):
             result.append(("正确率", m.accuracy, history.compactMap { $0.digitSpanMetrics?.accuracy }))
         case let .changeDetection(m):
             result.append(("d'", m.dPrime, history.compactMap { $0.changeDetectionMetrics?.dPrime }))
-        case let .visualSearch(m):
-            result.append(("搜索斜率", m.searchSlope, history.compactMap { $0.visualSearchMetrics?.searchSlope }))
         case let .schulte(m):
             result.append(("错误数", Double(m.mistakeCount), history.compactMap { $0.schulteMetrics.map { Double($0.mistakeCount) } }))
-        case let .stopSignal(m):
-            result.append(("SSRT", m.ssrt, history.compactMap { $0.stopSignalMetrics?.ssrt }))
         case let .corsiBlock(m):
             result.append(("正确率", m.accuracy, history.compactMap { $0.corsiBlockMetrics?.accuracy }))
         case let .nBack(m):

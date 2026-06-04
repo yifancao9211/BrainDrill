@@ -90,6 +90,8 @@ final class LocalTrainingStore: TrainingStore {
     }
 
     func loadSessions() throws -> [SessionResult] {
+        // Legacy rows for removed modules are dropped once by `migrateSchemaIfNeeded`,
+        // so no query-time module filtering is needed here.
         try fetchRows(
             "SELECT json FROM sessions ORDER BY ended_at DESC",
             decode: SessionResult.self
@@ -518,12 +520,58 @@ final class LocalTrainingStore: TrainingStore {
         try saveAppDocument(key: "achievement-tracker", value: tracker)
     }
 
+    /// Bump when a migration step is added below. Stored in SQLite's
+    /// `PRAGMA user_version`.
+    ///   v3: drop sessions/adaptive_states for modules removed from the build.
+    ///   v4: re-purge rows for modules removed from the build (choiceRT).
+    static let currentSchemaVersion = 4
+
     private func bootstrap() throws {
         try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         try execute("PRAGMA journal_mode = WAL")
         try execute("PRAGMA foreign_keys = ON")
         try createSchema()
         try migrateLegacyJSONIfNeeded()
+        try migrateSchemaIfNeeded()
+    }
+
+    /// Run forward migrations based on the persisted schema version, then stamp the
+    /// current version. Replaces ad-hoc filtering at query time with a one-time,
+    /// versioned data fix-up.
+    private func migrateSchemaIfNeeded() throws {
+        let version = try schemaVersion()
+        guard version < Self.currentSchemaVersion else { return }
+
+        // v3 — purge rows referencing modules that no longer exist in this build,
+        // so `SessionResult`/adaptive-state decoding never hits an unknown module.
+        if version < 3 {
+            try purgeUnknownModuleRows()
+        }
+
+        // v4 — re-purge after removing the choiceRT module, since installs already
+        // stamped at v3 would otherwise retain undecodable choiceRT rows.
+        if version < 4 {
+            try purgeUnknownModuleRows()
+        }
+
+        try execute("PRAGMA user_version = \(Self.currentSchemaVersion)")
+    }
+
+    private func schemaVersion() throws -> Int {
+        try withStatement("PRAGMA user_version") { statement in
+            guard sqlite3_step(statement) == SQLITE_ROW else { return 0 }
+            return Int(sqlite3_column_int64(statement, 0))
+        }
+    }
+
+    /// Delete any session / adaptive-state row whose `module` is not a known
+    /// `TrainingModule` (e.g. modules deleted in a later release).
+    private func purgeUnknownModuleRows() throws {
+        let knownModules = TrainingModule.allCases
+            .map { "'\($0.rawValue)'" }
+            .joined(separator: ", ")
+        try execute("DELETE FROM sessions WHERE module NOT IN (\(knownModules))")
+        try execute("DELETE FROM adaptive_states WHERE module NOT IN (\(knownModules))")
     }
 
     private func createSchema() throws {

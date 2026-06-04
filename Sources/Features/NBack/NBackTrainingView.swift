@@ -11,6 +11,9 @@ struct NBackTrainingView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedTarget: FocusTarget?
+    @State private var showCancelConfirmation = false
+    @State private var countdown = CountdownState()
+    @State private var phaseTimer = PhaseScheduler()
 
     private var coordinator: NBackCoordinator { appModel.nBack }
 
@@ -36,13 +39,16 @@ struct NBackTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { BDCountdownOverlay(countdown: countdown) }
         .onAppear {
             focusedTarget = coordinator.engine == nil ? .start : .respond
         }
         .onChange(of: coordinator.engine?.phase) { _, phase in
             switch phase {
-            case .stimulus, .feedback, .idle, .blockBreak:
+            case .stimulus, .isi:
                 focusedTarget = .respond
+            case .idle, .blockBreak, .practiceComplete:
+                focusedTarget = .cancel
             case .completed:
                 focusedTarget = .close
             case .none:
@@ -52,30 +58,22 @@ struct NBackTrainingView: View {
     }
 
     private var idleView: some View {
-        SurfaceCard(title: "N-Back", subtitle: "进入训练前先确认推荐负荷和目标指标。", accent: BDColor.nBackAccent) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    InfoPill(title: "推荐 \(recommendedStartN)-Back", accent: BDColor.nBackAccent)
-                    InfoPill(title: "核心指标 d'", accent: BDColor.green)
-                }
-
-                BDInsightCard(
-                    title: "训练说明",
-                    bodyText: "判断当前数字是否与 N 步前相同。先稳定命中和抑制误报，再逐步提高负荷。",
-                    accent: BDColor.nBackAccent
-                )
-
-                HStack(spacing: 14) {
-                    BDStatCard(label: "推进方式", value: "自主", accent: BDColor.nBackAccent)
-                    BDStatCard(label: "节奏记录", value: "每题间隔", accent: BDColor.teal)
-                }
-
-                Button("开始训练") {
-                    appModel.startNBackSession()
-                }
-                .buttonStyle(BDPrimaryButton(accent: BDColor.nBackAccent))
-                .keyboardShortcut(.defaultAction)
-                .focused($focusedTarget, equals: .start)
+        BDTrainingIdleCard(
+            title: "N-Back",
+            subtitle: "进入训练前先确认推荐负荷和目标指标。",
+            accent: BDColor.nBackAccent,
+            insightTitle: "训练说明",
+            insightBody: "数字会自动逐个播放。只有当前数字与 N 步前相同时才按一次「匹配」，不是目标就不要按。前 N 个数字只看不答。正式计分前会有一小段不计分的练习帮你进入状态。"
+        ) {
+            countdown.onComplete = { appModel.startNBackSession() }
+            countdown.start()
+        } pills: {
+            InfoPill(title: "推荐 \(recommendedStartN)-Back", accent: BDColor.nBackAccent)
+            InfoPill(title: "核心指标 d'", accent: BDColor.green)
+        } extra: {
+            HStack(spacing: 14) {
+                BDStatCard(label: "播放方式", value: "自动", accent: BDColor.nBackAccent)
+                BDStatCard(label: "响应", value: "命中时按匹配", accent: BDColor.teal)
             }
         }
     }
@@ -83,67 +81,78 @@ struct NBackTrainingView: View {
     private func activeView(engine: NBackEngine) -> some View {
         BDTrainingShell(accent: BDColor.nBackAccent) {
             VStack(spacing: 8) {
-                Text("\(engine.currentN)-Back  ·  Block \(engine.currentBlock + 1)/\(engine.config.blockCount)")
+                Text(engine.isPractice
+                     ? "\(engine.currentN)-Back  ·  练习"
+                     : "\(engine.currentN)-Back  ·  Block \(engine.currentBlock + 1)/\(engine.config.blockCount)")
                     .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(BDColor.textSecondary)
+                    .foregroundStyle(engine.isPractice ? BDColor.warm : BDColor.textSecondary)
 
-                Text("自主推进 · 记录每题决策间隔")
+                Text("自动播放 · 与 \(engine.currentN) 步前相同时按「匹配」")
                     .font(.system(.caption2, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
             }
         } stage: {
             phaseContent(engine: engine)
                 .frame(height: 180)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: engine.phase)
         } footer: {
             VStack(spacing: 16) {
-                if case .blockBreak = engine.phase {
-                    Button {
-                        appModel.handleNBackNext()
-                    } label: {
-                        Text("开始下一组")
-                    }
-                    .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
-                    .keyboardShortcut(.return, modifiers: [])
-                } else if engine.phase == .idle {
-                    Button {
-                        appModel.handleNBackNext()
-                    } label: {
-                        Text("开始本题")
-                    }
-                    .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
-                    .keyboardShortcut(.return, modifiers: [])
-                } else {
-                    HStack(spacing: 12) {
-                        Button {
-                            appModel.handleNBackMatch()
-                        } label: {
-                            Text("匹配")
-                        }
-                        .buttonStyle(BDPrimaryButton(accent: BDColor.nBackAccent))
-                        .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
-                        .keyboardShortcut("1", modifiers: [])
-                        .focused($focusedTarget, equals: .respond)
+                responseControls(engine: engine)
 
-                        Button {
-                            appModel.handleNBackNonMatch()
-                        } label: {
-                            Text("不匹配")
-                        }
-                        .buttonStyle(BDSecondaryButton(accent: BDColor.nBackAccent))
-                        .disabled(engine.phase != .stimulus || engine.respondedThisTrial)
-                        .keyboardShortcut("2", modifiers: [])
+                ProgressView(value: engine.completionFraction)
+                    .tint(BDColor.nBackAccent)
+                    .frame(maxWidth: 300)
+
+                Button("取消") { showCancelConfirmation = true }
+                    .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .keyboardShortcut(.cancelAction)
+                    .focused($focusedTarget, equals: .cancel)
+                    .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                        Button("取消训练", role: .destructive) { appModel.cancelNBackSession() }
+                        Button("继续训练", role: .cancel) {}
+                    } message: {
+                        Text("本次训练不会计入记录。")
                     }
-                }
-
-            ProgressView(value: engine.completionFraction)
-                .tint(BDColor.nBackAccent)
-                .frame(maxWidth: 300)
-
-            Button("取消") { appModel.cancelNBackSession() }
-                .buttonStyle(BDSecondaryButton(accent: BDColor.error))
-                .keyboardShortcut(.cancelAction)
-                .focused($focusedTarget, equals: .cancel)
+            }
         }
+        .onAppear { schedulePhase(engine) }
+        .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+        .onDisappear { phaseTimer.cancel() }
+    }
+
+    @ViewBuilder
+    private func responseControls(engine: NBackEngine) -> some View {
+        switch engine.phase {
+        case .blockBreak:
+            Text("准备下一组…")
+                .font(.system(.callout, design: .rounded, weight: .medium))
+                .foregroundStyle(BDColor.textSecondary)
+                .frame(height: 44)
+        case .practiceComplete:
+            Text("准备开始正式测试…")
+                .font(.system(.callout, design: .rounded, weight: .medium))
+                .foregroundStyle(BDColor.textSecondary)
+                .frame(height: 44)
+        case .stimulus, .isi:
+            if engine.isObservationOnly {
+                Text("记忆铺垫 · 第 \(engine.currentTrialIndex + 1)/\(engine.currentN) 个")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(height: 44)
+            } else {
+                Button {
+                    appModel.handleNBackMatch()
+                } label: {
+                    Label(engine.respondedThisTrial ? "已标记匹配" : "匹配", systemImage: engine.respondedThisTrial ? "checkmark" : "arrow.uturn.backward")
+                        .frame(minWidth: 160)
+                }
+                .buttonStyle(BDPrimaryButton(accent: BDColor.nBackAccent))
+                .disabled(engine.respondedThisTrial)
+                .keyboardShortcut(.space, modifiers: [])
+                .focused($focusedTarget, equals: .respond)
+            }
+        default:
+            Color.clear.frame(height: 44)
         }
     }
 
@@ -158,16 +167,12 @@ struct NBackTrainingView: View {
                     .frame(width: 140, height: 140)
                     .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(BDColor.nBackAccent.opacity(0.1)))
             }
-        case .feedback(let correct):
-            VStack(spacing: 8) {
-                Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
-                Text(correct ? "命中" : (engine.respondedThisTrial ? "虚报" : "漏判"))
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(correct ? BDColor.green : BDColor.error)
-            }
-            .transition(reduceMotion ? .identity : .opacity)
+        case .isi:
+            // Blank inter-stimulus interval; keep a faint fixation so the eye stays centered.
+            Text("·")
+                .font(.system(size: 60, weight: .light, design: .rounded))
+                .foregroundStyle(.tertiary)
+                .frame(width: 140, height: 140)
         case let .blockBreak(blockIndex, nextN):
             VStack(spacing: 8) {
                 Text("第 \(blockIndex) 组完成")
@@ -177,12 +182,50 @@ struct NBackTrainingView: View {
                     .font(.system(.callout, design: .rounded, weight: .medium))
                     .foregroundStyle(BDColor.textSecondary)
             }
-        case .idle:
-            Text("准备好后开始本题")
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(BDColor.textSecondary)
-        case .completed:
+        case .practiceComplete:
+            VStack(spacing: 8) {
+                Text("练习结束")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .foregroundStyle(BDColor.warm)
+                Text("接下来开始正式计分")
+                    .font(.system(.callout, design: .rounded, weight: .medium))
+                    .foregroundStyle(BDColor.textSecondary)
+            }
+        case .idle, .completed:
             Color.clear
+        }
+    }
+
+    /// Drives the auto-paced stimulus stream off phase transitions.
+    private func schedulePhase(_ engine: NBackEngine) {
+        switch engine.phase {
+        case .idle:
+            engine.beginTrial()
+        case .stimulus:
+            phaseTimer.schedule(afterMilliseconds: engine.currentStimulusDurationMs) {
+                guard engine.phase == .stimulus else { return }
+                engine.enterISI()
+            }
+        case .isi:
+            phaseTimer.schedule(afterMilliseconds: engine.currentISIMs) {
+                guard engine.phase == .isi else { return }
+                engine.advanceTrial()
+                if engine.isComplete {
+                    appModel.finalizeNBackIfComplete()
+                }
+            }
+        case let .blockBreak(_, nextN):
+            phaseTimer.schedule(afterMilliseconds: 2000) {
+                guard case .blockBreak = engine.phase else { return }
+                engine.startNextBlock(n: nextN)
+            }
+        case .practiceComplete:
+            phaseTimer.schedule(afterMilliseconds: 2000) {
+                guard engine.phase == .practiceComplete else { return }
+                engine.beginTrial() // start the first scored block
+            }
+        case .completed:
+            break
         }
     }
 
@@ -194,10 +237,10 @@ struct NBackTrainingView: View {
                 .foregroundStyle(feedback.color)
 
             HStack(spacing: 16) {
-                NResultCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
-                NResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
-                NResultCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
-                NResultCard(label: "均间隔", value: String(format: "%.1fs", metrics.averageDecisionInterval), color: BDColor.teal)
+                BDResultMetricCard(label: "N Level", value: "\(metrics.nLevel)", color: BDColor.nBackAccent)
+                BDResultMetricCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.green)
+                BDResultMetricCard(label: "命中率", value: "\(Int(metrics.hitRate * 100))%", color: BDColor.warm)
+                BDResultMetricCard(label: "虚报率", value: "\(Int(metrics.falseAlarmRate * 100))%", color: BDColor.error)
             }
             .frame(maxWidth: 520)
 
@@ -226,17 +269,5 @@ struct NBackTrainingView: View {
             return ("一般", "已经抓到部分匹配，但虚报或漏报还偏多。", BDColor.warm)
         }
         return ("失准", "这轮工作记忆负荷偏高，先把准确匹配做稳。", BDColor.error)
-    }
-}
-
-private struct NResultCard: View {
-    let label: String; let value: String; let color: Color
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(label).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity).padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.08)))
     }
 }

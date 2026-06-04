@@ -180,16 +180,6 @@ enum BDColor {
         dark: .white.opacity(0.06)
     )
 
-    static let flankerAccent = Color(
-        light: .init(red: 0.447, green: 0.364, blue: 0.757),
-        dark: .init(red: 0.655, green: 0.573, blue: 0.906)
-    )
-
-    static let goNoGoAccent = Color(
-        light: .init(red: 0.773, green: 0.443, blue: 0.216),
-        dark: .init(red: 0.922, green: 0.620, blue: 0.369)
-    )
-
     static let nBackAccent = Color(
         light: .init(red: 0.118, green: 0.517, blue: 0.604),
         dark: .init(red: 0.353, green: 0.727, blue: 0.808)
@@ -200,29 +190,14 @@ enum BDColor {
         dark: .init(red: 0.427, green: 0.663, blue: 0.941)
     )
 
-    static let choiceRTAccent = Color(
-        light: .init(red: 0.686, green: 0.424, blue: 0.224),
-        dark: .init(red: 0.875, green: 0.600, blue: 0.392)
-    )
-
     static let changeDetectionAccent = Color(
         light: .init(red: 0.373, green: 0.561, blue: 0.318),
         dark: .init(red: 0.549, green: 0.741, blue: 0.467)
     )
 
-    static let visualSearchAccent = Color(
-        light: .init(red: 0.514, green: 0.329, blue: 0.667),
-        dark: .init(red: 0.729, green: 0.522, blue: 0.867)
-    )
-
     static let corsiBlockAccent = Color(
         light: .init(red: 0.137, green: 0.474, blue: 0.655),
         dark: .init(red: 0.369, green: 0.694, blue: 0.859)
-    )
-
-    static let stopSignalAccent = Color(
-        light: .init(red: 0.710, green: 0.286, blue: 0.302),
-        dark: .init(red: 0.898, green: 0.447, blue: 0.471)
     )
 
     static let syllogismAccent = Color(

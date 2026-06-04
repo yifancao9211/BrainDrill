@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SchulteTrainingView: View {
     @Environment(AppModel.self) private var appModel
+    @State private var showCancelConfirmation = false
 
     private var coordinator: SchulteCoordinator { appModel.schulte }
 
@@ -42,36 +43,32 @@ struct SchulteTrainingView: View {
         VStack {
             Spacer()
 
-            SurfaceCard(title: "舒尔特方格", subtitle: "进入训练前先确认推荐难度、短训组次和凝视点。", accent: BDColor.primaryBlue) {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 12) {
-                        InfoPill(title: "推荐 \(recommendedDifficulty.displayName)", accent: BDColor.primaryBlue)
-                        let cfg = appModel.settings.schulteSetRep
-                        InfoPill(title: "\(cfg.setsPerSession) 组 × \(cfg.repsPerSet) 次", accent: BDColor.teal)
-                        if appModel.settings.adaptiveDifficultyEnabled {
-                            InfoPill(title: "自动升级", accent: BDColor.gold)
-                        }
+            BDTrainingIdleCard(
+                title: "舒尔特方格",
+                subtitle: "进入训练前先确认推荐难度、短训组次和凝视点。",
+                accent: BDColor.primaryBlue,
+                insightTitle: "训练目标",
+                insightBody: "保持中心凝视，使用周边视觉与持续注意依次找到数字，优先减少错误再拉快速度。"
+            ) {
+                // Schulte has its own "凝视中心" preparation countdown in the
+                // coordinator, so start the session directly instead of running a
+                // second generic countdown overlay first.
+                appModel.startSchulteSession()
+            } pills: {
+                InfoPill(title: "推荐 \(recommendedDifficulty.displayName)", accent: BDColor.primaryBlue)
+                let cfg = appModel.settings.schulteSetRep
+                InfoPill(title: "\(cfg.setsPerSession) 组 × \(cfg.repsPerSet) 次", accent: BDColor.teal)
+                if appModel.settings.adaptiveDifficultyEnabled {
+                    InfoPill(title: "自动升级", accent: BDColor.gold)
+                }
+            } extra: {
+                if appModel.settings.showFixationDot {
+                    HStack(spacing: 8) {
+                        Circle().fill(.red).frame(width: 8, height: 8)
+                        Text("中心凝视点已开启，训练时请尽量锁定视线中心。")
+                            .font(.system(.caption))
+                            .foregroundStyle(BDColor.textSecondary)
                     }
-
-                    BDInsightCard(
-                        title: "训练目标",
-                        bodyText: "保持中心凝视，使用周边视觉与持续注意依次找到数字，优先减少错误再拉快速度。",
-                        accent: BDColor.primaryBlue
-                    )
-
-                    if appModel.settings.showFixationDot {
-                        HStack(spacing: 8) {
-                            Circle().fill(.red).frame(width: 8, height: 8)
-                            Text("中心凝视点已开启，训练时请尽量锁定视线中心。")
-                                .font(.system(.caption))
-                                .foregroundStyle(BDColor.textSecondary)
-                        }
-                    }
-
-                    Button("开始训练") {
-                        appModel.startSchulteSession()
-                    }
-                    .buttonStyle(BDPrimaryButton(accent: BDColor.primaryBlue))
                 }
             }
             .frame(maxWidth: 760)
@@ -122,10 +119,16 @@ struct SchulteTrainingView: View {
                 MiniStat(label: "组次", value: "\(coordinator.currentSet + 1)-\(coordinator.currentRep + 1)", color: BDColor.primaryBlue)
                 Spacer()
                 Button("取消") {
-                    appModel.cancelSchulteSession()
+                    showCancelConfirmation = true
                 }
                 .font(.system(.callout, design: .rounded, weight: .medium))
                 .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                    Button("取消训练", role: .destructive) { appModel.cancelSchulteSession() }
+                    Button("继续训练", role: .cancel) {}
+                } message: {
+                    Text("本次训练不会计入记录。")
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -258,9 +261,15 @@ struct SchulteTrainingView: View {
 
             Spacer()
 
-            Button("取消") { appModel.cancelSchulteSession() }
+            Button("取消") { showCancelConfirmation = true }
                 .font(.system(.callout, design: .rounded, weight: .medium))
                 .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                    Button("取消训练", role: .destructive) { appModel.cancelSchulteSession() }
+                    Button("继续训练", role: .cancel) {}
+                } message: {
+                    Text("本次训练不会计入记录。")
+                }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -382,9 +391,9 @@ private struct SchulteResultOverlay: View {
                 }
 
                 HStack(spacing: 16) {
-                    ResultMetric(label: "用时", value: appModel.formattedDuration(summary.result.duration), color: BDColor.primaryBlue)
-                    ResultMetric(label: "错误", value: "\(summary.result.mistakeCount)", color: BDColor.error)
-                    ResultMetric(label: "难度", value: summary.result.difficulty.shortLabel, color: BDColor.green)
+                    BDResultMetricCard(label: "用时", value: appModel.formattedDuration(summary.result.duration), color: BDColor.primaryBlue)
+                    BDResultMetricCard(label: "错误", value: "\(summary.result.mistakeCount)", color: BDColor.error)
+                    BDResultMetricCard(label: "难度", value: summary.result.difficulty.shortLabel, color: BDColor.green)
                 }
                 .frame(maxWidth: 520)
 
@@ -430,14 +439,3 @@ private struct SchulteResultOverlay: View {
     }
 }
 
-private struct ResultMetric: View {
-    let label: String; let value: String; let color: Color
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(label).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(color).monospacedDigit()
-        }
-        .frame(maxWidth: .infinity).padding(.vertical, 12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.08)))
-    }
-}

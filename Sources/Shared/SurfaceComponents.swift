@@ -471,6 +471,7 @@ struct BDModuleCard: View {
     let accent: Color
     let icon: String
     let action: () -> Void
+    var quickStartAction: (() -> Void)?
 
     @State private var isHovering = false
 
@@ -528,6 +529,23 @@ struct BDModuleCard: View {
         .buttonStyle(BDSpringPressStyle())
         .onHover { isHovering = $0 }
         .bdFocusRing(cornerRadius: BDMetrics.cornerRadiusLarge)
+        .overlay(alignment: .bottomTrailing) {
+            if let quickStartAction {
+                Button {
+                    quickStartAction()
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.system(.caption2))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(accent))
+                        .shadow(color: accent.opacity(0.3), radius: 6, y: 2)
+                }
+                .buttonStyle(.plain)
+                .help("一键开始训练")
+                .offset(x: -10, y: -10)
+            }
+        }
     }
 }
 
@@ -799,6 +817,78 @@ public struct BDSpringPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.985 : 1.0)
             .animation(.interactiveSpring(response: 0.26, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
+/// Single source of truth for the metric card shown on every training result screen.
+/// Replaces the 10 private `XXResultCard` structs that were duplicated across feature modules.
+struct BDResultMetricCard: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(label)
+                .font(.system(.caption, design: .rounded, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(color.opacity(0.08))
+        )
+    }
+}
+
+/// Single source of truth for the "idle / pre-training" card shown before every training module starts.
+/// Encapsulates the common pattern: title + subtitle + info pills + insight card + optional extras + start button.
+struct BDTrainingIdleCard<Pills: View, Extra: View>: View {
+    let title: String
+    let subtitle: String
+    let accent: Color
+    let insightTitle: String
+    let insightBody: String
+    let startAction: () -> Void
+    @ViewBuilder var pills: Pills
+    @ViewBuilder var extra: Extra
+
+    init(
+        title: String,
+        subtitle: String,
+        accent: Color,
+        insightTitle: String,
+        insightBody: String,
+        startAction: @escaping () -> Void,
+        @ViewBuilder pills: () -> Pills = { EmptyView() },
+        @ViewBuilder extra: () -> Extra = { EmptyView() }
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.accent = accent
+        self.insightTitle = insightTitle
+        self.insightBody = insightBody
+        self.startAction = startAction
+        self.pills = pills()
+        self.extra = extra()
+    }
+
+    var body: some View {
+        SurfaceCard(title: title, subtitle: subtitle, accent: accent) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    pills
+                }
+                BDInsightCard(title: insightTitle, bodyText: insightBody, accent: accent)
+                extra
+                Button("开始训练", action: startAction)
+                    .buttonStyle(BDPrimaryButton(accent: accent))
+            }
+        }
     }
 }
 

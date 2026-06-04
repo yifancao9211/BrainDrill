@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class CorsiBlockCoordinator {
+final class CorsiBlockCoordinator: TrainingModuleCoordinator {
     var engine: CorsiBlockEngine?
     var statusMessage: String = "空间广度训练：记住方块亮起的顺序并复现。"
     var lastResult: SessionResult?

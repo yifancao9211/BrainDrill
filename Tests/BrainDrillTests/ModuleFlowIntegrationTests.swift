@@ -2,132 +2,6 @@ import Foundation
 import Testing
 @testable import BrainDrill
 
-struct ChoiceRTFlowTests {
-    @Test func fullSessionFlow() {
-        let config = ChoiceRTSessionConfig(choiceCount: 2, trialsPerBlock: 5, blockCount: 1)
-        let engine = ChoiceRTEngine(config: config)
-
-        #expect(engine.phase == .idle)
-        engine.beginTrial()
-        #expect(engine.phase == .fixation)
-        engine.showStimulus()
-        #expect(engine.phase == .stimulus)
-
-        let trial = engine.currentTrial!
-        let onset = engine.stimulusOnsetTime!
-        let result = engine.recordResponse(trial.correctResponseIndex, at: onset.addingTimeInterval(0.35))
-        #expect(result != nil)
-        if case .feedback(let correct) = engine.phase {
-            #expect(correct == true)
-        } else {
-            Issue.record("Expected feedback phase")
-        }
-
-        engine.advanceToNext()
-        #expect(engine.phase == .iti || engine.phase == .completed)
-    }
-
-    @Test func completeAllTrials() {
-        let config = ChoiceRTSessionConfig(choiceCount: 2, trialsPerBlock: 5, blockCount: 1)
-        let engine = ChoiceRTEngine(config: config)
-
-        for _ in 0..<5 {
-            engine.beginTrial()
-            engine.showStimulus()
-            let trial = engine.currentTrial!
-            let onset = engine.stimulusOnsetTime!
-            _ = engine.recordResponse(trial.correctResponseIndex, at: onset.addingTimeInterval(0.3))
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-        let m = engine.computeMetrics()
-        #expect(m.accuracy > 0.99)
-        #expect(m.medianRT > 0.2)
-    }
-}
-
-struct GoNoGoFlowTests {
-    @Test func fullSessionFlow() {
-        let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
-        let engine = GoNoGoEngine(config: config)
-
-        #expect(engine.phase == .idle)
-        engine.beginTrial()
-        #expect(engine.phase == .fixation)
-        engine.showStimulus()
-        #expect(engine.phase == .stimulus)
-
-        if engine.currentTrial!.stimulusType == .go {
-            _ = engine.recordTap(at: Date())
-        } else {
-            engine.recordTimeout()
-        }
-
-        if case .feedback = engine.phase {} else {
-            Issue.record("Expected feedback phase after response")
-        }
-
-        engine.advanceToNext()
-    }
-
-    @Test func completeAllTrials() {
-        let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
-        let engine = GoNoGoEngine(config: config)
-
-        for _ in 0..<10 {
-            engine.beginTrial()
-            engine.showStimulus()
-            if engine.currentTrial!.stimulusType == .go {
-                _ = engine.recordTap(at: Date())
-            } else {
-                engine.recordTimeout()
-            }
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-        let m = engine.computeMetrics()
-        #expect(m.dPrime > 0)
-    }
-}
-
-struct FlankerFlowTests {
-    @Test func fullSessionFlow() {
-        let config = FlankerSessionConfig(trialsPerBlock: 5, blockCount: 1)
-        let engine = FlankerEngine(config: config)
-
-        engine.beginTrial()
-        #expect(engine.phase == .fixation)
-        engine.showStimulus()
-        #expect(engine.phase == .stimulus)
-
-        let trial = engine.currentTrial!
-        _ = engine.recordResponse(trial.targetDirection, at: Date())
-        if case .feedback(let correct) = engine.phase {
-            #expect(correct)
-        } else {
-            Issue.record("Expected feedback")
-        }
-
-        engine.advanceToNext()
-    }
-
-    @Test func completeAllTrials() {
-        let config = FlankerSessionConfig(trialsPerBlock: 4, blockCount: 1)
-        let engine = FlankerEngine(config: config)
-
-        for _ in 0..<4 {
-            engine.beginTrial()
-            engine.showStimulus()
-            _ = engine.recordResponse(engine.currentTrial!.targetDirection, at: Date())
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-    }
-}
-
 struct ChangeDetectionFlowTests {
     @Test func fullSessionFlow() {
         let config = ChangeDetectionSessionConfig(initialSetSize: 3, trialsPerBlock: 5, blockCount: 1)
@@ -169,110 +43,19 @@ struct ChangeDetectionFlowTests {
     }
 }
 
-struct VisualSearchFlowTests {
-    @Test func fullSessionFlow() {
-        let config = VisualSearchSessionConfig(setSizes: [8], trialsPerSize: 3)
-        let engine = VisualSearchEngine(config: config)
-
-        engine.beginTrial()
-        #expect(engine.phase == .fixation)
-
-        engine.showDisplay()
-        #expect(engine.phase == .display)
-
-        let trial = engine.currentTrial!
-        let result = engine.recordResponse(userSaidPresent: trial.targetPresent, selectedItemID: selectedItemID(for: trial))
-        #expect(result?.correct == true)
-
-        engine.advanceToNext()
-    }
-
-    @Test func completeAllTrials() {
-        let config = VisualSearchSessionConfig(setSizes: [8], trialsPerSize: 3)
-        let engine = VisualSearchEngine(config: config)
-
-        for _ in 0..<3 {
-            engine.beginTrial()
-            engine.showDisplay()
-            let trial = engine.currentTrial!
-            _ = engine.recordResponse(userSaidPresent: trial.targetPresent, selectedItemID: selectedItemID(for: trial))
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-    }
-
-    private func selectedItemID(for trial: VisualSearchTrial) -> Int? {
-        trial.targetPresent ? trial.targetItem?.id : nil
-    }
-}
-
-struct StopSignalFlowTests {
-    @Test func goTrialFlow() {
-        let config = StopSignalSessionConfig(trialsPerBlock: 5, blockCount: 1, stopRatio: 0.0)
-        let engine = StopSignalEngine(config: config)
-
-        engine.beginTrial()
-        #expect(engine.phase == .fixation)
-
-        engine.showStimulus()
-        #expect(engine.phase == .stimulus)
-
-        let trial = engine.currentTrial!
-        let onset = engine.stimulusOnsetTime!
-        let result = engine.recordResponse(trial.correctDirection, at: onset.addingTimeInterval(0.35))
-        #expect(result?.correct == true)
-        #expect(result?.inhibited == false)
-    }
-
-    @Test func stopTrialInhibitFlow() {
-        let config = StopSignalSessionConfig(trialsPerBlock: 5, blockCount: 1, stopRatio: 1.0)
-        let engine = StopSignalEngine(config: config)
-
-        engine.beginTrial()
-        engine.showStimulus()
-        engine.showStopSignal()
-        #expect(engine.phase == .stopSignalShown)
-
-        engine.recordStopTimeout()
-        if case .feedback(let correct) = engine.phase {
-            #expect(correct)
-        }
-    }
-
-    @Test func completeAllTrials() {
-        let config = StopSignalSessionConfig(trialsPerBlock: 5, blockCount: 1, stopRatio: 0.2)
-        let engine = StopSignalEngine(config: config)
-
-        for _ in 0..<5 {
-            engine.beginTrial()
-            engine.showStimulus()
-            let trial = engine.currentTrial!
-            if trial.hasStopSignal {
-                engine.showStopSignal()
-                engine.recordStopTimeout()
-            } else {
-                _ = engine.recordResponse(trial.correctDirection, at: Date().addingTimeInterval(0.3))
-            }
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-        let m = engine.computeMetrics()
-        #expect(m.totalTrials == 5)
-    }
-}
-
 struct NBackFlowTests {
-    @Test func userPacedStimulusFlow() {
+    @Test func autoPacedStimulusFlow() {
         let config = NBackSessionConfig(startingN: 1, trialsPerBlock: 5, blockCount: 1)
         let engine = NBackEngine(config: config)
 
-        engine.advanceByUser()
+        engine.beginTrial()
         #expect(engine.phase == .stimulus)
         #expect(engine.currentStimulus != nil)
 
-        _ = engine.recordNonMatch(at: Date())
+        engine.enterISI()
+        #expect(engine.phase == .isi)
+
+        engine.advanceTrial()
         #expect(engine.phase == .stimulus)
         #expect(engine.currentTrialIndex == 1)
     }
@@ -282,21 +65,30 @@ struct NBackFlowTests {
         let engine = NBackEngine(config: config)
 
         while !engine.isComplete {
-            if engine.phase == .idle {
-                engine.advanceByUser()
-            }
-            if engine.currentTrialIndex >= engine.currentN && engine.isTarget {
-                let result = engine.recordMatch(at: Date())
-                #expect(result != nil)
-                #expect(result?.isTarget == true)
-            } else {
-                _ = engine.recordNonMatch(at: Date())
+            switch engine.phase {
+            case .idle:
+                engine.beginTrial()
+            case .stimulus:
+                // Respond "match" only on targets (single-key paradigm).
+                if engine.currentTrialIndex >= engine.currentN && engine.isTarget {
+                    engine.recordMatch(at: Date())
+                }
+                engine.enterISI()
+            case .isi:
+                engine.advanceTrial()
+            case .practiceComplete:
+                engine.beginTrial()
+            case let .blockBreak(_, nextN):
+                engine.startNextBlock(n: nextN)
+            case .completed:
+                break
             }
         }
 
         #expect(engine.isComplete)
         let m = engine.computeMetrics()
         #expect(m.hitRate > 0)
+        #expect(m.dPrime > 0)
     }
 }
 
@@ -371,59 +163,3 @@ struct CorsiBlockFlowTests {
     }
 }
 
-struct CoordinatorFlowTests {
-    @Test func choiceRTCoordinatorFullCycle() {
-        let coord = ChoiceRTCoordinator()
-        coord.startSession(settings: .default)
-        #expect(coord.isActive)
-        #expect(coord.engine != nil)
-
-        let engine = coord.engine!
-        while !engine.isComplete {
-            engine.beginTrial()
-            engine.showStimulus()
-            let trial = engine.currentTrial!
-            let onset = engine.stimulusOnsetTime!
-            let result = coord.handleResponse(trial.correctResponseIndex, at: onset.addingTimeInterval(0.3))
-            if result != nil { break }
-        }
-
-        #expect(coord.lastResult != nil)
-        #expect(coord.lastResult?.module == .choiceRT)
-    }
-
-    @Test func goNoGoCoordinatorFullCycle() {
-        let config = GoNoGoSessionConfig(trialsPerBlock: 10, blockCount: 1)
-        let engine = GoNoGoEngine(config: config)
-
-        for _ in 0..<10 {
-            engine.beginTrial()
-            engine.showStimulus()
-            if engine.currentTrial!.stimulusType == .go {
-                _ = engine.recordTap(at: Date())
-            } else {
-                engine.recordTimeout()
-            }
-            engine.advanceToNext()
-        }
-
-        #expect(engine.isComplete)
-        let m = engine.computeMetrics()
-        #expect(m.totalTrials == 10)
-    }
-
-    @Test func flankerCoordinatorFullCycle() {
-        let coord = FlankerCoordinator()
-        coord.startSession(settings: .default)
-
-        let engine = coord.engine!
-        while !engine.isComplete {
-            engine.beginTrial()
-            engine.showStimulus()
-            let result = coord.handleResponse(engine.currentTrial!.targetDirection, at: Date())
-            if result != nil { break }
-        }
-
-        #expect(coord.lastResult != nil)
-    }
-}

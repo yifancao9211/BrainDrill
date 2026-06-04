@@ -8,6 +8,8 @@ struct CorsiBlockTrainingView: View {
 
     @State private var userInput: [Int] = []
     @State private var selectedMode: CorsiBlockMode = .forward
+    @State private var showCancelConfirmation = false
+    @State private var countdown = CountdownState()
 
     private let gridSize = 9
     private let columns = 3
@@ -27,40 +29,38 @@ struct CorsiBlockTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { BDCountdownOverlay(countdown: countdown) }
     }
 
     private var idleView: some View {
-        SurfaceCard(title: "空间广度训练", subtitle: "在统一训练壳层中完成空间编码、复现和结果回看。", accent: BDColor.corsiBlockAccent) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    InfoPill(title: "起始广度 \(appModel.settings.corsiBlockStartingLength)", accent: BDColor.corsiBlockAccent)
-                    InfoPill(title: "核心指标 Span", accent: BDColor.green)
-                }
-
-                BDInsightCard(
-                    title: "训练说明",
-                    bodyText: "先稳定编码空间序列，再完成正序或倒序复现。优先保证正确率，再看广度是否抬升。",
-                    accent: BDColor.corsiBlockAccent
-                )
-
-                Picker("模式", selection: $selectedMode) {
-                    ForEach(CorsiBlockMode.allCases) { mode in
-                        Text(mode.displayName).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 220)
-
-                Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
-                    .font(.system(.caption))
-                    .foregroundStyle(BDColor.textSecondary)
-
-                Button("开始训练") {
-                    userInput = []
-                    appModel.startCorsiBlockSession(mode: selectedMode)
-                }
-                .buttonStyle(BDPrimaryButton(accent: BDColor.corsiBlockAccent))
+        BDTrainingIdleCard(
+            title: "空间广度训练",
+            subtitle: "在统一训练壳层中完成空间编码、复现和结果回看。",
+            accent: BDColor.corsiBlockAccent,
+            insightTitle: "训练说明",
+            insightBody: "先稳定编码空间序列，再完成正序或倒序复现。优先保证正确率，再看广度是否抬升。"
+        ) {
+            let mode = selectedMode
+            countdown.onComplete = {
+                userInput = []
+                appModel.startCorsiBlockSession(mode: mode)
             }
+            countdown.start()
+        } pills: {
+            InfoPill(title: "起始广度 \(appModel.settings.corsiBlockStartingLength)", accent: BDColor.corsiBlockAccent)
+            InfoPill(title: "核心指标 Span", accent: BDColor.green)
+        } extra: {
+            Picker("模式", selection: $selectedMode) {
+                ForEach(CorsiBlockMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 220)
+
+            Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+                .font(.system(.caption))
+                .foregroundStyle(BDColor.textSecondary)
         }
     }
 
@@ -97,8 +97,14 @@ struct CorsiBlockTrainingView: View {
             VStack(spacing: 16) {
                 staircaseStatus(engine: engine)
 
-                Button("取消") { appModel.cancelCorsiBlockSession() }
+                Button("取消") { showCancelConfirmation = true }
                     .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                        Button("取消训练", role: .destructive) { appModel.cancelCorsiBlockSession() }
+                        Button("继续训练", role: .cancel) {}
+                    } message: {
+                        Text("本次训练不会计入记录。")
+                    }
             }
         }
     }
@@ -256,9 +262,9 @@ struct CorsiBlockTrainingView: View {
                 .foregroundStyle(BDColor.corsiBlockAccent)
 
             HStack(spacing: 16) {
-                CBResultCard(label: "最大广度", value: "\(metrics.maxSpan)", color: BDColor.corsiBlockAccent)
-                CBResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                CBResultCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
+                BDResultMetricCard(label: "最大广度", value: "\(metrics.maxSpan)", color: BDColor.corsiBlockAccent)
+                BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
+                BDResultMetricCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -385,14 +391,3 @@ private extension Array {
     }
 }
 
-private struct CBResultCard: View {
-    let label: String; let value: String; let color: Color
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(label).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity).padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.08)))
-    }
-}

@@ -1,6 +1,13 @@
 import Foundation
 import Observation
 
+/// Standard auto-paced single-key N-Back (Jaeggi-style).
+///
+/// Stimuli play automatically one at a time: each digit is shown for
+/// `currentStimulusDurationMs`, followed by a blank inter-stimulus interval of
+/// `currentISIMs`. The participant presses "match" only when the current digit
+/// equals the one N positions back; non-targets require no response. The first
+/// N stimuli of every block have no possible target and are observation-only.
 @Observable
 final class NBackEngine {
     let config: NBackSessionConfig
@@ -16,13 +23,16 @@ final class NBackEngine {
     private(set) var phase: Phase = .idle
     private(set) var stimulusOnsetTime: Date?
     private(set) var respondedThisTrial: Bool = false
+    /// True while the leading, unscored warm-up block is playing.
+    private(set) var isPractice: Bool = false
     private var responseTimeThisTrial: TimeInterval?
     private var slowDownNextBlock: Bool = false
 
     enum Phase: Equatable, Hashable {
         case idle
         case stimulus
-        case feedback(correct: Bool)
+        case isi
+        case practiceComplete
         case blockBreak(blockIndex: Int, nextN: Int)
         case completed
     }
@@ -32,9 +42,16 @@ final class NBackEngine {
         return sequence[currentTrialIndex]
     }
 
+    /// Whether the current trial is a target (current digit == digit N steps back).
     var isTarget: Bool {
         guard currentTrialIndex >= currentN, currentTrialIndex < sequence.count else { return false }
         return sequence[currentTrialIndex] == sequence[currentTrialIndex - currentN]
+    }
+
+    /// True while the current digit is part of the leading N-digit memory build-up,
+    /// where no response is possible yet.
+    var isObservationOnly: Bool {
+        currentTrialIndex < currentN
     }
 
     var trialsInCurrentBlock: Int {
@@ -46,7 +63,9 @@ final class NBackEngine {
     }
 
     var completionFraction: Double {
+        guard !isPractice else { return 0 }
         let totalTrials = config.blockCount * trialsInCurrentBlock
+        guard totalTrials > 0 else { return 0 }
         return Double(currentBlock * trialsInCurrentBlock + currentTrialIndex % trialsInCurrentBlock) / Double(totalTrials)
     }
 
@@ -63,7 +82,16 @@ final class NBackEngine {
         let timing = AdaptiveScoring.nBackTiming(level: config.startingN, internalSkillScore: config.internalSkillScore, slowDownAfterPoorBlock: false)
         self.currentStimulusDurationMs = timing.stimulusMs
         self.currentISIMs = timing.isiMs
-        self.sequence = Self.generateSequence(config: config, n: config.startingN)
+        self.isPractice = config.practiceTrials > 0
+        let leadingTrials = isPractice ? config.practiceTrials : config.trialsPerBlock
+        self.sequence = Self.generateSequence(config: config, n: config.startingN, trials: leadingTrials)
+    }
+
+    // MARK: - Auto-paced flow
+
+    /// Begin the first/next trial of the current block (called when phase is `.idle`).
+    func beginTrial(at date: Date = Date()) {
+        showStimulus(at: date)
     }
 
     func showStimulus(at date: Date = Date()) {
@@ -73,55 +101,37 @@ final class NBackEngine {
         responseTimeThisTrial = nil
     }
 
-    func enterISI(at date: Date = Date()) {
-        finishCurrentTrialIfNeeded(at: date)
-        phase = .idle
+    /// Stimulus is hidden; the response window remains open through the blank ISI.
+    func enterISI() {
+        guard phase == .stimulus else { return }
+        phase = .isi
     }
 
-    func recordMatch(at date: Date) -> NBackTrialResult? {
-        recordResponse(isMatch: true, at: date)
-    }
-
-    func recordNonMatch(at date: Date) -> NBackTrialResult? {
-        recordResponse(isMatch: false, at: date)
-    }
-
-    func recordResponse(isMatch: Bool, at date: Date) -> NBackTrialResult? {
-        guard phase == .stimulus, !respondedThisTrial else { return nil }
+    /// Record a single "match" response for the current trial. A non-response means
+    /// the participant judged the digit as a non-match.
+    func recordMatch(at date: Date) {
+        guard phase == .stimulus || phase == .isi else { return }
+        guard !respondedThisTrial, currentTrialIndex >= currentN else { return }
         respondedThisTrial = true
-        let rt = stimulusOnsetTime.map { date.timeIntervalSince($0) }
-        responseTimeThisTrial = rt
-        let result: NBackTrialResult?
-        if currentTrialIndex >= currentN {
-            let trialResult = NBackTrialResult(
-                trialIndex: absoluteTrialIndex,
-                isTarget: isTarget,
-                responded: isMatch,
-                reactionTime: rt,
-                decisionInterval: rt
-            )
-            results.append(trialResult)
-            result = trialResult
-        } else {
-            result = nil
-        }
-        advanceToNext(at: date)
-        if phase == .idle {
-            showStimulus(at: date)
-        }
-        return result
+        responseTimeThisTrial = stimulusOnsetTime.map { date.timeIntervalSince($0) }
     }
 
-    func dismissFeedback() {
-        guard case .feedback = phase else { return }
-        phase = .stimulus
-    }
-
-    func advanceToNext(at date: Date = Date()) {
+    /// Close the current trial, score it, and either present the next digit, take a
+    /// block break, or finish the session.
+    func advanceTrial(at date: Date = Date()) {
         finishCurrentTrialIfNeeded(at: date)
         currentTrialIndex += 1
 
         if currentTrialIndex >= sequence.count {
+            // End of the warm-up block: switch to the first scored block (same N).
+            if isPractice {
+                isPractice = false
+                currentTrialIndex = 0
+                sequence = Self.generateSequence(config: config, n: currentN, trials: config.trialsPerBlock)
+                phase = .practiceComplete
+                return
+            }
+
             let blockAccuracy = computeBlockAccuracy()
             let (blockHitRate, blockFalseAlarmRate) = computeRecentBlockSignal()
 
@@ -141,37 +151,22 @@ final class NBackEngine {
             slowDownNextBlock = blockHitRate < 0.65 || blockFalseAlarmRate > 0.30
             phase = .blockBreak(blockIndex: currentBlock, nextN: nextN)
         } else {
-            phase = .idle
-        }
-    }
-
-    func advanceByUser(at date: Date = Date()) {
-        switch phase {
-        case .idle:
             showStimulus(at: date)
-        case .stimulus, .feedback:
-            advanceToNext(at: date)
-            if phase == .idle {
-                showStimulus(at: date)
-            }
-        case let .blockBreak(_, nextN):
-            startNextBlock(n: nextN)
-            showStimulus(at: date)
-        case .completed:
-            break
         }
     }
 
     func startNextBlock(n: Int) {
         currentN = n
         currentTrialIndex = 0
-        sequence = Self.generateSequence(config: config, n: n)
+        sequence = Self.generateSequence(config: config, n: n, trials: config.trialsPerBlock)
         let timing = AdaptiveScoring.nBackTiming(level: n, internalSkillScore: config.internalSkillScore, slowDownAfterPoorBlock: slowDownNextBlock)
         currentStimulusDurationMs = timing.stimulusMs
         currentISIMs = timing.isiMs
         slowDownNextBlock = false
         phase = .idle
     }
+
+    // MARK: - Metrics
 
     func computeMetrics() -> NBackMetrics {
         let targets = results.filter(\.isTarget)
@@ -185,7 +180,9 @@ final class NBackEngine {
         let hr = min(max(hitRate, 0.01), 0.99)
         let fa = min(max(faRate, 0.01), 0.99)
         let dPrime = Self.zScore(hr) - Self.zScore(fa)
-        let averageDecisionInterval = results.compactMap(\.decisionInterval).average ?? 0
+        // Mean reaction time over responded trials (auto-paced: a fixed-pace
+        // "decision interval" is not meaningful, so report response speed instead).
+        let averageDecisionInterval = results.compactMap(\.reactionTime).average ?? 0
 
         return NBackMetrics(
             nLevel: currentN,
@@ -219,16 +216,16 @@ final class NBackEngine {
     }
 
     private func finishCurrentTrialIfNeeded(at date: Date) {
+        guard !isPractice else { return } // warm-up trials are not scored
         guard currentTrialIndex >= currentN, currentTrialIndex < sequence.count else { return }
         guard !results.contains(where: { $0.trialIndex == absoluteTrialIndex }) else { return }
 
-        let decisionInterval = stimulusOnsetTime.map { date.timeIntervalSince($0) }
         let result = NBackTrialResult(
             trialIndex: absoluteTrialIndex,
             isTarget: isTarget,
             responded: respondedThisTrial,
             reactionTime: responseTimeThisTrial,
-            decisionInterval: decisionInterval
+            decisionInterval: responseTimeThisTrial
         )
         results.append(result)
     }
@@ -242,16 +239,16 @@ final class NBackEngine {
         return clamped < 0.5 ? -z : z
     }
 
-    private static func generateSequence(config: NBackSessionConfig, n: Int) -> [Int] {
-        let total = config.trialsPerBlock + n
-        let targetCount = Int(Double(config.trialsPerBlock) * config.targetRatio)
+    private static func generateSequence(config: NBackSessionConfig, n: Int, trials: Int) -> [Int] {
+        let total = trials + n
+        let targetCount = Int(Double(trials) * config.targetRatio)
         var sequence: [Int] = []
 
         for i in 0..<total {
             if i < n {
                 sequence.append(Int.random(in: config.stimulusRange))
             } else {
-                let shouldBeTarget = sequence.count - n < config.trialsPerBlock &&
+                let shouldBeTarget = sequence.count - n < trials &&
                     (total - i <= targetCount - countTargets(in: sequence, n: n) ||
                      (Bool.random() && countTargets(in: sequence, n: n) < targetCount))
 

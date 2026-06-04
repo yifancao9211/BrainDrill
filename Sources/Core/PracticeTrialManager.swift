@@ -25,8 +25,6 @@ final class PracticeTrialManager {
         switch module {
         case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
             return 0
-        case .choiceRT, .goNoGo, .flanker, .visualSearch, .stopSignal:
-            return 3
         case .digitSpan, .changeDetection, .nBack, .corsiBlock:
             return 2
         case .schulte:

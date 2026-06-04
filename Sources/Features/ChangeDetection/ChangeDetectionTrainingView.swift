@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ChangeDetectionTrainingView: View {
     @Environment(AppModel.self) private var appModel
+    @State private var showCancelConfirmation = false
+    @State private var countdown = CountdownState()
+    @State private var phaseTimer = PhaseScheduler()
 
     private var coordinator: ChangeDetectionCoordinator { appModel.changeDetection }
 
@@ -24,27 +27,22 @@ struct ChangeDetectionTrainingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay { BDCountdownOverlay(countdown: countdown) }
     }
 
     private var idleView: some View {
-        SurfaceCard(title: "变更检测", subtitle: "统一进入训练壳层完成编码、保持与探测。", accent: BDColor.changeDetectionAccent) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    InfoPill(title: "起始集合 \(appModel.settings.changeDetectionInitialSetSize)", accent: BDColor.changeDetectionAccent)
-                    InfoPill(title: "核心指标 d'", accent: BDColor.green)
-                }
-
-                BDInsightCard(
-                    title: "训练说明",
-                    bodyText: "先记住编码画面，短暂保持后判断探测画面是否发生变化。正确率稳定后集合大小会提高。",
-                    accent: BDColor.changeDetectionAccent
-                )
-
-                Button("开始训练") {
-                    appModel.startChangeDetectionSession()
-                }
-                .buttonStyle(BDPrimaryButton(accent: BDColor.changeDetectionAccent))
-            }
+        BDTrainingIdleCard(
+            title: "变更检测",
+            subtitle: "统一进入训练壳层完成编码、保持与探测。",
+            accent: BDColor.changeDetectionAccent,
+            insightTitle: "训练说明",
+            insightBody: "先记住编码画面，短暂保持后判断探测画面是否发生变化。正确率稳定后集合大小会提高。"
+        ) {
+            countdown.onComplete = { appModel.startChangeDetectionSession() }
+            countdown.start()
+        } pills: {
+            InfoPill(title: "起始集合 \(appModel.settings.changeDetectionInitialSetSize)", accent: BDColor.changeDetectionAccent)
+            InfoPill(title: "核心指标 d'", accent: BDColor.green)
         }
     }
 
@@ -77,7 +75,7 @@ struct ChangeDetectionTrainingView: View {
                         Button("变了") {
                             _ = appModel.handleChangeDetectionResponse(changed: true)
                         }
-                        .buttonStyle(BDPrimaryButton(accent: BDColor.choiceRTAccent))
+                        .buttonStyle(BDPrimaryButton(accent: BDColor.changeDetectionAccent))
                         .keyboardShortcut("2", modifiers: [])
                     }
                 }
@@ -86,12 +84,19 @@ struct ChangeDetectionTrainingView: View {
                     .tint(BDColor.changeDetectionAccent)
                     .frame(maxWidth: 300)
 
-                Button("取消") { appModel.cancelChangeDetectionSession() }
+                Button("取消") { showCancelConfirmation = true }
                     .buttonStyle(BDSecondaryButton(accent: BDColor.error))
+                    .confirmationDialog("确定取消训练？", isPresented: $showCancelConfirmation, titleVisibility: .visible) {
+                        Button("取消训练", role: .destructive) { appModel.cancelChangeDetectionSession() }
+                        Button("继续训练", role: .cancel) {}
+                    } message: {
+                        Text("本次训练不会计入记录。")
+                    }
             }
         }
         .onAppear { schedulePhase(engine) }
         .onChange(of: engine.phase) { _, _ in schedulePhase(engine) }
+        .onDisappear { phaseTimer.cancel() }
     }
 
     @ViewBuilder
@@ -131,24 +136,24 @@ struct ChangeDetectionTrainingView: View {
         case .idle:
             engine.beginTrial()
         case .encoding:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.encodingMs)) {
+            phaseTimer.schedule(afterMilliseconds: engine.config.encodingMs) {
                 guard engine.phase == .encoding else { return }
                 engine.startRetention()
             }
         case .retention:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(engine.config.retentionMs)) {
+            phaseTimer.schedule(afterMilliseconds: engine.config.retentionMs) {
                 guard engine.phase == .retention else { return }
                 engine.showProbe()
             }
         case .feedback:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(350)) {
+            phaseTimer.schedule(afterMilliseconds: 350) {
                 engine.advanceToNext()
                 if engine.isComplete {
                     appModel.finalizeChangeDetectionIfComplete()
                 }
             }
         case .iti:
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(220)) {
+            phaseTimer.schedule(afterMilliseconds: 220) {
                 engine.beginTrial()
             }
         default:
@@ -179,9 +184,9 @@ struct ChangeDetectionTrainingView: View {
                 .foregroundStyle(BDColor.changeDetectionAccent)
 
             HStack(spacing: 16) {
-                CDResultCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.changeDetectionAccent)
-                CDResultCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                CDResultCard(label: "最大集合", value: "\(metrics.maxSetSize)", color: BDColor.warm)
+                BDResultMetricCard(label: "d'", value: String(format: "%.2f", metrics.dPrime), color: BDColor.changeDetectionAccent)
+                BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
+                BDResultMetricCard(label: "最大集合", value: "\(metrics.maxSetSize)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -197,16 +202,4 @@ struct ChangeDetectionTrainingView: View {
     }
 
     // feedbackText removed
-}
-
-private struct CDResultCard: View {
-    let label: String; let value: String; let color: Color
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(label).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity).padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.08)))
-    }
 }

@@ -89,14 +89,9 @@ enum TrainingScheduler {
         case let .mainIdea(m):        return m.isCorrect ? 1.0 : 0.0
         case let .evidenceMap(m):     return m.accuracy
         case let .delayedRecall(m):   return m.accuracy
-        case let .choiceRT(m):        return m.accuracy * (1.0 - m.medianRT)
-        case let .goNoGo(m):          return m.dPrime / 4.0
-        case let .flanker(m):         return m.accuracy * (1.0 - m.conflictCost)
         case let .digitSpan(m):       return Double(max(m.maxSpanForward, m.maxSpanBackward)) / 9.0
         case let .changeDetection(m): return m.dPrime / 4.0
-        case let .visualSearch(m):    return m.accuracy
         case let .nBack(m):           return m.dPrime / 4.0
-        case let .stopSignal(m):      return m.inhibitionRate
         case let .corsiBlock(m):      return Double(m.maxSpan) / 9.0
         case let .syllogism(m):       return m.accuracy
         case let .logicArgument(m):   return m.compositeScore

@@ -10,8 +10,6 @@ enum SkillCategory: String, Codable, CaseIterable, Identifiable {
     case readingComprehension
     case logicalReasoning
     case memory
-    case reactionSpeed
-    case inhibitionControl
     case visualAttentionSearch
 
     var id: String { rawValue }
@@ -24,10 +22,6 @@ enum SkillCategory: String, Codable, CaseIterable, Identifiable {
             "逻辑推理"
         case .memory:
             "记忆"
-        case .reactionSpeed:
-            "反应速度"
-        case .inhibitionControl:
-            "抑制控制"
         case .visualAttentionSearch:
             "视觉注意/搜索"
         }
@@ -92,12 +86,13 @@ struct AppSkillProfile: Equatable {
             partial[module] = states[module] ?? .default(for: module)
         }
 
-        let categoryScores = SkillCategory.allCases.map { category in
+        // Only surface categories that actually have at least one module mapped to
+        // them. This auto-hides categories left empty by module removals (e.g. the
+        // old "抑制控制" category) instead of rendering a permanent zero row.
+        let categoryScores = SkillCategory.allCases.compactMap { category -> CategorySkillScore? in
             let modules = mergedStates.filter { $0.key.skillCategory == category }
             let count = modules.count
-            guard count > 0 else {
-                return CategorySkillScore(category: category, score: 0, confidence: 0, moduleCount: 0)
-            }
+            guard count > 0 else { return nil }
 
             let averageScore = modules.values.map(\.internalSkillScore).reduce(0, +) / Double(count)
             let averageConfidence = modules.values.map(\.confidence).reduce(0, +) / Double(count)

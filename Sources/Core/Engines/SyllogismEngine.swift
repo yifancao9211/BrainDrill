@@ -18,6 +18,9 @@ final class SyllogismEngine {
     private let localTrials: [SyllogismTrial]
     private var usedTrialFingerprints: Set<String> = []
     private var recentTypes: [SyllogismType] = []
+    /// Fingerprints generated during THIS session, in order — persisted by the
+    /// coordinator so later sessions can avoid recently-seen items.
+    private(set) var generatedFingerprints: [String] = []
 
     enum Phase: Equatable {
         case idle
@@ -38,10 +41,12 @@ final class SyllogismEngine {
 
     // MARK: - Init
 
-    init(difficulty: Int, totalTrials: Int? = nil, startedAt: Date = Date(), localTrials: [SyllogismTrial] = []) {
+    init(difficulty: Int, totalTrials: Int? = nil, startedAt: Date = Date(), localTrials: [SyllogismTrial] = [], seenFingerprints: [String] = []) {
         self.difficulty = difficulty
         self.startedAt = startedAt
         self.localTrials = localTrials
+        // Pre-seed with recently-seen items so this session avoids repeating them.
+        self.usedTrialFingerprints = Set(seenFingerprints)
 
         if let totalTrials {
             self.totalTrials = totalTrials
@@ -210,6 +215,7 @@ final class SyllogismEngine {
 
     private func registerGeneratedTrial(_ trial: SyllogismTrial) {
         usedTrialFingerprints.insert(trial.repetitionFingerprint)
+        generatedFingerprints.append(trial.repetitionFingerprint)
         recentTypes.append(trial.type)
 
         let maxRecentTypes = min(6, max(2, SyllogismType.available(for: difficulty).count / 3))

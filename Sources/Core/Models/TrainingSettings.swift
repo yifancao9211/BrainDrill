@@ -9,9 +9,6 @@ struct TrainingSettings: Codable, Equatable {
     var schulteSetRep: SchulteSetRepConfig
     var showFixationDot: Bool
 
-    // Flanker
-    var flankerStimulusDurationMs: Int
-
     // N-Back
     var nBackStartingN: Int
     var nBackStimulusDurationMs: Int
@@ -24,18 +21,10 @@ struct TrainingSettings: Codable, Equatable {
     // Corsi Block
     var corsiBlockStartingLength: Int
 
-    // Choice RT
-    var choiceRTChoiceCount: Int
-    var choiceRTTrialsPerBlock: Int
-
     // Change Detection
     var changeDetectionInitialSetSize: Int
     var changeDetectionEncodingMs: Int
     var changeDetectionRetentionMs: Int
-
-    // Visual Search
-    var visualSearchSetSizes: [Int]
-    var visualSearchTrialsPerSize: Int
 
     // General
     var dailyPlanEnabled: Bool
@@ -47,20 +36,15 @@ struct TrainingSettings: Codable, Equatable {
         self.adaptiveConfig = .init()
         self.schulteSetRep = .init()
         self.showFixationDot = true
-        self.flankerStimulusDurationMs = 200
         self.nBackStartingN = 1
         self.nBackStimulusDurationMs = 800
         self.nBackISIMs = 1400
         self.digitSpanStartingLength = 3
         self.digitSpanPresentationMs = 800
         self.corsiBlockStartingLength = 3
-        self.choiceRTChoiceCount = 2
-        self.choiceRTTrialsPerBlock = 18
         self.changeDetectionInitialSetSize = 3
         self.changeDetectionEncodingMs = 350
         self.changeDetectionRetentionMs = 600
-        self.visualSearchSetSizes = [8, 16, 24]
-        self.visualSearchTrialsPerSize = 6
         self.dailyPlanEnabled = true
     }
 
@@ -72,20 +56,15 @@ struct TrainingSettings: Codable, Equatable {
         adaptiveConfig = try c.decodeIfPresent(AdaptiveDifficulty.Config.self, forKey: .adaptiveConfig) ?? .init()
         schulteSetRep = try c.decodeIfPresent(SchulteSetRepConfig.self, forKey: .schulteSetRep) ?? .init()
         showFixationDot = try c.decodeIfPresent(Bool.self, forKey: .showFixationDot) ?? true
-        flankerStimulusDurationMs = try c.decodeIfPresent(Int.self, forKey: .flankerStimulusDurationMs) ?? 200
         nBackStartingN = try c.decodeIfPresent(Int.self, forKey: .nBackStartingN) ?? 1
         nBackStimulusDurationMs = try c.decodeIfPresent(Int.self, forKey: .nBackStimulusDurationMs) ?? 800
         nBackISIMs = try c.decodeIfPresent(Int.self, forKey: .nBackISIMs) ?? 1400
         digitSpanStartingLength = try c.decodeIfPresent(Int.self, forKey: .digitSpanStartingLength) ?? 3
         digitSpanPresentationMs = try c.decodeIfPresent(Int.self, forKey: .digitSpanPresentationMs) ?? 800
         corsiBlockStartingLength = try c.decodeIfPresent(Int.self, forKey: .corsiBlockStartingLength) ?? 3
-        choiceRTChoiceCount = try c.decodeIfPresent(Int.self, forKey: .choiceRTChoiceCount) ?? 2
-        choiceRTTrialsPerBlock = try c.decodeIfPresent(Int.self, forKey: .choiceRTTrialsPerBlock) ?? 18
         changeDetectionInitialSetSize = try c.decodeIfPresent(Int.self, forKey: .changeDetectionInitialSetSize) ?? 3
         changeDetectionEncodingMs = try c.decodeIfPresent(Int.self, forKey: .changeDetectionEncodingMs) ?? 350
         changeDetectionRetentionMs = try c.decodeIfPresent(Int.self, forKey: .changeDetectionRetentionMs) ?? 600
-        visualSearchSetSizes = try c.decodeIfPresent([Int].self, forKey: .visualSearchSetSizes) ?? [8, 16, 24]
-        visualSearchTrialsPerSize = try c.decodeIfPresent(Int.self, forKey: .visualSearchTrialsPerSize) ?? 6
         dailyPlanEnabled = try c.decodeIfPresent(Bool.self, forKey: .dailyPlanEnabled) ?? true
     }
 

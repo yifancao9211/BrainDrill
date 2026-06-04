@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class SyllogismCoordinator {
+final class SyllogismCoordinator: TrainingModuleCoordinator {
     var engine: SyllogismEngine?
     var statusMessage: String = "逻辑快判：限时判断推理是否有效。"
     var lastResult: SessionResult?
@@ -33,6 +33,16 @@ final class SyllogismCoordinator {
         set {
             UserDefaults.standard.set(Array(newValue), forKey: "syllogism_completed_lessons")
         }
+    }
+
+    /// Rolling list of recently-seen trial fingerprints (persisted) so training
+    /// sessions don't repeat the same items across runs. Capped so the generator
+    /// always has fresh material to draw from.
+    private static let recentFingerprintCap = 40
+
+    var recentTrialFingerprints: [String] {
+        get { UserDefaults.standard.stringArray(forKey: "syllogism_recent_fingerprints") ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: "syllogism_recent_fingerprints") }
     }
 
     /// Per-type accuracy stats (persisted via UserDefaults)
@@ -102,7 +112,11 @@ final class SyllogismCoordinator {
 
     func startSession(adaptiveState: ModuleAdaptiveState) {
         let difficulty = adaptiveState.recommendedStartLevel
-        let eng = SyllogismEngine(difficulty: difficulty, localTrials: localTrials)
+        let eng = SyllogismEngine(
+            difficulty: difficulty,
+            localTrials: localTrials,
+            seenFingerprints: recentTrialFingerprints
+        )
 
         // Apply weak-type weights for spaced repetition
         var weights: [SyllogismType: Double] = [:]
@@ -193,6 +207,13 @@ final class SyllogismCoordinator {
         )
         lastResult = result
         sessionsCompleted += 1
+
+        // Remember the items shown this session so future sessions avoid them.
+        var recent = recentTrialFingerprints + engine.generatedFingerprints
+        if recent.count > Self.recentFingerprintCap {
+            recent.removeFirst(recent.count - Self.recentFingerprintCap)
+        }
+        recentTrialFingerprints = recent
 
         // Update per-type stats
         updateTypeStats(from: engine.trialResults)

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class NBackCoordinator {
+final class NBackCoordinator: TrainingModuleCoordinator {
     var engine: NBackEngine?
     var statusMessage: String = "N-Back 训练：判断当前数字是否与 N 步前相同。"
     var lastResult: SessionResult?
@@ -14,15 +14,15 @@ final class NBackCoordinator {
     func startSession(settings: TrainingSettings) {
         let config = NBackSessionConfig(
             startingN: settings.nBackStartingN,
+            practiceTrials: 4,
             stimulusDurationMs: settings.nBackStimulusDurationMs,
             isiMs: settings.nBackISIMs
         )
         engine = NBackEngine(config: config)
-        engine?.showStimulus()
         lastResult = nil
         sessionConditions = SessionConditions(
             hintsEnabled: false,
-            feedbackEnabled: true,
+            feedbackEnabled: false,
             adaptiveEnabled: false,
             customParameters: [
                 "startingN": "\(config.startingN)",
@@ -32,10 +32,10 @@ final class NBackCoordinator {
                 "targetRatio": "\(config.targetRatio)",
                 "referenceStimulusDurationMs": "\(config.stimulusDurationMs)",
                 "referenceISIMs": "\(config.isiMs)",
-                "pacing": "user"
+                "pacing": "auto"
             ]
         )
-        statusMessage = "\(config.startingN)-Back — 当前数字与 \(config.startingN) 步前相同时点击「匹配」"
+        statusMessage = "\(config.startingN)-Back — 数字自动播放，与 \(config.startingN) 步前相同时按「匹配」"
     }
 
     func startSession(settings: TrainingSettings, adaptiveState: ModuleAdaptiveState) {
@@ -47,16 +47,16 @@ final class NBackCoordinator {
         )
         let config = NBackSessionConfig(
             startingN: startLevel,
+            practiceTrials: 4,
             stimulusDurationMs: timing.stimulusMs,
             isiMs: timing.isiMs,
             internalSkillScore: adaptiveState.internalSkillScore
         )
         engine = NBackEngine(config: config)
-        engine?.showStimulus()
         lastResult = nil
         sessionConditions = SessionConditions(
             hintsEnabled: false,
-            feedbackEnabled: true,
+            feedbackEnabled: false,
             adaptiveEnabled: true,
             customParameters: [
                 "startingN": "\(config.startingN)",
@@ -66,31 +66,19 @@ final class NBackCoordinator {
                 "targetRatio": "\(config.targetRatio)",
                 "referenceStimulusDurationMs": "\(config.stimulusDurationMs)",
                 "referenceISIMs": "\(config.isiMs)",
-                "pacing": "user"
+                "pacing": "auto"
             ]
         )
-        statusMessage = "\(startLevel)-Back — 当前数字与 \(startLevel) 步前相同时点击「匹配」"
+        statusMessage = "\(startLevel)-Back — 数字自动播放，与 \(startLevel) 步前相同时按「匹配」"
     }
 
-    func handleMatch(at date: Date = Date()) -> SessionResult? {
-        guard let engine else { return nil }
-        _ = engine.recordMatch(at: date)
-        return buildResultIfComplete()
+    /// Register a single "match" response for the current trial.
+    func handleMatch(at date: Date = Date()) {
+        engine?.recordMatch(at: date)
     }
 
-    func handleNonMatch(at date: Date = Date()) -> SessionResult? {
-        guard let engine else { return nil }
-        _ = engine.recordNonMatch(at: date)
-        return buildResultIfComplete()
-    }
-
-    func handleNext(at date: Date = Date()) -> SessionResult? {
-        guard let engine else { return nil }
-        engine.advanceByUser(at: date)
-        return buildResultIfComplete()
-    }
-
-    func buildResultIfComplete() -> SessionResult? {
+    /// Build the session result once the auto-paced stream has finished.
+    func finalizeIfComplete() -> SessionResult? {
         guard let engine, engine.isComplete else { return nil }
         return buildResult()
     }

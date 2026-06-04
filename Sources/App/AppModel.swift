@@ -32,15 +32,10 @@ final class AppModel {
     var recentlyUnlockedAchievements: [Achievement] = []
 
     let schulte: SchulteCoordinator
-    let flanker: FlankerCoordinator
-    let goNoGo: GoNoGoCoordinator
     let nBack: NBackCoordinator
     let digitSpan: DigitSpanCoordinator
-    let choiceRT: ChoiceRTCoordinator
     let changeDetection: ChangeDetectionCoordinator
-    let visualSearch: VisualSearchCoordinator
     let corsiBlock: CorsiBlockCoordinator
-    let stopSignal: StopSignalCoordinator
     let syllogismCoord: SyllogismCoordinator
     let logicArgumentCoord: LogicArgumentCoordinator
 
@@ -49,15 +44,10 @@ final class AppModel {
     init(store: any TrainingStore) {
         self.store = store
         self.schulte = SchulteCoordinator()
-        self.flanker = FlankerCoordinator()
-        self.goNoGo = GoNoGoCoordinator()
         self.nBack = NBackCoordinator()
         self.digitSpan = DigitSpanCoordinator()
-        self.choiceRT = ChoiceRTCoordinator()
         self.changeDetection = ChangeDetectionCoordinator()
-        self.visualSearch = VisualSearchCoordinator()
         self.corsiBlock = CorsiBlockCoordinator()
-        self.stopSignal = StopSignalCoordinator()
         self.syllogismCoord = SyllogismCoordinator()
         self.logicArgumentCoord = LogicArgumentCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
@@ -74,6 +64,21 @@ final class AppModel {
         self.syllogismCoord.localTrials = self.approvedSyllogismTrials
     }
 
+    /// All per-module coordinators keyed by module. Module-agnostic queries
+    /// (active?, status line, cancel, quick-start) look up here instead of using a
+    /// per-module `switch`, so adding/removing a module is a one-line change.
+    private var moduleCoordinators: [TrainingModule: any TrainingModuleCoordinator] {
+        [
+            .schulte: schulte,
+            .nBack: nBack,
+            .digitSpan: digitSpan,
+            .changeDetection: changeDetection,
+            .corsiBlock: corsiBlock,
+            .syllogism: syllogismCoord,
+            .logicArgument: logicArgumentCoord,
+        ]
+    }
+
     var statistics: TrainingStatistics {
         TrainingStatistics(sessions: sessions)
     }
@@ -87,84 +92,35 @@ final class AppModel {
     }
 
     var isAnyModuleActive: Bool {
-        schulte.isTrainingActive || flanker.isActive || goNoGo.isActive || nBack.isActive
-            || digitSpan.isActive || choiceRT.isActive || changeDetection.isActive || visualSearch.isActive
-            || corsiBlock.isActive || stopSignal.isActive || syllogismCoord.isActive || logicArgumentCoord.isActive
+        moduleCoordinators.values.contains { $0.isActive }
     }
 
     var isSelectedTrainingActive: Bool {
-        switch selectedRoute {
-        case .mainIdea, .evidenceMap, .delayedRecall:
-            false
-        case .syllogism:
-            syllogismCoord.isActive
-        case .logicArgument:
-            logicArgumentCoord.isActive
-        case .schulte:
-            schulte.isTrainingActive || schulte.isResting
-        case .nBack:
-            nBack.isActive
-        case .visualSearch:
-            visualSearch.isActive
-        case .flanker:
-            flanker.isActive
-        case .goNoGo:
-            goNoGo.isActive
-        case .stopSignal:
-            stopSignal.isActive
-        case .digitSpan:
-            digitSpan.isActive
-        case .corsiBlock:
-            corsiBlock.isActive
-        case .changeDetection:
-            changeDetection.isActive
-        case .choiceRT:
-            choiceRT.isActive
-        default:
-            false
-        }
+        guard let module = selectedRoute.trainingModule else { return false }
+        return moduleCoordinators[module]?.isActive ?? false
     }
 
     var currentStatusMessage: String {
+        if let module = selectedRoute.trainingModule, let coordinator = moduleCoordinators[module] {
+            return coordinator.statusMessage
+        }
         switch selectedRoute {
         case .mainIdea:
-            "抓一篇短文的主旨"
+            return "抓一篇短文的主旨"
         case .evidenceMap:
-            "判断结论、证据与限制"
+            return "判断结论、证据与限制"
         case .delayedRecall:
-            "延迟后提取关键点"
-        case .syllogism:
-            syllogismCoord.statusMessage
-        case .logicArgument:
-            logicArgumentCoord.statusMessage
-        case .schulte:
-            schulte.statusMessage
-        case .nBack:
-            nBack.statusMessage
-        case .visualSearch:
-            visualSearch.statusMessage
-        case .flanker:
-            flanker.statusMessage
-        case .goNoGo:
-            goNoGo.statusMessage
-        case .stopSignal:
-            stopSignal.statusMessage
-        case .digitSpan:
-            digitSpan.statusMessage
-        case .corsiBlock:
-            corsiBlock.statusMessage
-        case .changeDetection:
-            changeDetection.statusMessage
-        case .choiceRT:
-            choiceRT.statusMessage
+            return "延迟后提取关键点"
         case .materialsWorkbench:
-            "查看和导入阅读训练素材"
+            return "查看和导入阅读训练素材"
         case .home:
-            "查看阅读主线、支撑训练与关键统计"
+            return "查看阅读主线、支撑训练与关键统计"
         case .history:
-            "按模块过滤历史训练记录"
+            return "按模块过滤历史训练记录"
         case .settings:
-            "调整训练参数与应用配置"
+            return "调整训练参数与应用配置"
+        default:
+            return ""
         }
     }
 
@@ -218,31 +174,10 @@ final class AppModel {
                 return .warning
             }
             return .error
-        case let .visualSearch(metrics):
-            if metrics.accuracy >= 0.85 && metrics.errorRate <= 0.15 {
-                return .success
-            }
-            if metrics.accuracy >= 0.7 && metrics.errorRate <= 0.3 {
-                return .warning
-            }
-            return .error
-        case let .flanker(metrics):
-            if metrics.accuracy >= 0.85 && metrics.conflictCost <= 0.12 { return .success }
-            if metrics.accuracy >= 0.70 && metrics.conflictCost <= 0.25 { return .warning }
-            return .error
-        case let .goNoGo(metrics):
-            if metrics.dPrime >= 1.5 && metrics.goAccuracy >= 0.85 && metrics.noGoAccuracy >= 0.80 { return .success }
-            if metrics.dPrime >= 0.8 && metrics.goAccuracy >= 0.75 && metrics.noGoAccuracy >= 0.65 { return .warning }
-            return .error
         case let .digitSpan(metrics):
             let maxSpan = max(metrics.maxSpanForward, metrics.maxSpanBackward)
             if maxSpan >= 6 && metrics.accuracy >= 0.75 { return .success }
             if maxSpan >= 4 && metrics.accuracy >= 0.55 { return .warning }
-            return .error
-        case let .choiceRT(metrics):
-            let anticipationRate = metrics.totalTrials == 0 ? 0 : Double(metrics.anticipationCount) / Double(metrics.totalTrials)
-            if metrics.accuracy >= 0.90 && metrics.medianRT <= 0.55 && anticipationRate <= 0.05 { return .success }
-            if metrics.accuracy >= 0.75 && metrics.medianRT <= 0.85 && anticipationRate <= 0.15 { return .warning }
             return .error
         case let .changeDetection(metrics):
             if metrics.dPrime >= 1.5 && metrics.accuracy >= 0.80 { return .success }
@@ -251,10 +186,6 @@ final class AppModel {
         case let .corsiBlock(metrics):
             if metrics.maxSpan >= 5 && metrics.accuracy >= 0.70 { return .success }
             if metrics.maxSpan >= 3 && metrics.accuracy >= 0.50 { return .warning }
-            return .error
-        case let .stopSignal(metrics):
-            if metrics.goAccuracy >= 0.80 && metrics.inhibitionRate >= 0.45 && metrics.ssrt <= 0.35 { return .success }
-            if metrics.goAccuracy >= 0.65 && metrics.inhibitionRate >= 0.30 && metrics.ssrt <= 0.50 { return .warning }
             return .error
         case let .syllogism(metrics):
             if metrics.accuracy >= 0.80 && metrics.dPrime >= 1.5 { return .success }
@@ -311,58 +242,6 @@ final class AppModel {
         schulte.lastCompletedSummary = nil
     }
 
-    // MARK: - Flanker delegation
-
-    func startFlankerSession() {
-        flanker.startSession(settings: settings, adaptiveState: adaptiveState(for: .flanker))
-    }
-
-    func handleFlankerResponse(_ direction: FlankerDirection, at date: Date = Date()) {
-        if let result = flanker.handleResponse(direction, at: date) {
-            appendSession(result)
-        }
-    }
-
-    func finalizeFlankerIfComplete() {
-        if let result = flanker.finalizeIfComplete() {
-            appendSession(result)
-        }
-    }
-
-    func cancelFlankerSession() {
-        flanker.cancelSession()
-    }
-
-    func dismissFlankerResult() {
-        flanker.lastResult = nil
-    }
-
-    // MARK: - GoNoGo delegation
-
-    func startGoNoGoSession() {
-        goNoGo.startSession(settings: settings, adaptiveState: adaptiveState(for: .goNoGo))
-    }
-
-    func handleGoNoGoTap(at date: Date = Date()) {
-        if let result = goNoGo.handleTap(at: date) {
-            appendSession(result)
-        }
-    }
-
-    func finalizeGoNoGoIfComplete() {
-        if let result = goNoGo.finalizeIfComplete() {
-            appendSession(result)
-        }
-    }
-
-    func cancelGoNoGoSession() {
-        goNoGo.cancelSession()
-    }
-
-    func dismissGoNoGoResult() {
-        goNoGo.lastResult = nil
-    }
-
     // MARK: - NBack delegation
 
     func startNBackSession() {
@@ -370,19 +249,11 @@ final class AppModel {
     }
 
     func handleNBackMatch(at date: Date = Date()) {
-        if let result = nBack.handleMatch(at: date) {
-            appendSession(result)
-        }
+        nBack.handleMatch(at: date)
     }
 
-    func handleNBackNonMatch(at date: Date = Date()) {
-        if let result = nBack.handleNonMatch(at: date) {
-            appendSession(result)
-        }
-    }
-
-    func handleNBackNext(at date: Date = Date()) {
-        if let result = nBack.handleNext(at: date) {
+    func finalizeNBackIfComplete() {
+        if let result = nBack.finalizeIfComplete() {
             appendSession(result)
         }
     }
@@ -455,45 +326,6 @@ final class AppModel {
         digitSpan.lastResult = nil
     }
 
-    // MARK: - ChoiceRT delegation
-
-    func startChoiceRTSession() {
-        choiceRT.startSession(settings: settings, adaptiveState: adaptiveState(for: .choiceRT))
-    }
-
-    func handleChoiceRTResponse(_ responseIndex: Int, at date: Date = Date()) -> SessionResult? {
-        if let result = choiceRT.handleResponse(responseIndex, at: date) {
-            appendSession(result)
-            return result
-        }
-        return nil
-    }
-
-    func finalizeChoiceRTIfComplete() {
-        guard let engine = choiceRT.engine, engine.isComplete else { return }
-        let metrics = engine.computeMetrics()
-        let now = Date()
-        let result = SessionResult(
-            module: .choiceRT,
-            startedAt: engine.startedAt,
-            endedAt: now,
-            duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .choiceRT(metrics),
-            conditions: choiceRT.sessionConditions
-        )
-        choiceRT.lastResult = result
-        choiceRT.engine = nil
-        appendSession(result)
-    }
-
-    func cancelChoiceRTSession() {
-        choiceRT.cancelSession()
-    }
-
-    func dismissChoiceRTResult() {
-        choiceRT.lastResult = nil
-    }
-
     // MARK: - ChangeDetection delegation
 
     func startChangeDetectionSession() {
@@ -533,45 +365,6 @@ final class AppModel {
         changeDetection.lastResult = nil
     }
 
-    // MARK: - VisualSearch delegation
-
-    func startVisualSearchSession() {
-        visualSearch.startSession(settings: settings, adaptiveState: adaptiveState(for: .visualSearch))
-    }
-
-    func handleVisualSearchResponse(present: Bool, selectedItemID: Int? = nil, at date: Date = Date()) -> SessionResult? {
-        if let result = visualSearch.handleResponse(userSaidPresent: present, selectedItemID: selectedItemID, at: date) {
-            appendSession(result)
-            return result
-        }
-        return nil
-    }
-
-    func finalizeVisualSearchIfComplete() {
-        guard let engine = visualSearch.engine, engine.isComplete else { return }
-        let metrics = engine.computeMetrics()
-        let now = Date()
-        let result = SessionResult(
-            module: .visualSearch,
-            startedAt: engine.startedAt,
-            endedAt: now,
-            duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .visualSearch(metrics),
-            conditions: visualSearch.sessionConditions
-        )
-        visualSearch.lastResult = result
-        visualSearch.engine = nil
-        appendSession(result)
-    }
-
-    func cancelVisualSearchSession() {
-        visualSearch.cancelSession()
-    }
-
-    func dismissVisualSearchResult() {
-        visualSearch.lastResult = nil
-    }
-
     // MARK: - CorsiBlock delegation
 
     func startCorsiBlockSession(mode: CorsiBlockMode = .forward) {
@@ -590,54 +383,30 @@ final class AppModel {
         corsiBlock.lastResult = nil
     }
 
-    // MARK: - StopSignal delegation
+    // MARK: - Quick Start
 
-    func startStopSignalSession() {
-        stopSignal.startSession(adaptiveState: adaptiveState(for: .stopSignal))
+    /// Navigate to the given route and immediately start its training session.
+    /// Used by the daily plan and game library for one-tap launch.
+    func quickStartModule(_ route: AppRoute) {
+        selectedRoute = route
+        guard let module = route.trainingModule else { return }
+        // Reading/logic modules require material selection and have no entry here.
+        quickStartActions[module]?()
     }
 
-    func handleStopSignalResponse(_ direction: StopSignalDirection, at date: Date = Date()) -> SessionResult? {
-        if let result = stopSignal.handleResponse(direction, at: date) {
-            appendSession(result)
-            return result
-        }
-        return nil
-    }
-
-    func handleStopSignalStopTimeout() {
-        stopSignal.handleStopTimeout()
-    }
-
-    func handleStopSignalGoTimeout() {
-        stopSignal.handleGoTimeout()
-    }
-
-    func finalizeStopSignalIfComplete() {
-        guard let engine = stopSignal.engine, engine.isComplete else { return }
-        let metrics = engine.computeMetrics()
-        let now = Date()
-        let result = SessionResult(
-            module: .stopSignal,
-            startedAt: engine.startedAt,
-            endedAt: now,
-            duration: now.timeIntervalSince(engine.startedAt),
-            metrics: .stopSignal(metrics),
-            conditions: stopSignal.sessionConditions
-        )
-        stopSignal.lastResult = result
-        stopSignal.engine = nil
-        appendSession(result)
-    }
-
-    func cancelStopSignalSession() {
-        stopSignal.cancelSession()
-    }
-
-    func dismissStopSignalResult() {
-        stopSignal.lastResult = nil
+    /// One-tap launchers for modules that can start without material selection.
+    private var quickStartActions: [TrainingModule: () -> Void] {
+        [
+            .schulte: { self.startSchulteSession() },
+            .nBack: { self.startNBackSession() },
+            .digitSpan: { self.startDigitSpanSession() },
+            .changeDetection: { self.startChangeDetectionSession() },
+            .corsiBlock: { self.startCorsiBlockSession() },
+        ]
     }
 
     // MARK: - Data Export
+
 
     func exportSessionsCSV() -> String {
         TrialExporter.exportCSV(sessions: sessions)

@@ -208,6 +208,27 @@ enum LogicArgumentPassageLibrary {
         return all.min(by: { abs($0.difficulty - difficulty) < abs($1.difficulty - difficulty) }) ?? all[0]
     }
 
+    /// Pick a passage of the given difficulty that hasn't been seen recently.
+    /// `recentIDs` is ordered oldest→newest. Every passage of that difficulty is
+    /// shown before any repeats; once the whole pool has been cycled, the
+    /// least-recently-seen one is chosen.
+    static func nextPassage(difficulty: Int, recentIDs: [String]) -> LogicArgumentPassage {
+        let candidates = all.filter { $0.difficulty == difficulty }
+        guard !candidates.isEmpty else {
+            return all.min(by: { abs($0.difficulty - difficulty) < abs($1.difficulty - difficulty) }) ?? all[0]
+        }
+
+        let recentSet = Set(recentIDs)
+        let unseen = candidates.filter { !recentSet.contains($0.id) }
+        if let selected = unseen.randomElement() {
+            return selected
+        }
+
+        // Whole pool seen recently: pick the one shown longest ago.
+        func lastSeenIndex(_ id: String) -> Int { recentIDs.lastIndex(of: id) ?? -1 }
+        return candidates.min(by: { lastSeenIndex($0.id) < lastSeenIndex($1.id) }) ?? candidates[0]
+    }
+
     private static func loadPassages() -> [LogicArgumentPassage] {
         guard let url = locateResource(named: "logic_argument_passages", extension: "json") else {
             // Gracefully return empty if not yet bundled during development

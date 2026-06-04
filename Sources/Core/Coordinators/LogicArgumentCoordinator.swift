@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @Observable
-final class LogicArgumentCoordinator {
+final class LogicArgumentCoordinator: TrainingModuleCoordinator {
     var engine: LogicArgumentEngine?
     var statusMessage: String = "论证分析：拆结构、找谬误、评论证。"
     var lastResult: SessionResult?
@@ -11,11 +11,28 @@ final class LogicArgumentCoordinator {
 
     private(set) var sessionConditions = SessionConditions()
 
+    /// Rolling list of recently-served passage IDs (persisted, oldest→newest), so
+    /// every passage is shown before any repeats. Capped to keep it bounded.
+    private static let recentPassageCap = 60
+
+    var recentPassageIDs: [String] {
+        get { UserDefaults.standard.stringArray(forKey: "logicArgument_recent_passages") ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: "logicArgument_recent_passages") }
+    }
+
     func startSession(difficulty: Int) {
         let passage = LogicArgumentPassageLibrary.nextPassage(
             difficulty: difficulty,
-            excludingID: lastResult?.logicArgumentMetrics?.passageID
+            recentIDs: recentPassageIDs
         )
+
+        var recent = recentPassageIDs
+        recent.append(passage.id)
+        if recent.count > Self.recentPassageCap {
+            recent.removeFirst(recent.count - Self.recentPassageCap)
+        }
+        recentPassageIDs = recent
+
         engine = LogicArgumentEngine(passage: passage)
         lastResult = nil
         sessionConditions = SessionConditions(

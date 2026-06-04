@@ -42,6 +42,9 @@ struct NBackSessionConfig: Equatable {
     var maxN: Int = 9
     var trialsPerBlock: Int = 12
     var blockCount: Int = 2
+    /// Number of unscored warm-up trials shown before the first scored block, so
+    /// the participant can settle into the rhythm. 0 disables the practice block.
+    var practiceTrials: Int = 0
     var stimulusDurationMs: Int = 800
     var isiMs: Int = 1400
     var internalSkillScore: Double = 35

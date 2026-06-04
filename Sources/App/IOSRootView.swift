@@ -90,9 +90,7 @@ struct IOSTrainingLibraryView: View {
         ("阅读理解", "text.book.closed.fill", AppRoute.readingModules, BDColor.gold),
         ("逻辑推理", "brain.fill", AppRoute.logicModules, BDColor.logicArgumentAccent),
         ("注意控制", "eye.fill", AppRoute.attentionModules, BDColor.primaryBlue),
-        ("抑制控制", "hand.raised.fill", AppRoute.inhibitionModules, BDColor.goNoGoAccent),
         ("工作记忆", "memorychip.fill", AppRoute.memoryModules, BDColor.nBackAccent),
-        ("处理速度", "bolt.fill", AppRoute.speedModules, BDColor.choiceRTAccent),
     ]
 
     var body: some View {
@@ -156,14 +154,6 @@ struct IOSModuleContainerView: View {
                 LogicArgumentTrainingView()
             case .schulte:
                 SchulteTrainingView()
-            case .visualSearch:
-                VisualSearchTrainingView()
-            case .flanker:
-                FlankerTrainingView()
-            case .goNoGo:
-                GoNoGoTrainingView()
-            case .stopSignal:
-                StopSignalTrainingView()
             case .nBack:
                 NBackTrainingView()
             case .digitSpan:
@@ -172,8 +162,6 @@ struct IOSModuleContainerView: View {
                 CorsiBlockTrainingView()
             case .changeDetection:
                 ChangeDetectionTrainingView()
-            case .choiceRT:
-                ChoiceRTTrainingView()
             default:
                 Text("该模块暂未适配")
                     .foregroundStyle(.secondary)

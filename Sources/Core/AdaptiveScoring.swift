@@ -68,32 +68,6 @@ enum AdaptiveScoring {
             let rtScore = inverseScore(metrics.averageRT * 1000, good: 500, bad: 1800)
             return clamp(0.45 * dPrimeScore + 0.35 * levelScore + 0.20 * rtScore)
 
-        case let .flanker(metrics):
-            let speedScore = inverseScore(metrics.incongruentRT * 1000, good: 420, bad: 1200)
-            let conflictScore = inverseScore(metrics.conflictCost * 1000, good: 40, bad: 220)
-            return clamp(0.45 * metrics.accuracy + 0.35 * speedScore + 0.20 * conflictScore)
-
-        case let .goNoGo(metrics):
-            let dPrimeScore = clamp(metrics.dPrime / 4.0)
-            let speedScore = inverseScore(metrics.goRT * 1000, good: 320, bad: 850)
-            return clamp(0.40 * dPrimeScore + 0.35 * metrics.noGoAccuracy + 0.25 * speedScore)
-
-        case let .choiceRT(metrics):
-            let medianRTScore = inverseScore(metrics.medianRT * 1000, good: 280, bad: 1100)
-            let anticipationRate = metrics.totalTrials == 0 ? 0 : Double(metrics.anticipationCount) / Double(metrics.totalTrials)
-            let variabilityPenalty = clamp((metrics.rtStandardDeviation * 1000) / 350.0)
-            let stabilityScore = clamp(1.0 - (0.6 * variabilityPenalty + 0.4 * min(1, anticipationRate / 0.2)))
-            return clamp(0.45 * metrics.accuracy + 0.35 * medianRTScore + 0.20 * stabilityScore)
-
-        case let .visualSearch(metrics):
-            let slopeScore = inverseScore(metrics.searchSlope * 1000, good: 20, bad: 70)
-            let rtScore = inverseScore(metrics.presentRT * 1000, good: 500, bad: 2500)
-            return clamp(0.40 * metrics.accuracy + 0.35 * slopeScore + 0.25 * rtScore)
-
-        case let .stopSignal(metrics):
-            let ssrtScore = inverseScore(metrics.ssrt * 1000, good: 160, bad: 420)
-            return clamp(0.45 * ssrtScore + 0.35 * metrics.inhibitionRate + 0.20 * metrics.goAccuracy)
-
         case let .syllogism(metrics):
             let dPrimeScore = clamp((metrics.dPrime + 0.5) / 3.5)
             let rtScore = inverseScore(metrics.medianRT * 1000, good: 3000, bad: 12000)
@@ -107,7 +81,7 @@ enum AdaptiveScoring {
     static func updatedState(for result: SessionResult, current: ModuleAdaptiveState) -> ModuleAdaptiveState {
         let module = result.module
         let performanceIndex = performanceIndex(for: result)
-        let suggestedLevel = nextRecommendedLevel(for: result, fallback: current.recommendedStartLevel)
+        let suggestedLevel = nextRecommendedLevel(for: result)
         let levelNormalized = module.normalizedLevel(suggestedLevel)
         let observedSkill = 100 * (0.65 * levelNormalized + 0.35 * performanceIndex)
         let newSkill = current.internalSkillScore * 0.8 + observedSkill * 0.2
@@ -126,7 +100,7 @@ enum AdaptiveScoring {
         )
     }
 
-    static func nextRecommendedLevel(for result: SessionResult, fallback: Int) -> Int {
+    static func nextRecommendedLevel(for result: SessionResult) -> Int {
         if let explicit = result.conditions.customParameters["recommendedStartLevel"].flatMap(Int.init) {
             return explicit
         }
@@ -155,8 +129,6 @@ enum AdaptiveScoring {
             return min(max(metrics.difficulty, 1), 3)
         case let .logicArgument(metrics):
             return min(max(metrics.difficulty, 1), 3)
-        default:
-            return fallback
         }
     }
 

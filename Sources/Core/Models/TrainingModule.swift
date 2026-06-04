@@ -8,14 +8,9 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     case logicArgument
     case schulte
     case nBack
-    case visualSearch
-    case flanker
-    case goNoGo
     case digitSpan
-    case choiceRT
     case changeDetection
     case corsiBlock
-    case stopSignal
 
     var id: String { rawValue }
 
@@ -26,15 +21,10 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .syllogism,
         .logicArgument,
         .schulte,
-        .visualSearch,
         .nBack,
-        .flanker,
-        .goNoGo,
         .digitSpan,
-        .choiceRT,
         .changeDetection,
         .corsiBlock,
-        .stopSignal,
     ]
 
     static let coreCases: [TrainingModule] = [
@@ -44,18 +34,13 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .syllogism,
         .logicArgument,
         .schulte,
-        .visualSearch,
         .nBack,
     ]
 
     static let supportCases: [TrainingModule] = [
-        .flanker,
-        .goNoGo,
         .digitSpan,
-        .choiceRT,
         .changeDetection,
         .corsiBlock,
-        .stopSignal,
     ]
 
     static let legacyCases: [TrainingModule] = supportCases
@@ -64,7 +49,6 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case reading
         case logicalReasoning
         case memory
-        case reaction
         case visualAttention
 
         var id: String { rawValue }
@@ -74,7 +58,6 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
             case .reading:          "阅读训练"
             case .logicalReasoning: "逻辑推理"
             case .memory:           "记忆力"
-            case .reaction:         "反应力"
             case .visualAttention:  "视觉注意"
             }
         }
@@ -89,8 +72,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .mainIdea, .evidenceMap, .delayedRecall:            .reading
         case .syllogism, .logicArgument:                        .logicalReasoning
         case .digitSpan, .nBack, .changeDetection, .corsiBlock: .memory
-        case .choiceRT, .goNoGo, .flanker, .stopSignal:         .reaction
-        case .schulte, .visualSearch:                           .visualAttention
+        case .schulte:                                          .visualAttention
         }
     }
 
@@ -102,15 +84,10 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .syllogism:       "逻辑快判"
         case .logicArgument:   "论证分析"
         case .schulte:         "舒尔特方格"
-        case .flanker:         "Flanker 反应力"
-        case .goNoGo:          "Go/No-Go 抑制力"
         case .nBack:           "N-Back 记忆"
         case .digitSpan:       "数字广度"
-        case .choiceRT:        "选择反应时"
         case .changeDetection: "变更检测"
-        case .visualSearch:    "视觉搜索"
         case .corsiBlock:      "空间广度"
-        case .stopSignal:      "Stop-Signal"
         }
     }
 
@@ -122,15 +99,10 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .syllogism:       "逻辑快判"
         case .logicArgument:   "论证分析"
         case .schulte:         "舒尔特"
-        case .flanker:         "Flanker"
-        case .goNoGo:          "Go/No-Go"
         case .nBack:           "N-Back"
         case .digitSpan:       "数字广度"
-        case .choiceRT:        "选择RT"
         case .changeDetection: "变更检测"
-        case .visualSearch:    "视觉搜索"
         case .corsiBlock:      "空间广度"
-        case .stopSignal:      "Stop-Signal"
         }
     }
 
@@ -142,15 +114,10 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .syllogism:       "bolt.trianglebadge.exclamationmark"
         case .logicArgument:   "puzzlepiece.extension"
         case .schulte:         "square.grid.3x3.fill"
-        case .flanker:         "arrow.left.arrow.right"
-        case .goNoGo:          "hand.raised.fill"
         case .nBack:           "number.square.fill"
         case .digitSpan:       "brain"
-        case .choiceRT:        "bolt.fill"
         case .changeDetection: "eye.fill"
-        case .visualSearch:    "magnifyingglass"
         case .corsiBlock:      "square.grid.3x3.topleft.filled"
-        case .stopSignal:      "stop.circle.fill"
         }
     }
 
@@ -162,15 +129,10 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .syllogism:       "形式逻辑推理速度与准确性"
         case .logicArgument:   "论证结构·谬误识别·论证评估"
         case .schulte:         "视觉注意力与周边视觉"
-        case .flanker:         "选择性注意力与抑制控制"
-        case .goNoGo:          "反应抑制与冲动控制"
         case .nBack:           "工作记忆更新能力"
         case .digitSpan:       "短时记忆与工作记忆"
-        case .choiceRT:        "感知-决策-反应速度"
         case .changeDetection: "视觉工作记忆"
-        case .visualSearch:    "选择性注意与搜索效率"
         case .corsiBlock:      "视觉空间工作记忆"
-        case .stopSignal:      "动作抑制与停止控制"
         }
     }
 
@@ -182,11 +144,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
             .logicalReasoning
         case .digitSpan, .nBack, .changeDetection, .corsiBlock:
             .memory
-        case .choiceRT, .flanker:
-            .reactionSpeed
-        case .goNoGo, .stopSignal:
-            .inhibitionControl
-        case .schulte, .visualSearch:
+        case .schulte:
             .visualAttentionSearch
         }
     }
@@ -210,8 +168,6 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
             2
         case .digitSpan, .corsiBlock, .nBack, .changeDetection:
             3
-        default:
-            3
         }
     }
 
@@ -220,5 +176,16 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         let clamped = min(max(level, range.lowerBound), range.upperBound)
         let span = max(1, range.upperBound - range.lowerBound)
         return Double(clamped - range.lowerBound) / Double(span)
+    }
+
+    /// Whether this module can be launched directly without user-selected materials.
+    /// Reading and logic modules require passage/trial selection, so they are not quick-startable.
+    var isQuickStartable: Bool {
+        switch self {
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
+            false
+        default:
+            true
+        }
     }
 }

@@ -63,15 +63,10 @@ enum ModuleMetrics: Codable, Equatable {
     case evidenceMap(EvidenceMapMetrics)
     case delayedRecall(DelayedRecallMetrics)
     case schulte(SchulteMetrics)
-    case flanker(FlankerMetrics)
-    case goNoGo(GoNoGoMetrics)
     case nBack(NBackMetrics)
     case digitSpan(DigitSpanMetrics)
-    case choiceRT(ChoiceRTMetrics)
     case changeDetection(ChangeDetectionMetrics)
-    case visualSearch(VisualSearchMetrics)
     case corsiBlock(CorsiBlockMetrics)
-    case stopSignal(StopSignalMetrics)
     case syllogism(SyllogismMetrics)
     case logicArgument(LogicArgumentMetrics)
 }
@@ -256,15 +251,6 @@ struct CorsiBlockMetrics: Codable, Equatable {
     var mode: CorsiBlockMode
 }
 
-struct StopSignalMetrics: Codable, Equatable {
-    var totalTrials: Int
-    var goRT: TimeInterval
-    var goAccuracy: Double
-    var inhibitionRate: Double
-    var ssrt: TimeInterval
-    var meanSSD: Double
-}
-
 struct SchulteMetrics: Codable, Equatable {
     var difficulty: SchulteDifficulty
     var mistakeCount: Int
@@ -288,23 +274,6 @@ struct SchulteMetrics: Codable, Equatable {
         repIndex = try c.decode(Int.self, forKey: .repIndex)
         perNumberDurations = try c.decodeIfPresent([TimeInterval].self, forKey: .perNumberDurations) ?? []
     }
-}
-
-struct FlankerMetrics: Codable, Equatable {
-    var totalTrials: Int
-    var congruentRT: TimeInterval
-    var incongruentRT: TimeInterval
-    var conflictCost: TimeInterval
-    var accuracy: Double
-    var stimulusDurationMs: Int
-}
-
-struct GoNoGoMetrics: Codable, Equatable {
-    var totalTrials: Int
-    var goRT: TimeInterval
-    var goAccuracy: Double
-    var noGoAccuracy: Double
-    var dPrime: Double
 }
 
 struct NBackMetrics: Codable, Equatable {
@@ -351,16 +320,6 @@ struct DigitSpanMetrics: Codable, Equatable {
     var positionErrors: Int
 }
 
-struct ChoiceRTMetrics: Codable, Equatable {
-    var totalTrials: Int
-    var medianRT: TimeInterval
-    var rtStandardDeviation: TimeInterval
-    var accuracy: Double
-    var postErrorSlowing: TimeInterval
-    var anticipationCount: Int
-    var choiceCount: Int
-}
-
 struct ChangeDetectionMetrics: Codable, Equatable {
     var totalTrials: Int
     var accuracy: Double
@@ -369,16 +328,6 @@ struct ChangeDetectionMetrics: Codable, Equatable {
     var falseAlarmRate: Double
     var maxSetSize: Int
     var averageRT: TimeInterval
-}
-
-struct VisualSearchMetrics: Codable, Equatable {
-    var totalTrials: Int
-    var accuracy: Double
-    var searchSlope: TimeInterval
-    var presentRT: TimeInterval
-    var absentRT: TimeInterval
-    var setSizeRTs: [Int: TimeInterval]
-    var errorRate: Double
 }
 
 extension SessionResult {
@@ -418,16 +367,6 @@ extension SessionResult {
         return nil
     }
 
-    var flankerMetrics: FlankerMetrics? {
-        if case let .flanker(m) = metrics { return m }
-        return nil
-    }
-
-    var goNoGoMetrics: GoNoGoMetrics? {
-        if case let .goNoGo(m) = metrics { return m }
-        return nil
-    }
-
     var nBackMetrics: NBackMetrics? {
         if case let .nBack(m) = metrics { return m }
         return nil
@@ -438,28 +377,13 @@ extension SessionResult {
         return nil
     }
 
-    var choiceRTMetrics: ChoiceRTMetrics? {
-        if case let .choiceRT(m) = metrics { return m }
-        return nil
-    }
-
     var changeDetectionMetrics: ChangeDetectionMetrics? {
         if case let .changeDetection(m) = metrics { return m }
         return nil
     }
 
-    var visualSearchMetrics: VisualSearchMetrics? {
-        if case let .visualSearch(m) = metrics { return m }
-        return nil
-    }
-
     var corsiBlockMetrics: CorsiBlockMetrics? {
         if case let .corsiBlock(m) = metrics { return m }
-        return nil
-    }
-
-    var stopSignalMetrics: StopSignalMetrics? {
-        if case let .stopSignal(m) = metrics { return m }
         return nil
     }
 

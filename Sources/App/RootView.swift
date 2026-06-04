@@ -64,6 +64,21 @@ struct RootView: View {
     @Environment(AppModel.self) private var appModel
     @State private var sidebarSelection: SidebarItem? = .workspace(.controlCenter)
 
+    /// Whether moving the sidebar to `newSidebar` should clear the active module
+    /// (i.e. the user genuinely navigated away). Returns false when the sidebar is
+    /// merely reflecting the active module's own category — which happens when a
+    /// module is launched programmatically (quick-start), and must NOT bounce the
+    /// route back to home.
+    static func shouldClearActiveModule(activeRoute: AppRoute, newSidebar: SidebarItem) -> Bool {
+        guard activeRoute.isModule else { return false }
+        if case .category(let key) = newSidebar,
+           let cat = categories.first(where: { $0.key == key }),
+           cat.routes.contains(activeRoute) {
+            return false
+        }
+        return true
+    }
+
     enum SidebarItem: Hashable {
         case workspace(BDWorkspaceDestination)
         case category(String) // key like "reading", "logic", etc.
@@ -73,9 +88,7 @@ struct RootView: View {
         ("reading", "阅读理解", "text.book.closed.fill", AppRoute.readingModules, BDColor.gold),
         ("logic", "逻辑推理", "brain.fill", AppRoute.logicModules, BDColor.logicArgumentAccent),
         ("attention", "注意控制", "eye.fill", AppRoute.attentionModules, BDColor.primaryBlue),
-        ("inhibition", "抑制控制", "hand.raised.fill", AppRoute.inhibitionModules, BDColor.goNoGoAccent),
         ("memory", "工作记忆", "memorychip.fill", AppRoute.memoryModules, BDColor.nBackAccent),
-        ("speed", "处理速度", "bolt.fill", AppRoute.speedModules, BDColor.choiceRTAccent),
     ]
 
     var body: some View {
@@ -93,12 +106,13 @@ struct RootView: View {
         }
         .onChange(of: sidebarSelection) { _, item in
             guard let item else { return }
-            switch item {
-            case .workspace, .category:
-                // Clear any active module training; detail resolves from sidebarSelection
-                if appModel.selectedRoute.isModule {
-                    appModel.selectedRoute = .home
-                }
+            // Clear an active module only when the user navigates AWAY from it.
+            // When `syncSelection` programmatically moves the sidebar onto the
+            // active module's own category (e.g. quick-start from the console),
+            // we must NOT reset the route — otherwise it bounces back to home and
+            // the module never opens.
+            if Self.shouldClearActiveModule(activeRoute: appModel.selectedRoute, newSidebar: item) {
+                appModel.selectedRoute = .home
             }
         }
     }
@@ -290,14 +304,6 @@ struct RootView: View {
             LogicArgumentTrainingView()
         case .schulte:
             SchulteTrainingView()
-        case .visualSearch:
-            VisualSearchTrainingView()
-        case .flanker:
-            FlankerTrainingView()
-        case .goNoGo:
-            GoNoGoTrainingView()
-        case .stopSignal:
-            StopSignalTrainingView()
         case .nBack:
             NBackTrainingView()
         case .digitSpan:
@@ -306,8 +312,6 @@ struct RootView: View {
             CorsiBlockTrainingView()
         case .changeDetection:
             ChangeDetectionTrainingView()
-        case .choiceRT:
-            ChoiceRTTrainingView()
         default:
             EmptyView()
         }

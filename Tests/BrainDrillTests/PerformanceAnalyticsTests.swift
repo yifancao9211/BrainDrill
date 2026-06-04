@@ -103,11 +103,12 @@ struct AnomalyDetectorTests {
     @Test func detectsDropInPerformance() {
         let now = Date()
         let normal = (0..<10).map { i in
-            SessionResult(module: .choiceRT, startedAt: now.addingTimeInterval(Double(-i) * 86400), endedAt: now, duration: 60,
-                          metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.35, rtStandardDeviation: 0.04, accuracy: 0.92, postErrorSlowing: 0.02, anticipationCount: 0, choiceCount: 2)))
+            let dPrime = 2.5 + Double(i % 3) * 0.05
+            return SessionResult(module: .changeDetection, startedAt: now.addingTimeInterval(Double(-i) * 86400), endedAt: now, duration: 60,
+                          metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.92, dPrime: dPrime, hitRate: 0.92, falseAlarmRate: 0.10, maxSetSize: 5, averageRT: 0.5)))
         }
-        let anomalous = SessionResult(module: .choiceRT, startedAt: now, endedAt: now, duration: 60,
-                                      metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.60, rtStandardDeviation: 0.12, accuracy: 0.55, postErrorSlowing: 0.08, anticipationCount: 3, choiceCount: 2)))
+        let anomalous = SessionResult(module: .changeDetection, startedAt: now, endedAt: now, duration: 60,
+                                      metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.55, dPrime: 0.3, hitRate: 0.55, falseAlarmRate: 0.40, maxSetSize: 3, averageRT: 1.2)))
 
         let result = AnomalyDetector.check(latest: anomalous, history: normal)
         #expect(result.isAnomalous)
@@ -117,8 +118,8 @@ struct AnomalyDetectorTests {
     @Test func noAnomalyOnNormalSession() {
         let now = Date()
         let sessions = (0..<10).map { i in
-            SessionResult(module: .choiceRT, startedAt: now.addingTimeInterval(Double(-i) * 86400), endedAt: now, duration: 60,
-                          metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.35, rtStandardDeviation: 0.04, accuracy: 0.92, postErrorSlowing: 0.02, anticipationCount: 0, choiceCount: 2)))
+            SessionResult(module: .changeDetection, startedAt: now.addingTimeInterval(Double(-i) * 86400), endedAt: now, duration: 60,
+                          metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.92, dPrime: 2.5, hitRate: 0.92, falseAlarmRate: 0.10, maxSetSize: 5, averageRT: 0.5)))
         }
         let result = AnomalyDetector.check(latest: sessions[0], history: Array(sessions.dropFirst()))
         #expect(!result.isAnomalous)
@@ -126,8 +127,8 @@ struct AnomalyDetectorTests {
 
     @Test func insufficientHistoryReturnsNoAnomaly() {
         let now = Date()
-        let session = SessionResult(module: .goNoGo, startedAt: now, endedAt: now, duration: 90,
-                                    metrics: .goNoGo(GoNoGoMetrics(totalTrials: 60, goRT: 0.35, goAccuracy: 0.95, noGoAccuracy: 0.85, dPrime: 2.5)))
+        let session = SessionResult(module: .changeDetection, startedAt: now, endedAt: now, duration: 90,
+                                    metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 60, accuracy: 0.95, dPrime: 2.8, hitRate: 0.95, falseAlarmRate: 0.08, maxSetSize: 6, averageRT: 0.45)))
         let result = AnomalyDetector.check(latest: session, history: [])
         #expect(!result.isAnomalous)
     }
@@ -137,10 +138,10 @@ struct TimeOfDayAnalyzerTests {
     @Test func groupsByTimeSlot() {
         let cal = Calendar.current
         let base = cal.startOfDay(for: Date())
-        let morning = SessionResult(module: .choiceRT, startedAt: base.addingTimeInterval(9 * 3600), endedAt: base.addingTimeInterval(9 * 3600 + 60), duration: 60,
-                                    metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.30, rtStandardDeviation: 0.03, accuracy: 0.95, postErrorSlowing: 0.01, anticipationCount: 0, choiceCount: 2)))
-        let evening = SessionResult(module: .choiceRT, startedAt: base.addingTimeInterval(20 * 3600), endedAt: base.addingTimeInterval(20 * 3600 + 60), duration: 60,
-                                    metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.45, rtStandardDeviation: 0.06, accuracy: 0.85, postErrorSlowing: 0.03, anticipationCount: 1, choiceCount: 2)))
+        let morning = SessionResult(module: .changeDetection, startedAt: base.addingTimeInterval(9 * 3600), endedAt: base.addingTimeInterval(9 * 3600 + 60), duration: 60,
+                                    metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.95, dPrime: 2.8, hitRate: 0.95, falseAlarmRate: 0.08, maxSetSize: 6, averageRT: 0.4)))
+        let evening = SessionResult(module: .changeDetection, startedAt: base.addingTimeInterval(20 * 3600), endedAt: base.addingTimeInterval(20 * 3600 + 60), duration: 60,
+                                    metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.85, dPrime: 1.5, hitRate: 0.85, falseAlarmRate: 0.20, maxSetSize: 4, averageRT: 0.7)))
 
         let analysis = TimeOfDayAnalyzer.analyze(sessions: [morning, evening])
         #expect(!analysis.slots.isEmpty)
@@ -152,10 +153,10 @@ struct TimeOfDayAnalyzerTests {
         var sessions: [SessionResult] = []
         for day in 0..<5 {
             let dayBase = base.addingTimeInterval(Double(-day) * 86400)
-            sessions.append(SessionResult(module: .choiceRT, startedAt: dayBase.addingTimeInterval(9 * 3600), endedAt: dayBase.addingTimeInterval(9 * 3600 + 60), duration: 60,
-                                          metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.28, rtStandardDeviation: 0.03, accuracy: 0.95, postErrorSlowing: 0.01, anticipationCount: 0, choiceCount: 2))))
-            sessions.append(SessionResult(module: .choiceRT, startedAt: dayBase.addingTimeInterval(21 * 3600), endedAt: dayBase.addingTimeInterval(21 * 3600 + 60), duration: 60,
-                                          metrics: .choiceRT(ChoiceRTMetrics(totalTrials: 30, medianRT: 0.50, rtStandardDeviation: 0.08, accuracy: 0.80, postErrorSlowing: 0.05, anticipationCount: 2, choiceCount: 2))))
+            sessions.append(SessionResult(module: .changeDetection, startedAt: dayBase.addingTimeInterval(9 * 3600), endedAt: dayBase.addingTimeInterval(9 * 3600 + 60), duration: 60,
+                                          metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.95, dPrime: 3.0, hitRate: 0.95, falseAlarmRate: 0.06, maxSetSize: 6, averageRT: 0.38))))
+            sessions.append(SessionResult(module: .changeDetection, startedAt: dayBase.addingTimeInterval(21 * 3600), endedAt: dayBase.addingTimeInterval(21 * 3600 + 60), duration: 60,
+                                          metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 30, accuracy: 0.80, dPrime: 1.2, hitRate: 0.80, falseAlarmRate: 0.25, maxSetSize: 4, averageRT: 0.8))))
         }
 
         let analysis = TimeOfDayAnalyzer.analyze(sessions: sessions)
