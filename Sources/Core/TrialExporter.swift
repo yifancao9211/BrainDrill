@@ -97,6 +97,25 @@ enum TrialExporter {
                 ("componentAccuracy", String(format: "%.4f", m.componentAccuracy)),
                 ("fallacyAccuracy", String(format: "%.4f", m.fallacyAccuracy)),
             ]
+        case let .questionBank(m):
+            return [
+                ("section", m.section.rawValue),
+                ("difficulty", "\(m.difficulty)"),
+                ("totalQuestions", "\(m.totalQuestions)"),
+                ("correctCount", "\(m.correctCount)"),
+                ("accuracy", String(format: "%.4f", m.accuracy)),
+                ("medianRT", String(format: "%.4f", m.medianRT)),
+            ]
+        case let .devilGame(m):
+            return [
+                ("game", m.game.rawValue),
+                ("durationSeconds", "\(m.durationSeconds)"),
+                ("attempted", "\(m.attempted)"),
+                ("correct", "\(m.correct)"),
+                ("accuracy", String(format: "%.4f", m.accuracy)),
+                ("maxCombo", "\(m.maxCombo)"),
+                ("score", "\(m.score)"),
+            ]
         }
     }
 }

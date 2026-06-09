@@ -23,7 +23,7 @@ final class PracticeTrialManager {
 
     static func defaultCount(for module: TrainingModule) -> Int {
         switch module {
-        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument, .logicReasoning, .civilExam, .devilTraining:
             return 0
         case .digitSpan, .changeDetection, .nBack, .corsiBlock:
             return 2

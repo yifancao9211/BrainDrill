@@ -1,0 +1,392 @@
+[
+  {
+    "id": "jd-weaken-01",
+    "section": "judgment",
+    "type": "逻辑判断·削弱",
+    "difficulty": 2,
+    "stem": "某专家称：“喝咖啡能提神，因此考试前喝咖啡能提高成绩。”以下哪项如果为真，最能削弱该结论？",
+    "options": [
+      "咖啡因会使部分人心跳加快、注意力反而下降",
+      "提神有助于保持清醒",
+      "很多人考试前都习惯喝咖啡",
+      "咖啡有不同的口味和价格"
+    ],
+    "answerIndex": 0,
+    "explanation": "结论的逻辑是“喝咖啡→提神→提高成绩”。A 指出咖啡因可能让人注意力下降，直接动摇“提神有助于考试”的因果链，削弱力度最大。B 是无关支持，C、D 与结论无关。",
+    "steps": [
+      { "text": "理清论证：喝咖啡 → 提神 → 提高成绩（因果推理）。" },
+      { "text": "削弱即切断或反转因果：A 指出咖啡因反而使部分人注意力下降，直接削弱“提神助考”。" },
+      { "text": "B 是无关支持，C、D 与成绩无关，均排除。故选 A。" }
+    ],
+    "tags": ["削弱", "因果"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-strengthen-01",
+    "section": "judgment",
+    "type": "逻辑判断·加强",
+    "difficulty": 2,
+    "stem": "研究者发现经常运动的人往往更长寿，于是认为“运动能延长寿命”。以下哪项如果为真，最能加强该结论？",
+    "options": [
+      "有些不运动的人也很长寿",
+      "在控制了饮食与基因因素后，运动组仍显著更长寿",
+      "运动通常让人心情更愉快",
+      "长寿的人往往更喜欢运动"
+    ],
+    "answerIndex": 1,
+    "explanation": "要加强“运动→长寿”的因果，最有力的是排除其他混杂因素。B 控制了饮食与基因后结论仍成立，有效加强。D 把因果关系弄反（长寿→爱运动），不能加强。",
+    "steps": [
+      { "text": "论点是因果判断：运动 → 长寿。" },
+      { "text": "加强因果，最有力的是排除替代解释：B 控制饮食、基因后运动组仍更长寿。" },
+      { "text": "D 是因果倒置，A 反例方向，C 无关。故选 B。" }
+    ],
+    "tags": ["加强", "因果"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-analogy-01",
+    "section": "judgment",
+    "type": "类比推理",
+    "difficulty": 2,
+    "stem": "医生∶处方  与下列哪一组逻辑关系最为相似？",
+    "options": [
+      "教师∶板书",
+      "法官∶判决书",
+      "厨师∶菜刀",
+      "司机∶驾照"
+    ],
+    "answerIndex": 1,
+    "explanation": "“医生—处方”是“职业—其依职权出具的、具专业/法律效力的正式文书”。法官—判决书与之同构。教师—板书不是正式文书，厨师—菜刀是工具，司机—驾照是资格凭证。",
+    "tags": ["类比", "职业文书"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-define-01",
+    "section": "judgment",
+    "type": "定义判断",
+    "difficulty": 1,
+    "material": "【沉没成本】指已经发生、无法收回的成本。理性决策只应考虑未来的成本与收益，不应受沉没成本影响。",
+    "stem": "根据上述定义，下列最属于“受沉没成本影响”的是：",
+    "options": [
+      "因为电影票已买且不能退，即使发现很难看也坚持看完",
+      "买菜时货比三家后再决定",
+      "投资前评估未来可能的收益",
+      "退掉一个用不上的会员以止损"
+    ],
+    "answerIndex": 0,
+    "explanation": "A 中“已买且不可退的票”是沉没成本，因其而继续看完，正是受沉没成本影响。其余选项都是基于未来成本收益的理性选择。",
+    "tags": ["定义", "决策"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-arrow45",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 1,
+    "stem": "观察箭头的变化规律，从四个选项中选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 1,
+    "explanation": "箭头每一步顺时针旋转 45°：0°→45°→90°→135°，故下一个指向 180°。",
+    "figurePrompt": [
+      { "shape": "arrow", "rotation": 0 },
+      { "shape": "arrow", "rotation": 45 },
+      { "shape": "arrow", "rotation": 90 },
+      { "shape": "arrow", "rotation": 135 }
+    ],
+    "figureOptions": [
+      { "shape": "arrow", "rotation": 135 },
+      { "shape": "arrow", "rotation": 180 },
+      { "shape": "arrow", "rotation": 225 },
+      { "shape": "arrow", "rotation": 90 }
+    ],
+    "steps": [
+      { "text": "逐项比较相邻两图：每次箭头顺时针转 45°。" },
+      { "text": "0°、45°、90°、135° 之后应为 135°+45°=180°，选指向 180° 的箭头。" }
+    ],
+    "tags": ["图形推理", "旋转"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-polygon",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 1,
+    "stem": "观察多边形的变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 1,
+    "explanation": "边数依次为 3、4、5、6，每次加一，故下一个为 7 边形。",
+    "figurePrompt": [
+      { "shape": "polygon", "count": 3 },
+      { "shape": "polygon", "count": 4 },
+      { "shape": "polygon", "count": 5 },
+      { "shape": "polygon", "count": 6 }
+    ],
+    "figureOptions": [
+      { "shape": "polygon", "count": 6 },
+      { "shape": "polygon", "count": 7 },
+      { "shape": "polygon", "count": 5 },
+      { "shape": "polygon", "count": 8 }
+    ],
+    "steps": [
+      { "text": "数每个图形的边数：3、4、5、6。" },
+      { "text": "规律是边数加一，下一个为 7 边形。" }
+    ],
+    "tags": ["图形推理", "数量"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-dots",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 1,
+    "stem": "观察圆点数量的变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 2,
+    "explanation": "圆点数量依次为 1、2、3、4，每次加一，下一个应为 5 个点。",
+    "figurePrompt": [
+      { "shape": "dots", "count": 1 },
+      { "shape": "dots", "count": 2 },
+      { "shape": "dots", "count": 3 },
+      { "shape": "dots", "count": 4 }
+    ],
+    "figureOptions": [
+      { "shape": "dots", "count": 4 },
+      { "shape": "dots", "count": 6 },
+      { "shape": "dots", "count": 5 },
+      { "shape": "dots", "count": 3 }
+    ],
+    "steps": [
+      { "text": "数圆点：1、2、3、4。" },
+      { "text": "每次加一，下一个为 5 个点。" }
+    ],
+    "tags": ["图形推理", "数量"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-arrow90",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 2,
+    "stem": "观察箭头的旋转规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 2,
+    "explanation": "箭头每步顺时针旋转 90°：0°→90°→180°→270°，再转 90° 即 360°，等同指向 0°（向右）。",
+    "figurePrompt": [
+      { "shape": "arrow", "rotation": 0 },
+      { "shape": "arrow", "rotation": 90 },
+      { "shape": "arrow", "rotation": 180 },
+      { "shape": "arrow", "rotation": 270 }
+    ],
+    "figureOptions": [
+      { "shape": "arrow", "rotation": 90 },
+      { "shape": "arrow", "rotation": 180 },
+      { "shape": "arrow", "rotation": 0 },
+      { "shape": "arrow", "rotation": 270 }
+    ],
+    "steps": [
+      { "text": "相邻两图箭头顺时针转 90°。" },
+      { "text": "270°+90°=360°，回到指向右（0°）。" }
+    ],
+    "tags": ["图形推理", "旋转"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-weaken-causal-01",
+    "section": "judgment",
+    "type": "逻辑判断·削弱",
+    "difficulty": 3,
+    "stem": "研究者比较了两组城市：已实施垃圾分类的 A 组与尚未实施的 B 组，发现 A 组居民的环保意识平均得分明显高于 B 组。研究者由此得出“推行垃圾分类提升了居民的环保意识”。以下哪项如果为真，最能质疑上述结论？",
+    "options": [
+      "A 组城市原本就是居民环保意识较强的城市，正因如此才更早推行了垃圾分类",
+      "B 组中也有个别城市正计划推行垃圾分类",
+      "环保意识的高低很难用问卷精确测量",
+      "垃圾分类除提升意识外，还能直接减少环境污染"
+    ],
+    "answerIndex": 0,
+    "explanation": "结论是“垃圾分类（因）→ 环保意识高（果）”。A 项指出是“环保意识强”导致了“更早推行垃圾分类”，即因果倒置 + 选择偏差：两组本来就不可比，得分差异另有原因，最能质疑。B、C、D 均不触及该因果。",
+    "steps": [
+      { "text": "锁定因果：推行垃圾分类 → 环保意识更高。" },
+      { "text": "削弱因果最有力的是“因果倒置/他因”：A 说 A 组本就意识强才更早推行，两组不可比。" },
+      { "text": "B 无关、C 质疑测量不质疑因果、D 是另一好处，均较弱。选 A。" }
+    ],
+    "tags": ["削弱", "因果倒置", "选择偏差"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-truth-only-one-01",
+    "section": "judgment",
+    "type": "逻辑判断·真假推理",
+    "difficulty": 3,
+    "material": "W、X、Y、Z 四人参加考试，名次互不相同。关于第一名有四种说法，且其中只有一种说法为真：\n① W 不是第一名；\n② X 是第一名；\n③ Y 不是第一名；\n④ 第一名是 Y。",
+    "stem": "第一名是谁？",
+    "options": ["W", "X", "Y", "Z"],
+    "answerIndex": 0,
+    "explanation": "③与④相互矛盾，二者必有一真一假，故“唯一为真”的那句就在③④之间，于是①②都为假。①假 → W 是第一名；②假 → X 不是第一名（与 W 第一相容）；此时 Y 非第一，③为真、④为假，恰好只有③一句真，自洽。故第一名是 W。",
+    "steps": [
+      { "text": "③“Y 不是第一”与④“Y 是第一”矛盾，必一真一假——唯一的真话就在这两句里。" },
+      { "text": "于是①②都为假。①假 ⇒ W 就是第一名；②假 ⇒ X 不是第一（相容）。" },
+      { "text": "W 第一 ⇒ ④假、③真，恰好仅一句真，成立。第一名是 W。" }
+    ],
+    "tags": ["真假话", "矛盾法"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-define-survivor-01",
+    "section": "judgment",
+    "type": "定义判断",
+    "difficulty": 3,
+    "material": "【幸存者偏差】指在统计或推断时，只关注“幸存”下来、能被观察到的样本，而忽略了那些已被淘汰、无法被观察到的样本，从而得出系统性失真的结论。",
+    "stem": "根据上述定义，下列最能体现幸存者偏差的是：",
+    "options": [
+      "调查发现“成功的创业者大多坚持不懈”，便断定坚持就能创业成功——而大量同样坚持却失败、早已退出的人未被统计",
+      "为评估某药疗效，将患者随机分为用药组与对照组进行比较",
+      "统计全市企业利润时，盈利和亏损的企业都计入在内",
+      "通过分层随机抽样来估计全市居民的平均收入"
+    ],
+    "answerIndex": 0,
+    "explanation": "A 只统计了“幸存”的成功者，忽略了看不到的失败退出者，导致“坚持→成功”的结论系统性失真，正是幸存者偏差。B、C、D 都恰当地纳入或随机化了样本，不存在该偏差。",
+    "tags": ["定义判断", "幸存者偏差"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-compound-01",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 3,
+    "stem": "观察图形的边数与填充变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 1,
+    "explanation": "存在两条叠加规律：边数每两项加一（3、3、4、4 → 5、5…），填充按“空、实、空、实”交替。第五个图应是“空心五边形”。",
+    "figurePrompt": [
+      { "shape": "polygon", "count": 3, "filled": false },
+      { "shape": "polygon", "count": 3, "filled": true },
+      { "shape": "polygon", "count": 4, "filled": false },
+      { "shape": "polygon", "count": 4, "filled": true }
+    ],
+    "figureOptions": [
+      { "shape": "polygon", "count": 5, "filled": true },
+      { "shape": "polygon", "count": 5, "filled": false },
+      { "shape": "polygon", "count": 4, "filled": false },
+      { "shape": "polygon", "count": 6, "filled": false }
+    ],
+    "steps": [
+      { "text": "看边数：3、3、4、4，每两项加一，下一个该是 5。" },
+      { "text": "看填充：空、实、空、实交替，第五个该是空心。" },
+      { "text": "两条规律叠加 → 空心五边形。" }
+    ],
+    "tags": ["图形推理", "复合规律"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-poly2",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 2,
+    "stem": "观察多边形边数的变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 0,
+    "explanation": "边数依次为 3、5、7，公差为 2，下一个应为 9 边形。",
+    "figurePrompt": [
+      { "shape": "polygon", "count": 3 },
+      { "shape": "polygon", "count": 5 },
+      { "shape": "polygon", "count": 7 }
+    ],
+    "figureOptions": [
+      { "shape": "polygon", "count": 9 },
+      { "shape": "polygon", "count": 7 },
+      { "shape": "polygon", "count": 8 },
+      { "shape": "polygon", "count": 11 }
+    ],
+    "steps": [
+      { "text": "数边数：3、5、7，每次 +2。" },
+      { "text": "下一个 7+2 = 9 边形。" }
+    ],
+    "tags": ["图形推理", "数量·等差"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-grid",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 1,
+    "stem": "观察九宫格中黑块数量的变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 0,
+    "explanation": "黑块数量依次为 1、2、3、4，每次加一，下一个为 5 个黑块。",
+    "figurePrompt": [
+      { "shape": "grid", "count": 1 },
+      { "shape": "grid", "count": 2 },
+      { "shape": "grid", "count": 3 },
+      { "shape": "grid", "count": 4 }
+    ],
+    "figureOptions": [
+      { "shape": "grid", "count": 5 },
+      { "shape": "grid", "count": 4 },
+      { "shape": "grid", "count": 6 },
+      { "shape": "grid", "count": 3 }
+    ],
+    "steps": [
+      { "text": "数黑块：1、2、3、4。" },
+      { "text": "每次加一，下一个 5 个黑块。" }
+    ],
+    "tags": ["图形推理", "数量·黑块"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-fib",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 3,
+    "stem": "观察圆点数量的变化规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 0,
+    "explanation": "点数依次为 1、2、3、5，从第三项起每项等于前两项之和（1+2=3，2+3=5），故下一个为 3+5=8 个点。",
+    "figurePrompt": [
+      { "shape": "dots", "count": 1 },
+      { "shape": "dots", "count": 2 },
+      { "shape": "dots", "count": 3 },
+      { "shape": "dots", "count": 5 }
+    ],
+    "figureOptions": [
+      { "shape": "dots", "count": 8 },
+      { "shape": "dots", "count": 7 },
+      { "shape": "dots", "count": 6 },
+      { "shape": "dots", "count": 4 }
+    ],
+    "steps": [
+      { "text": "数点数：1、2、3、5——不是等差。" },
+      { "text": "发现递推：1+2=3，2+3=5（斐波那契式）。" },
+      { "text": "下一个 = 3+5 = 8 个点。" }
+    ],
+    "tags": ["图形推理", "数量·递推"],
+    "source": "原创仿真题"
+  },
+  {
+    "id": "jd-figure-ccw",
+    "section": "judgment",
+    "type": "图形推理",
+    "difficulty": 2,
+    "stem": "观察箭头的旋转规律，选出问号处应填的图形。",
+    "options": ["A", "B", "C", "D"],
+    "answerIndex": 1,
+    "explanation": "箭头每一步逆时针旋转 45°：0°→ −45°→ −90°→ −135°，下一个为 −180°。",
+    "figurePrompt": [
+      { "shape": "arrow", "rotation": 0 },
+      { "shape": "arrow", "rotation": -45 },
+      { "shape": "arrow", "rotation": -90 },
+      { "shape": "arrow", "rotation": -135 }
+    ],
+    "figureOptions": [
+      { "shape": "arrow", "rotation": -135 },
+      { "shape": "arrow", "rotation": -180 },
+      { "shape": "arrow", "rotation": -90 },
+      { "shape": "arrow", "rotation": 45 }
+    ],
+    "steps": [
+      { "text": "相邻两图箭头逆时针转 45°。" },
+      { "text": "−135° 再逆时针 45° = −180°。" }
+    ],
+    "tags": ["图形推理", "旋转·逆时针"],
+    "source": "原创仿真题"
+  }
+]

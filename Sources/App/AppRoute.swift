@@ -7,11 +7,14 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
     case delayedRecall
     case syllogism
     case logicArgument
+    case logicReasoning
     case schulte
     case nBack
     case digitSpan
     case corsiBlock
     case changeDetection
+    case civilExam
+    case devilTraining
     case materialsWorkbench
     case history
     case settings
@@ -26,11 +29,14 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .delayedRecall: return "延迟回忆"
         case .syllogism: return "逻辑快判"
         case .logicArgument: return "论证分析"
+        case .logicReasoning: return "逻辑推理"
         case .schulte: return "舒尔特方格"
         case .nBack: return "N-Back"
         case .digitSpan: return "数字广度"
         case .corsiBlock: return "Corsi 方块"
         case .changeDetection: return "变化检测"
+        case .civilExam: return "考公行测"
+        case .devilTraining: return "魔鬼锻炼"
         case .materialsWorkbench: return "素材"
         case .history: return "历史"
         case .settings: return "设置"
@@ -60,11 +66,14 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .delayedRecall: return "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .syllogism: return "bolt.trianglebadge.exclamationmark"
         case .logicArgument: return "puzzlepiece.extension"
+        case .logicReasoning: return "brain.head.profile"
         case .schulte: return "square.grid.3x3.fill"
         case .nBack: return "number.square.fill"
         case .digitSpan: return "textformat.123"
         case .corsiBlock: return "square.on.square"
         case .changeDetection: return "eye.trianglebadge.exclamationmark"
+        case .civilExam: return "building.columns.fill"
+        case .devilTraining: return "flame.fill"
         case .materialsWorkbench: return "tray.full.fill"
         case .history: return "clock.arrow.circlepath"
         case .settings: return "slider.horizontal.3"
@@ -78,11 +87,14 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
         case .delayedRecall: return .delayedRecall
         case .syllogism: return .syllogism
         case .logicArgument: return .logicArgument
+        case .logicReasoning: return .logicReasoning
         case .schulte: return .schulte
         case .nBack: return .nBack
         case .digitSpan: return .digitSpan
         case .corsiBlock: return .corsiBlock
         case .changeDetection: return .changeDetection
+        case .civilExam: return .civilExam
+        case .devilTraining: return .devilTraining
         default: return nil
         }
     }
@@ -90,9 +102,11 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
     var isModule: Bool { trainingModule != nil }
 
     static let readingModules: [AppRoute] = [.mainIdea, .evidenceMap, .delayedRecall]
-    static let logicModules: [AppRoute] = [.syllogism, .logicArgument]
+    static let logicModules: [AppRoute] = [.logicReasoning, .syllogism, .logicArgument, .civilExam]
     static let attentionModules: [AppRoute] = [.schulte]
     static let memoryModules: [AppRoute] = [.nBack, .digitSpan, .corsiBlock, .changeDetection]
+    static let examModules: [AppRoute] = [.civilExam]
+    static let devilModules: [AppRoute] = [.devilTraining]
     static let tools: [AppRoute] = [.home, .materialsWorkbench, .history, .settings]
 
     static let supportAttention: [AppRoute] = attentionModules
@@ -155,6 +169,15 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
                 subtitle: "拆解论证结构、谬误与评估",
                 shortDescription: "批判性思维与论证分析训练"
             )
+        case .logicReasoning:
+            return ModulePresentationProfile(
+                accent: BDColor.syllogismAccent,
+                shellMode: .training,
+                tone: .logic,
+                cluster: .trainingLibrary,
+                subtitle: "演绎推理与逻辑谜题：读线索、推唯一解",
+                shortDescription: "约束推理·条件假设·题库练习"
+            )
         case .schulte:
             return ModulePresentationProfile(
                 accent: BDColor.primaryBlue,
@@ -199,6 +222,24 @@ enum AppRoute: String, CaseIterable, Identifiable, Hashable {
                 cluster: .trainingLibrary,
                 subtitle: "在短时保持中检测视觉变化",
                 shortDescription: "视觉工作记忆容量评估"
+            )
+        case .civilExam:
+            return ModulePresentationProfile(
+                accent: BDColor.teal,
+                shellMode: .training,
+                tone: .logic,
+                cluster: .trainingLibrary,
+                subtitle: "行测题库：判断推理·言语理解·数量关系·资料分析",
+                shortDescription: "按板块练习与限时模考"
+            )
+        case .devilTraining:
+            return ModulePresentationProfile(
+                accent: BDColor.error,
+                shellMode: .training,
+                tone: .memory,
+                cluster: .trainingLibrary,
+                subtitle: "限时高压小游戏：随正确率自适应加难、连击计分",
+                shortDescription: "魔鬼计算 / 翻牌 / 抓鼠"
             )
         case .materialsWorkbench:
             return ModulePresentationProfile(

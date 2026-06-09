@@ -13,6 +13,8 @@ protocol TrainingStore {
     func saveApprovedReadingPassages(_ passages: [ApprovedReadingPassage]) throws
     func loadApprovedSyllogismTrials() throws -> [SyllogismTrial]
     func saveApprovedSyllogismTrials(_ trials: [SyllogismTrial]) throws
+    func loadApprovedBankQuestions() throws -> [BankQuestion]
+    func saveApprovedBankQuestions(_ questions: [BankQuestion]) throws
     func loadStreakTracker() throws -> StreakTracker?
     func saveStreakTracker(_ tracker: StreakTracker) throws
     func loadAchievementTracker() throws -> AchievementTracker?
@@ -502,6 +504,14 @@ final class LocalTrainingStore: TrainingStore {
             return values
         }
         return references.isEmpty ? nil : references
+    }
+
+    func loadApprovedBankQuestions() throws -> [BankQuestion] {
+        try fetchAppDocument("approved-bank-questions", as: [BankQuestion].self) ?? []
+    }
+
+    func saveApprovedBankQuestions(_ questions: [BankQuestion]) throws {
+        try saveAppDocument(key: "approved-bank-questions", value: questions)
     }
 
     func loadStreakTracker() throws -> StreakTracker? {

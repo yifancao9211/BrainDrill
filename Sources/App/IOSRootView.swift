@@ -152,6 +152,8 @@ struct IOSModuleContainerView: View {
                 SyllogismTrainingView()
             case .logicArgument:
                 LogicArgumentTrainingView()
+            case .logicReasoning:
+                ScrollView { LogicReasoningTrainingView().padding() }
             case .schulte:
                 SchulteTrainingView()
             case .nBack:
@@ -162,6 +164,10 @@ struct IOSModuleContainerView: View {
                 CorsiBlockTrainingView()
             case .changeDetection:
                 ChangeDetectionTrainingView()
+            case .civilExam:
+                ScrollView { CivilExamHubView().padding() }
+            case .devilTraining:
+                ScrollView { DevilTrainingHubView().padding() }
             default:
                 Text("该模块暂未适配")
                     .foregroundStyle(.secondary)

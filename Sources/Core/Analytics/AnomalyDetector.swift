@@ -73,6 +73,10 @@ enum AnomalyDetector {
             result.append(("d'", m.dPrime, history.compactMap { $0.syllogismMetrics?.dPrime }))
         case let .logicArgument(m):
             result.append(("综合得分", m.compositeScore, history.compactMap { $0.logicArgumentMetrics?.compositeScore }))
+        case let .questionBank(m):
+            result.append(("正确率", m.accuracy, history.compactMap { $0.questionBankMetrics?.accuracy }))
+        case let .devilGame(m):
+            result.append(("正确率", m.accuracy, history.compactMap { $0.devilGameMetrics?.accuracy }))
         }
 
         return result

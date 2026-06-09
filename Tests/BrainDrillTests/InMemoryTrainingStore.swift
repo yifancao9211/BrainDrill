@@ -11,6 +11,7 @@ final class InMemoryTrainingStore: TrainingStore {
     private var adaptiveStates: [TrainingModule: ModuleAdaptiveState] = [:]
     private var approvedPassages: [ApprovedReadingPassage] = []
     private var syllogismTrials: [SyllogismTrial] = []
+    private var bankQuestions: [BankQuestion] = []
     private var streakTracker: StreakTracker?
     private var achievementTracker: AchievementTracker?
 
@@ -28,6 +29,9 @@ final class InMemoryTrainingStore: TrainingStore {
 
     func loadApprovedSyllogismTrials() throws -> [SyllogismTrial] { syllogismTrials }
     func saveApprovedSyllogismTrials(_ trials: [SyllogismTrial]) throws { self.syllogismTrials = trials }
+
+    func loadApprovedBankQuestions() throws -> [BankQuestion] { bankQuestions }
+    func saveApprovedBankQuestions(_ questions: [BankQuestion]) throws { self.bankQuestions = questions }
 
     func loadStreakTracker() throws -> StreakTracker? { streakTracker }
     func saveStreakTracker(_ tracker: StreakTracker) throws { self.streakTracker = tracker }

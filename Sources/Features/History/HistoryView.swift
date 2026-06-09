@@ -47,12 +47,12 @@ struct HistoryView: View {
     private func sessionRow(_ session: SessionResult) -> some View {
         BDInteractiveRow(accent: moduleColor(session.module)) {
             HStack(spacing: 12) {
-                Image(systemName: session.module.systemImage)
+                Image(systemName: session.devilGameMetrics?.game.systemImage ?? session.module.systemImage)
                     .foregroundStyle(moduleColor(session.module))
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(session.module.shortName)
+                    Text(session.devilGameMetrics?.game.displayName ?? session.module.shortName)
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(BDColor.textPrimary)
                     Text(summaryLabel(session))
@@ -95,6 +95,10 @@ struct HistoryView: View {
             "准确 \(Int(m.accuracy * 100))% · d' \(String(format: "%.1f", m.dPrime))"
         case let .logicArgument(m):
             "综合 \(Int(m.compositeScore * 100))%"
+        case let .questionBank(m):
+            "\(m.section.displayName) · 正确 \(Int(m.accuracy * 100))%"
+        case let .devilGame(m):
+            "\(m.game.displayName) · \(m.score)分 · 连击\(m.maxCombo)"
         }
     }
 
@@ -105,6 +109,9 @@ struct HistoryView: View {
         case .delayedRecall: BDColor.green
         case .syllogism:     BDColor.syllogismAccent
         case .logicArgument: BDColor.logicArgumentAccent
+        case .logicReasoning: BDColor.syllogismAccent
+        case .civilExam:     BDColor.teal
+        case .devilTraining: BDColor.error
         case .schulte:       BDColor.primaryBlue
         case .nBack:         BDColor.nBackAccent
         case .digitSpan:     BDColor.digitSpanAccent

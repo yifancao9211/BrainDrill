@@ -69,6 +69,8 @@ enum ModuleMetrics: Codable, Equatable {
     case corsiBlock(CorsiBlockMetrics)
     case syllogism(SyllogismMetrics)
     case logicArgument(LogicArgumentMetrics)
+    case questionBank(BankPracticeMetrics)
+    case devilGame(DevilGameMetrics)
 }
 
 struct MainIdeaMetrics: Codable, Equatable {
@@ -394,6 +396,16 @@ extension SessionResult {
 
     var logicArgumentMetrics: LogicArgumentMetrics? {
         if case let .logicArgument(m) = metrics { return m }
+        return nil
+    }
+
+    var questionBankMetrics: BankPracticeMetrics? {
+        if case let .questionBank(m) = metrics { return m }
+        return nil
+    }
+
+    var devilGameMetrics: DevilGameMetrics? {
+        if case let .devilGame(m) = metrics { return m }
         return nil
     }
 }

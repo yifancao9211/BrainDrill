@@ -89,6 +89,7 @@ struct RootView: View {
         ("logic", "逻辑推理", "brain.fill", AppRoute.logicModules, BDColor.logicArgumentAccent),
         ("attention", "注意控制", "eye.fill", AppRoute.attentionModules, BDColor.primaryBlue),
         ("memory", "工作记忆", "memorychip.fill", AppRoute.memoryModules, BDColor.nBackAccent),
+        ("devil", "魔鬼锻炼", "flame.fill", AppRoute.devilModules, BDColor.error),
     ]
 
     var body: some View {
@@ -114,6 +115,12 @@ struct RootView: View {
             if Self.shouldClearActiveModule(activeRoute: appModel.selectedRoute, newSidebar: item) {
                 appModel.selectedRoute = .home
             }
+            // 单模块分类（如魔鬼锻炼、注意控制）：点侧边栏直接进入该模块，跳过中转选择页。
+            if case .category(let key) = item,
+               let cat = Self.categories.first(where: { $0.key == key }),
+               cat.routes.count == 1, let only = cat.routes.first {
+                appModel.selectedRoute = only
+            }
         }
     }
 
@@ -122,7 +129,7 @@ struct RootView: View {
     private var sidebar: some View {
         List(selection: $sidebarSelection) {
             Section("工作台") {
-                ForEach(BDWorkspaceDestination.allCases) { destination in
+                ForEach(BDWorkspaceDestination.allCases.filter { $0 != .trainingLibrary && $0 != .analysis }) { destination in
                     Label {
                         Text(destination.title)
                     } icon: {
@@ -274,11 +281,11 @@ struct RootView: View {
         Group {
             switch destination {
             case .controlCenter:
-                DailyPlanView()
+                ConsoleHubView()
             case .trainingLibrary:
                 GameLibraryView()
             case .analysis:
-                AnalysisHubView()
+                ConsoleHubView()
             case .materials:
                 MaterialsManageView()
             case .settings:
@@ -302,6 +309,10 @@ struct RootView: View {
             SyllogismTrainingView()
         case .logicArgument:
             LogicArgumentTrainingView()
+        case .logicReasoning:
+            ScrollView { LogicReasoningTrainingView()
+                .frame(maxWidth: BDMetrics.contentMaxTrainingWidth, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading) }
         case .schulte:
             SchulteTrainingView()
         case .nBack:
@@ -312,6 +323,14 @@ struct RootView: View {
             CorsiBlockTrainingView()
         case .changeDetection:
             ChangeDetectionTrainingView()
+        case .civilExam:
+            ScrollView { CivilExamHubView()
+                .frame(maxWidth: BDMetrics.contentMaxTrainingWidth, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading) }
+        case .devilTraining:
+            ScrollView { DevilTrainingHubView()
+                .frame(maxWidth: BDMetrics.contentMaxTrainingWidth, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading) }
         default:
             EmptyView()
         }

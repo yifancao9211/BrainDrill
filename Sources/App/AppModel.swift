@@ -26,6 +26,7 @@ final class AppModel {
     var adaptiveStates: [TrainingModule: ModuleAdaptiveState]
     var approvedReadingPassages: [ApprovedReadingPassage]
     var approvedSyllogismTrials: [SyllogismTrial]
+    var approvedBankQuestions: [BankQuestion]
     var lastPersistenceError: String?
     var streakTracker: StreakTracker
     var achievementTracker: AchievementTracker
@@ -38,6 +39,9 @@ final class AppModel {
     let corsiBlock: CorsiBlockCoordinator
     let syllogismCoord: SyllogismCoordinator
     let logicArgumentCoord: LogicArgumentCoordinator
+    let logicReasoningCoord: QuestionBankCoordinator
+    let civilExamCoord: QuestionBankCoordinator
+    let devilCoord: DevilCoordinator
 
     @ObservationIgnored private let store: any TrainingStore
 
@@ -50,6 +54,17 @@ final class AppModel {
         self.corsiBlock = CorsiBlockCoordinator()
         self.syllogismCoord = SyllogismCoordinator()
         self.logicArgumentCoord = LogicArgumentCoordinator()
+        self.logicReasoningCoord = QuestionBankCoordinator(
+            module: .logicReasoning,
+            defaultSections: [.logicReasoning],
+            statusMessage: "逻辑推理：读线索，推出唯一解。"
+        )
+        self.civilExamCoord = QuestionBankCoordinator(
+            module: .civilExam,
+            defaultSections: [.judgment, .verbal, .quantitative, .dataAnalysis],
+            statusMessage: "考公行测：选板块开始练习或模考。"
+        )
+        self.devilCoord = DevilCoordinator()
         self.settings = (try? store.loadSettings()) ?? .default
         self.sessions = ((try? store.loadSessions()) ?? []).sorted { $0.endedAt > $1.endedAt }
         let loadedAdaptiveStates = (try? store.loadAdaptiveStates()) ?? [:]
@@ -58,10 +73,13 @@ final class AppModel {
         }
         self.approvedReadingPassages = ((try? store.loadApprovedReadingPassages()) ?? []).sorted { $0.approvedAt > $1.approvedAt }
         self.approvedSyllogismTrials = (try? store.loadApprovedSyllogismTrials()) ?? []
+        self.approvedBankQuestions = (try? store.loadApprovedBankQuestions()) ?? []
         self.streakTracker = (try? store.loadStreakTracker()) ?? StreakTracker()
         self.achievementTracker = (try? store.loadAchievementTracker()) ?? AchievementTracker()
         ReadingPassageRepository.updateApprovedPassages(self.approvedReadingPassages)
         self.syllogismCoord.localTrials = self.approvedSyllogismTrials
+        self.logicReasoningCoord.importedQuestions = self.approvedBankQuestions
+        self.civilExamCoord.importedQuestions = self.approvedBankQuestions
     }
 
     /// All per-module coordinators keyed by module. Module-agnostic queries
@@ -76,6 +94,9 @@ final class AppModel {
             .corsiBlock: corsiBlock,
             .syllogism: syllogismCoord,
             .logicArgument: logicArgumentCoord,
+            .logicReasoning: logicReasoningCoord,
+            .civilExam: civilExamCoord,
+            .devilTraining: devilCoord,
         ]
     }
 
@@ -88,7 +109,7 @@ final class AppModel {
     }
 
     var skillProfile: AppSkillProfile {
-        AppSkillProfile.compute(from: adaptiveStates)
+        AppSkillProfile.compute(sessions: sessions)
     }
 
     var isAnyModuleActive: Bool {
@@ -194,6 +215,14 @@ final class AppModel {
         case let .logicArgument(metrics):
             if metrics.compositeScore >= 0.80 { return .success }
             if metrics.compositeScore >= 0.55 { return .warning }
+            return .error
+        case let .questionBank(metrics):
+            if metrics.accuracy >= 0.80 { return .success }
+            if metrics.accuracy >= 0.55 { return .warning }
+            return .error
+        case let .devilGame(metrics):
+            if metrics.accuracy >= 0.80 { return .success }
+            if metrics.accuracy >= 0.55 { return .warning }
             return .error
         }
     }
@@ -308,6 +337,85 @@ final class AppModel {
         )
     }
 
+    // MARK: - Question Bank (逻辑推理 / 考公) delegation
+
+    func startLogicReasoningSession(count: Int = 10) {
+        logicReasoningCoord.startSession(
+            sections: [.logicReasoning],
+            count: count,
+            startDifficulty: logicStartDifficulty()
+        )
+    }
+
+    /// 按「逻辑推理」能力 θ 推出题库起始难度（θ0→1, 50→2, 100→3）；无数据时默认偏易。
+    private func logicStartDifficulty() -> Double {
+        let cat = skillProfile.categoryScores.first { $0.category == .logicalReasoning }
+        let theta = (cat?.hasData == true) ? (cat?.score ?? 40) : 40
+        return min(max(1 + theta / 100 * 2, 1), 3)
+    }
+
+    /// 结算一次题库练习并记入历史。供逻辑推理与考公模块共用。
+    func finalizeQuestionBankSession(_ coordinator: QuestionBankCoordinator) {
+        if let result = coordinator.finalizeIfComplete() {
+            appendSession(result)
+        }
+    }
+
+    func dismissQuestionBankResult(_ coordinator: QuestionBankCoordinator) {
+        coordinator.lastResult = nil
+    }
+
+    func startLogicReview() {
+        logicReasoningCoord.startReview(in: [.logicReasoning])
+    }
+
+    func startCivilReview() {
+        civilExamCoord.startReview(in: civilExamCoord.availableSections)
+    }
+
+    /// 全局待复习错题数（逻辑 + 考公）。
+    var dueReviewCount: Int { ReviewStore.dueCount() }
+
+    /// 一键开始错题复习：优先有到期错题的板块，并切到对应模块。
+    func startBestReview() {
+        if civilExamCoord.dueReviewCount(in: civilExamCoord.availableSections) > 0 {
+            selectedRoute = .civilExam
+            startCivilReview()
+        } else if logicReasoningCoord.dueReviewCount(in: [.logicReasoning]) > 0 {
+            selectedRoute = .logicReasoning
+            startLogicReview()
+        }
+    }
+
+    /// 考公练习/模考：直接开始，全部板块综合出题，偏向较难题目（贴近国考难度）。
+    func startCivilExamSession(timed: Bool, count: Int) {
+        civilExamCoord.startSession(
+            sections: civilExamCoord.availableSections,
+            type: nil,
+            count: count,
+            timed: timed,
+            totalSeconds: count * 75,
+            startDifficulty: logicStartDifficulty()
+        )
+    }
+
+    // MARK: - Devil Training delegation
+
+    func startDevilGame(_ kind: DevilGameKind) {
+        let memoryTheta = skillProfile.categoryScores.first { $0.category == .memory }?.score ?? 0
+        devilCoord.startGame(kind, adaptiveState: adaptiveState(for: .devilTraining), memoryTheta: memoryTheta)
+    }
+
+    func finalizeDevilGame() {
+        if let result = devilCoord.finalizeIfComplete() {
+            appendSession(result)
+        }
+    }
+
+    func dismissDevilResult() {
+        devilCoord.lastResult = nil
+    }
+
     // MARK: - DigitSpan delegation
 
     func startDigitSpanSession(mode: DigitSpanMode = .forward) {
@@ -402,6 +510,7 @@ final class AppModel {
             .digitSpan: { self.startDigitSpanSession() },
             .changeDetection: { self.startChangeDetectionSession() },
             .corsiBlock: { self.startCorsiBlockSession() },
+            .logicReasoning: { self.startLogicReasoningSession() },
         ]
     }
 
@@ -440,8 +549,11 @@ final class AppModel {
         do {
             approvedReadingPassages = try store.loadApprovedReadingPassages().sorted { $0.approvedAt > $1.approvedAt }
             approvedSyllogismTrials = try store.loadApprovedSyllogismTrials()
+            approvedBankQuestions = try store.loadApprovedBankQuestions()
             ReadingPassageRepository.updateApprovedPassages(approvedReadingPassages)
             syllogismCoord.localTrials = approvedSyllogismTrials
+            logicReasoningCoord.importedQuestions = approvedBankQuestions
+            civilExamCoord.importedQuestions = approvedBankQuestions
             lastPersistenceError = nil
         } catch {
             lastPersistenceError = "素材库刷新失败：\(error.localizedDescription)"
@@ -535,6 +647,40 @@ final class AppModel {
         persistApprovedSyllogismTrials()
     }
 
+    /// Upsert 题库题目（逻辑推理 / 考公共用）。非法题目被拒绝。
+    func upsertBankQuestions(_ questions: [BankQuestion]) -> (inserted: Int, updated: Int, rejected: [String]) {
+        var inserted = 0
+        var updated = 0
+        var rejected: [String] = []
+
+        for question in questions {
+            let issues = question.validationIssues
+            guard issues.isEmpty else {
+                rejected.append("\(question.id): \(issues.joined(separator: "；"))")
+                continue
+            }
+            if let existingIndex = approvedBankQuestions.firstIndex(where: { $0.id == question.id }) {
+                approvedBankQuestions[existingIndex] = question
+                updated += 1
+            } else {
+                approvedBankQuestions.insert(question, at: 0)
+                inserted += 1
+            }
+        }
+
+        logicReasoningCoord.importedQuestions = approvedBankQuestions
+        civilExamCoord.importedQuestions = approvedBankQuestions
+        persistApprovedBankQuestions()
+        return (inserted, updated, rejected)
+    }
+
+    func deleteApprovedBankQuestion(_ question: BankQuestion) {
+        approvedBankQuestions.removeAll { $0.id == question.id }
+        logicReasoningCoord.importedQuestions = approvedBankQuestions
+        civilExamCoord.importedQuestions = approvedBankQuestions
+        persistApprovedBankQuestions()
+    }
+
     // MARK: - Formatting
 
     func formattedDuration(_ duration: TimeInterval) -> String {
@@ -593,6 +739,15 @@ final class AppModel {
             lastPersistenceError = nil
         } catch {
             lastPersistenceError = "逻辑题库保存失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func persistApprovedBankQuestions() {
+        do {
+            try store.saveApprovedBankQuestions(approvedBankQuestions)
+            lastPersistenceError = nil
+        } catch {
+            lastPersistenceError = "题库保存失败：\(error.localizedDescription)"
         }
     }
 

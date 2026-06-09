@@ -13,15 +13,22 @@ struct MaterialsManageView: View {
     private enum MaterialKind: String, CaseIterable, Identifiable {
         case reading
         case logic
+        case bank
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
             case .reading: "阅读素材"
-            case .logic: "逻辑题库"
+            case .logic: "三段论"
+            case .bank: "逻辑·考公题库"
             }
         }
+    }
+
+    /// 逻辑推理（演绎）+ 考公行测题库（内置 + 已导入），用于素材库展示。
+    private var bankQuestions: [BankQuestion] {
+        QuestionBankLibrary.questions(in: BankSection.allCases, type: nil, imported: appModel.approvedBankQuestions)
     }
 
     private enum DeleteTarget {
@@ -81,7 +88,9 @@ struct MaterialsManageView: View {
         case .reading:
             "阅读素材 (\(ReadingPassageLibrary.all.count))"
         case .logic:
-            "逻辑题库 (\(appModel.approvedSyllogismTrials.count))"
+            "三段论题库 (\(appModel.approvedSyllogismTrials.count))"
+        case .bank:
+            "逻辑推理 · 考公题库 (\(bankQuestions.count))"
         }
     }
 
@@ -90,7 +99,17 @@ struct MaterialsManageView: View {
         case .reading:
             "内置题库和本地写入的全部阅读材料。"
         case .logic:
-            "本地逻辑快判题；训练时优先从这里抽题。"
+            "本地逻辑快判（三段论）题；训练时优先从这里抽题。"
+        case .bank:
+            "逻辑推理（演绎谜题）与考公行测的全部题目，按板块查看答案与解析。"
+        }
+    }
+
+    private var listAccent: Color {
+        switch selectedKind {
+        case .reading: BDColor.gold
+        case .logic:   BDColor.syllogismAccent
+        case .bank:    BDColor.teal
         }
     }
 
@@ -105,7 +124,7 @@ struct MaterialsManageView: View {
             SurfaceCard(
                 title: listTitle,
                 subtitle: listSubtitle,
-                accent: selectedKind == .reading ? BDColor.gold : BDColor.syllogismAccent
+                accent: listAccent
             ) {
                 VStack(spacing: 12) {
                     Picker("素材类型", selection: $selectedKind) {
@@ -159,6 +178,17 @@ struct MaterialsManageView: View {
                                     syllogismRow(trial)
                                 }
                             }
+                        }
+
+                    case .bank:
+                        let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+                        let items = q.isEmpty ? bankQuestions : bankQuestions.filter {
+                            $0.stem.lowercased().contains(q) || $0.type.lowercased().contains(q) || $0.section.displayName.contains(q)
+                        }
+                        if items.isEmpty {
+                            ContentUnavailableView("没有匹配的题目", systemImage: "magnifyingglass")
+                        } else {
+                            QuestionBankBrowseList(questions: items, accent: BDColor.teal)
                         }
                     }
                 }

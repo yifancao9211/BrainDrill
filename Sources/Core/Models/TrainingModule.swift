@@ -6,11 +6,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     case delayedRecall
     case syllogism
     case logicArgument
+    case logicReasoning
     case schulte
     case nBack
     case digitSpan
     case changeDetection
     case corsiBlock
+    case civilExam
+    case devilTraining
 
     var id: String { rawValue }
 
@@ -20,11 +23,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         .delayedRecall,
         .syllogism,
         .logicArgument,
+        .logicReasoning,
         .schulte,
         .nBack,
         .digitSpan,
         .changeDetection,
         .corsiBlock,
+        .civilExam,
+        .devilTraining,
     ]
 
     static let coreCases: [TrainingModule] = [
@@ -70,8 +76,8 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     var dimension: Dimension {
         switch self {
         case .mainIdea, .evidenceMap, .delayedRecall:            .reading
-        case .syllogism, .logicArgument:                        .logicalReasoning
-        case .digitSpan, .nBack, .changeDetection, .corsiBlock: .memory
+        case .syllogism, .logicArgument, .logicReasoning, .civilExam: .logicalReasoning
+        case .digitSpan, .nBack, .changeDetection, .corsiBlock, .devilTraining: .memory
         case .schulte:                                          .visualAttention
         }
     }
@@ -83,11 +89,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .delayedRecall:  "延迟回忆"
         case .syllogism:       "逻辑快判"
         case .logicArgument:   "论证分析"
+        case .logicReasoning:  "逻辑推理"
         case .schulte:         "舒尔特方格"
         case .nBack:           "N-Back 记忆"
         case .digitSpan:       "数字广度"
         case .changeDetection: "变更检测"
         case .corsiBlock:      "空间广度"
+        case .civilExam:       "考公行测"
+        case .devilTraining:   "魔鬼锻炼"
         }
     }
 
@@ -98,11 +107,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .delayedRecall:  "回忆"
         case .syllogism:       "逻辑快判"
         case .logicArgument:   "论证分析"
+        case .logicReasoning:  "逻辑推理"
         case .schulte:         "舒尔特"
         case .nBack:           "N-Back"
         case .digitSpan:       "数字广度"
         case .changeDetection: "变更检测"
         case .corsiBlock:      "空间广度"
+        case .civilExam:       "考公"
+        case .devilTraining:   "魔鬼"
         }
     }
 
@@ -113,11 +125,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .delayedRecall:  "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .syllogism:       "bolt.trianglebadge.exclamationmark"
         case .logicArgument:   "puzzlepiece.extension"
+        case .logicReasoning:  "brain.head.profile"
         case .schulte:         "square.grid.3x3.fill"
         case .nBack:           "number.square.fill"
         case .digitSpan:       "brain"
         case .changeDetection: "eye.fill"
         case .corsiBlock:      "square.grid.3x3.topleft.filled"
+        case .civilExam:       "building.columns.fill"
+        case .devilTraining:   "flame.fill"
         }
     }
 
@@ -128,11 +143,14 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         case .delayedRecall:  "读后保持与结构化提取"
         case .syllogism:       "形式逻辑推理速度与准确性"
         case .logicArgument:   "论证结构·谬误识别·论证评估"
+        case .logicReasoning:  "演绎推理与逻辑谜题"
         case .schulte:         "视觉注意力与周边视觉"
         case .nBack:           "工作记忆更新能力"
         case .digitSpan:       "短时记忆与工作记忆"
         case .changeDetection: "视觉工作记忆"
         case .corsiBlock:      "视觉空间工作记忆"
+        case .civilExam:       "行测题库：判断·言语·数量·资料"
+        case .devilTraining:   "限时高压·连击计分·自适应加难"
         }
     }
 
@@ -140,9 +158,9 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
         switch self {
         case .mainIdea, .evidenceMap, .delayedRecall:
             .readingComprehension
-        case .syllogism, .logicArgument:
+        case .syllogism, .logicArgument, .logicReasoning, .civilExam:
             .logicalReasoning
-        case .digitSpan, .nBack, .changeDetection, .corsiBlock:
+        case .digitSpan, .nBack, .changeDetection, .corsiBlock, .devilTraining:
             .memory
         case .schulte:
             .visualAttentionSearch
@@ -151,7 +169,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var adaptiveLevelRange: ClosedRange<Int> {
         switch self {
-        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument, .logicReasoning, .civilExam:
             1...3
         case .schulte:
             1...7
@@ -162,11 +180,11 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var defaultAdaptiveLevel: Int {
         switch self {
-        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument, .logicReasoning, .civilExam:
             1
         case .schulte:
             2
-        case .digitSpan, .corsiBlock, .nBack, .changeDetection:
+        case .digitSpan, .corsiBlock, .nBack, .changeDetection, .devilTraining:
             3
         }
     }
@@ -182,7 +200,7 @@ enum TrainingModule: String, Codable, CaseIterable, Identifiable, Hashable {
     /// Reading and logic modules require passage/trial selection, so they are not quick-startable.
     var isQuickStartable: Bool {
         switch self {
-        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument:
+        case .mainIdea, .evidenceMap, .delayedRecall, .syllogism, .logicArgument, .civilExam, .devilTraining:
             false
         default:
             true

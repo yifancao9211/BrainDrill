@@ -75,6 +75,12 @@ enum AdaptiveScoring {
 
         case let .logicArgument(metrics):
             return clamp(metrics.compositeScore)
+
+        case let .questionBank(metrics):
+            return clamp(metrics.accuracy)
+
+        case let .devilGame(metrics):
+            return clamp(metrics.accuracy)
         }
     }
 
@@ -129,6 +135,10 @@ enum AdaptiveScoring {
             return min(max(metrics.difficulty, 1), 3)
         case let .logicArgument(metrics):
             return min(max(metrics.difficulty, 1), 3)
+        case let .questionBank(metrics):
+            return min(max(metrics.difficulty, 1), 3)
+        case let .devilGame(metrics):
+            return min(max(metrics.peakLevel, 1), 6)
         }
     }
 

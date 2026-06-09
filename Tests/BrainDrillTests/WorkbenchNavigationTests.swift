@@ -22,7 +22,7 @@ struct WorkbenchNavigationTests {
     @Test
     func trainingCategoriesRemainGroupedUnderLibrary() {
         #expect(Set(AppRoute.readingModules) == Set([.mainIdea, .evidenceMap, .delayedRecall]))
-        #expect(Set(AppRoute.logicModules) == Set([.syllogism, .logicArgument]))
+        #expect(Set(AppRoute.logicModules) == Set([.logicReasoning, .syllogism, .logicArgument, .civilExam]))
         #expect(Set(AppRoute.attentionModules) == Set([.schulte]))
         #expect(Set(AppRoute.memoryModules) == Set([.nBack, .digitSpan, .corsiBlock, .changeDetection]))
     }
@@ -33,7 +33,9 @@ struct WorkbenchNavigationTests {
             (AppRoute.readingModules
                 + AppRoute.logicModules
                 + AppRoute.attentionModules
-                + AppRoute.memoryModules)
+                + AppRoute.memoryModules
+                + AppRoute.examModules
+                + AppRoute.devilModules)
                 .compactMap(\.trainingModule)
         )
 

@@ -95,6 +95,8 @@ enum TrainingScheduler {
         case let .corsiBlock(m):      return Double(m.maxSpan) / 9.0
         case let .syllogism(m):       return m.accuracy
         case let .logicArgument(m):   return m.compositeScore
+        case let .questionBank(m):    return m.accuracy
+        case let .devilGame(m):       return m.accuracy
         case .schulte:                return 0.5
         }
     }
