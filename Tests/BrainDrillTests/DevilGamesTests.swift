@@ -15,6 +15,17 @@ struct DevilFlipEngineTests {
         #expect(counts.values.allSatisfy { $0 == 2 })
     }
 
+    /// 每一档牌数都必须严格递增——不允许出现「难度不变、得分照涨」的假档位。
+    @Test func everyLevelGrowsBoard() {
+        var previous = 0
+        for level in 1...DevilFlipEngine.maxLevel {
+            let e = DevilFlipEngine(startLevel: level)
+            #expect(e.cards.count > previous, "Lv\(level) 的牌数应比上一档多")
+            previous = e.cards.count
+        }
+        #expect(previous == 16) // 满档 8 对
+    }
+
     @Test
     func previewBlocksFlipUntilEnded() {
         let e = DevilFlipEngine(startLevel: 1)
@@ -79,6 +90,10 @@ struct DevilMouseEngineTests {
         m.beginRecall()
         #expect(m.phase == .recall)
         for t in m.targets { m.toggle(t) }
+        // 选满不再自动判定，需要玩家确认提交
+        #expect(m.phase == .recall)
+        #expect(m.canSubmit)
+        m.submitSelection()
         #expect(m.phase == .reveal)
         #expect(m.lastRoundCorrect == true)
         #expect(m.correct == 1 && m.combo == 1 && m.score > 0 && m.level == 2)
@@ -93,8 +108,25 @@ struct DevilMouseEngineTests {
         m.beginRecall()
         let nonTargets = (0..<m.gridCount).filter { !m.targets.contains($0) }
         for i in nonTargets.prefix(targetN) { m.toggle(i) }
+        m.submitSelection()
         #expect(m.phase == .reveal)
         #expect(m.lastRoundCorrect == false)
         #expect(m.combo == 0 && m.level == 2)
+    }
+
+    @Test
+    func lastPickCanBeRevisedBeforeSubmit() {
+        let m = DevilMouseEngine(startLevel: 1)
+        m.beginRecall()
+        let nonTarget = (0..<m.gridCount).first { !m.targets.contains($0) }!
+        let targets = Array(m.targets)
+        m.toggle(targets[0])
+        m.toggle(nonTarget)          // 手滑点错最后一格
+        #expect(m.canSubmit)
+        m.toggle(nonTarget)          // 反悔：取消误选
+        #expect(!m.canSubmit)
+        m.toggle(targets[1])         // 改成正确的
+        m.submitSelection()
+        #expect(m.lastRoundCorrect == true)
     }
 }

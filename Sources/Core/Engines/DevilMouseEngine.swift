@@ -69,15 +69,23 @@ final class DevilMouseEngine: DevilGameEngine {
         phase = .recall
     }
 
-    /// 回忆期点选；选满目标数量即自动判定。
+    /// 回忆期点选/取消点选；选满后不自动判定，留给玩家检查与反悔的机会。
     func toggle(_ index: Int) {
         guard phase == .recall, !finished, (0..<gridCount).contains(index) else { return }
         if selected.contains(index) {
             selected.remove(index)
-        } else {
+        } else if selected.count < targets.count {
             selected.insert(index)
-            if selected.count >= targets.count { submit() }
         }
+    }
+
+    /// 是否已选满、可以提交。
+    var canSubmit: Bool { phase == .recall && !finished && selected.count == targets.count }
+
+    /// 玩家确认提交本回合答案。
+    func submitSelection() {
+        guard canSubmit else { return }
+        submit()
     }
 
     private func submit() {

@@ -52,19 +52,19 @@ struct DevilCalcEngineTests {
     }
 
     @Test
-    func threeInARowRaisesN() {
+    func threeInARowKeepsNFixed() {
         let e = DevilCalcEngine(startLevel: 1)
         answerCorrectly(e); answerCorrectly(e); answerCorrectly(e)
-        #expect(e.level == 2)        // N 从 1 升到 2
+        #expect(e.level == 1)        // 局内 N 固定，连对也不升
         #expect(e.maxCombo == 3)
     }
 
     @Test
-    func wrongAnswerLowersN() {
+    func wrongAnswerKeepsNFixed() {
         let e = DevilCalcEngine(startLevel: 3)
         answerWrong(e)
         #expect(e.combo == 0)
-        #expect(e.level == 2)        // N 从 3 降到 2
+        #expect(e.level == 3)        // 局内 N 固定，答错也不降
         #expect(e.lastAnsweredCorrectly == false)
     }
 

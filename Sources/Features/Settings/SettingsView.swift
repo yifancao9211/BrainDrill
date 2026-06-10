@@ -45,6 +45,15 @@ struct SettingsView: View {
                             .pickerStyle(.menu)
                         }
 
+                        settingToggle(
+                            title: "硬核模式",
+                            subtitle: "已找到的数字不变灰不划线，全程保持满负荷视觉搜索。",
+                            isOn: Binding(
+                                get: { appModel.settings.schulteHardcoreMode },
+                                set: { appModel.updateSchulteHardcoreMode($0) }
+                            )
+                        )
+
                         BDSettingsRow(title: "舒尔特结构", subtitle: "默认短训组次与休息时间。", controlAlignment: .leading) {
                             let cfg = appModel.settings.schulteSetRep
                             Text("\(cfg.setsPerSession) 组 × \(cfg.repsPerSet) 次，组内休息 \(cfg.restBetweenRepsSec)s，组间休息 \(cfg.restBetweenSetsSec)s")

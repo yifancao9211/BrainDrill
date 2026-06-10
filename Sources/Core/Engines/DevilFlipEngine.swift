@@ -53,7 +53,7 @@ final class DevilFlipEngine: DevilGameEngine {
     var boardCleared: Bool { !cards.isEmpty && cards.allSatisfy { $0.matched } }
     var columns: Int { cards.count <= 6 ? 3 : 4 }
 
-    private func pairs(for level: Int) -> Int { min(2 + level, 6) } // Lv1→3 对，…，Lv4+→6 对
+    private func pairs(for level: Int) -> Int { min(2 + level, 8) } // Lv1→3 对 … Lv6→8 对（每档牌数都在涨，不存在同难度刷分档）
 
     private func deal() {
         let p = pairs(for: level)

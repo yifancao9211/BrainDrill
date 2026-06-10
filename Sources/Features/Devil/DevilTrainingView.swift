@@ -313,7 +313,7 @@ struct DevilCalcGameView: View {
         else { warmupScheduler.cancel(); appModel.devilCoord.timeUp(); appModel.finalizeDevilGame() }
     }
 
-    /// 热身/升档补记：没有应答题时定时展示新题，直到出现应答题。
+    /// 开局热身：没有应答题时定时展示新题，直到队列攒满 N+1 出现应答题。
     private func scheduleWarmup() {
         warmupScheduler.schedule(afterMilliseconds: 1100) {
             guard let e = appModel.devilCoord.calcEngine, !e.isComplete else { return }
@@ -436,7 +436,7 @@ struct DevilFlipGameView: View {
     /// 预览期全亮若干秒（随牌数变长）后盖上开始配对。
     private func schedulePreviewEnd() {
         guard let e = appModel.devilCoord.flipEngine, e.previewing else { return }
-        let ms = min(800 + e.cards.count * 200, 3000)
+        let ms = min(800 + e.cards.count * 200, 4200)
         previewScheduler.schedule(afterMilliseconds: ms) {
             withAnimation(.snappy) { appModel.devilCoord.flipEngine?.endPreview() }
         }
@@ -525,6 +525,7 @@ struct DevilMouseGameView: View {
     @State private var revealed = false
     @State private var scheduler = PhaseScheduler()
     @State private var flipScheduler = PhaseScheduler()
+    @State private var submitScheduler = PhaseScheduler()
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -536,7 +537,7 @@ struct DevilMouseGameView: View {
                 } stage: {
                     board(engine: engine)
                 } footer: {
-                    Button("退出") { scheduler.cancel(); flipScheduler.cancel(); appModel.devilCoord.cancelSession() }
+                    Button("退出") { scheduler.cancel(); flipScheduler.cancel(); submitScheduler.cancel(); appModel.devilCoord.cancelSession() }
                         .buttonStyle(BDSecondaryButton(accent: devilAccent))
                         .keyboardShortcut(.cancelAction)
                 }
@@ -545,13 +546,13 @@ struct DevilMouseGameView: View {
             }
         }
         .onReceive(ticker) { _ in tick() }
-        .onDisappear { scheduler.cancel(); flipScheduler.cancel() }
+        .onDisappear { scheduler.cancel(); flipScheduler.cancel(); submitScheduler.cancel() }
     }
 
     private func tick() {
         guard let engine = appModel.devilCoord.mouseEngine, !engine.isComplete else { return }
         if remaining > 0 { remaining -= 1 }
-        else { scheduler.cancel(); flipScheduler.cancel(); appModel.devilCoord.timeUp(); appModel.finalizeDevilGame() }
+        else { scheduler.cancel(); flipScheduler.cancel(); submitScheduler.cancel(); appModel.devilCoord.timeUp(); appModel.finalizeDevilGame() }
     }
 
     /// 记忆(全亮看一眼) → 回忆(凭记忆点) → 揭晓 → 下一回合。
@@ -568,6 +569,7 @@ struct DevilMouseGameView: View {
                 withAnimation(.snappy) { appModel.devilCoord.mouseEngine?.beginRecall() }
             }
         case .reveal:
+            submitScheduler.cancel()
             scheduler.schedule(afterMilliseconds: 1300) {
                 withAnimation(.snappy) { appModel.devilCoord.mouseEngine?.nextRound() }
             }
@@ -613,8 +615,25 @@ struct DevilMouseGameView: View {
                 }
             }
             .frame(maxWidth: 420)
+
+            // 选满后短暂停留再自动提交：期间点已选格子可反悔（取消即中止提交）。
+            if engine.phase == .recall {
+                Text(engine.canSubmit ? "已选满，即将提交…（点已选格子可反悔）" : "已选 \(engine.selected.count)/\(engine.targetCount)")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(engine.canSubmit ? devilAccent : BDColor.textTertiary)
+                    .frame(height: 18)
+            }
         }
         .frame(maxWidth: .infinity).padding(.vertical, 4)
+        .onChange(of: engine.selected) { _, _ in
+            if engine.canSubmit {
+                submitScheduler.schedule(afterMilliseconds: 300) {
+                    withAnimation(.snappy) { appModel.devilCoord.mouseEngine?.submitSelection() }
+                }
+            } else {
+                submitScheduler.cancel()
+            }
+        }
     }
 
     private func prompt(_ phase: DevilMouseEngine.Phase) -> String {
@@ -698,7 +717,7 @@ struct DevilResultView: View {
     @State private var stampIn = false
 
     private var grade: DevilGrade {
-        DevilGrade.evaluate(accuracy: metrics.accuracy, peakLevel: metrics.peakLevel, maxLevel: metrics.game.maxLevel)
+        DevilGrade.evaluate(accuracy: metrics.accuracy, peakLevel: metrics.peakLevel, maxLevel: metrics.game.maxLevel, levelWeight: metrics.game.gradeLevelWeight)
     }
 
     private var gradeColor: Color {
@@ -811,7 +830,11 @@ struct DevilResultView: View {
                 BDResultMetricCard(label: "答对", value: "\(metrics.correct)", color: BDColor.green)
                 BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: accent)
                 BDResultMetricCard(label: "最高连击", value: "×\(metrics.maxCombo)", color: BDColor.gold)
-                BDResultMetricCard(label: "峰值档位", value: "Lv \(metrics.peakLevel)", color: BDColor.textSecondary)
+                BDResultMetricCard(
+                    label: metrics.game == .calc ? "深度" : "峰值档位",
+                    value: metrics.game == .calc ? "N=\(metrics.peakLevel)" : "Lv \(metrics.peakLevel)",
+                    color: BDColor.textSecondary
+                )
                 BDResultMetricCard(label: "时长", value: "\(metrics.durationSeconds)s", color: BDColor.textSecondary)
             }
             .frame(maxWidth: 540)

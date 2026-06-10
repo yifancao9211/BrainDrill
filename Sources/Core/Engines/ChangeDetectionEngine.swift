@@ -140,12 +140,12 @@ final class ChangeDetectionEngine {
 
         if shouldChange {
             let idx = Int.random(in: 0..<currentSetSize)
-            var newColor: Int
-            repeat {
-                newColor = Int.random(in: 0..<colorCount)
-            } while newColor == colors[idx]
+            // 新颜色必须从未在场上出现过：原始阵列颜色互不重复，若变化色撞上
+            // 其他方块，「看到两个同色 = 一定变了」就成了不用记忆的作弊判据。
+            let unusedColors = (0..<colorCount).filter { !usedColors.contains($0) }
             changedIndex = idx
-            changedColor = newColor
+            changedColor = unusedColors.randomElement()
+                ?? (0..<colorCount).filter { $0 != colors[idx] }.randomElement()
         } else {
             changedIndex = nil
             changedColor = nil

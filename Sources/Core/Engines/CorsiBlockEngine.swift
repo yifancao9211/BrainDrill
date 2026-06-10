@@ -35,11 +35,6 @@ final class CorsiBlockEngine {
 
     var endThreshold: Int { config.consecutiveWrongToDemote }
 
-    var completionFraction: Double {
-        guard !results.isEmpty else { return 0 }
-        return Double(results.count) / Double(results.count + 3)
-    }
-
     init(config: CorsiBlockSessionConfig, startedAt: Date = Date()) {
         self.config = config
         self.startedAt = startedAt

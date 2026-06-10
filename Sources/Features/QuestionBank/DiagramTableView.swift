@@ -63,9 +63,9 @@ struct DiagramTableView: View {
         Text(text)
             .font(.system(.caption, design: .rounded, weight: .semibold))
             .foregroundStyle(BDColor.textPrimary)
-            .lineLimit(2)
             .minimumScaleFactor(0.7)
             .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(minWidth: leading ? 56 : 48, minHeight: 30)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 6)
@@ -92,9 +92,9 @@ struct DiagramTableView: View {
                 Text(showContent ? cell.text : " ")
                     .font(.system(.caption, design: .rounded, weight: cell.highlight ? .bold : .regular))
                     .foregroundStyle(cell.highlight && showContent ? accent : BDColor.textPrimary)
-                    .lineLimit(2)
                     .minimumScaleFactor(0.7)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(minWidth: 48, minHeight: 30)
@@ -102,6 +102,115 @@ struct DiagramTableView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .background((cell.highlight && showContent) ? accent.opacity(0.14) : BDColor.panelFill)
+    }
+}
+
+// MARK: - 演草纸（可交互排除表）
+
+/// 演草标记：✓（确定是）/ ✗（排除）。
+enum ScratchMark: Equatable {
+    case yes, no
+
+    /// 点击循环：空白 → ✓ → ✗ → 空白。
+    static func next(after mark: ScratchMark?) -> ScratchMark? {
+        switch mark {
+        case nil:   .yes
+        case .yes:  .no
+        case .no:   nil
+        }
+    }
+}
+
+/// 演草纸模式：借用题目表格的行列标题，单元格由玩家点击标记 ✓/✗ 自己做排除推理。
+/// 只提供空表和标记能力，不泄露任何答案内容。
+struct ScratchTableView: View {
+    let table: DiagramTable
+    var accent: Color = BDColor.syllogismAccent
+    @Binding var marks: [String: ScratchMark]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Grid(horizontalSpacing: 1, verticalSpacing: 1) {
+                GridRow {
+                    headerCell("演草", corner: true)
+                    ForEach(Array(table.columns.enumerated()), id: \.offset) { _, col in
+                        headerCell(col)
+                    }
+                }
+                ForEach(Array(table.rows.enumerated()), id: \.offset) { rowIndex, row in
+                    GridRow {
+                        headerCell(row.label, leading: true)
+                        ForEach(Array(table.columns.indices), id: \.self) { colIndex in
+                            markCell(row: rowIndex, column: colIndex)
+                        }
+                    }
+                }
+            }
+            .background(Color.bdSeparator.opacity(0.25))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.bdSeparator.opacity(0.4), lineWidth: 0.5)
+            )
+
+            HStack {
+                Text("点格子标记：✓ 确定 · ✗ 排除 · 再点清除")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(BDColor.textTertiary)
+                Spacer()
+                if !marks.isEmpty {
+                    Button("清空") { marks = [:] }
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(accent)
+                }
+            }
+        }
+    }
+
+    private func key(_ row: Int, _ column: Int) -> String { "\(row)-\(column)" }
+
+    private func markCell(row: Int, column: Int) -> some View {
+        let mark = marks[key(row, column)]
+        return Button {
+            marks[key(row, column)] = ScratchMark.next(after: mark)
+        } label: {
+            Group {
+                switch mark {
+                case .yes:
+                    Image(systemName: "checkmark")
+                        .font(.system(.caption, weight: .bold))
+                        .foregroundStyle(BDColor.green)
+                case .no:
+                    Image(systemName: "xmark")
+                        .font(.system(.caption2, weight: .semibold))
+                        .foregroundStyle(BDColor.error.opacity(0.75))
+                case nil:
+                    Text(" ")
+                }
+            }
+            .frame(minWidth: 48, minHeight: 30)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
+            .background(mark == nil ? BDColor.panelFill : accent.opacity(0.08))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func headerCell(_ text: String, leading: Bool = false, corner: Bool = false) -> some View {
+        Text(text)
+            .font(.system(corner ? .caption2 : .caption, design: .rounded, weight: .semibold))
+            .foregroundStyle(corner ? BDColor.textTertiary : BDColor.textPrimary)
+            .minimumScaleFactor(0.7)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(minWidth: leading ? 56 : 48, minHeight: 30)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(corner ? BDColor.panelSecondaryFill : accent.opacity(leading ? 0.10 : 0.16))
     }
 }
 

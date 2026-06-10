@@ -35,11 +35,6 @@ final class DigitSpanEngine {
 
     var endThreshold: Int { config.consecutiveWrongToDemote }
 
-    var completionFraction: Double {
-        guard !results.isEmpty else { return 0 }
-        return Double(results.count) / Double(results.count + 3)
-    }
-
     init(config: DigitSpanSessionConfig, startedAt: Date = Date()) {
         self.config = config
         self.startedAt = startedAt

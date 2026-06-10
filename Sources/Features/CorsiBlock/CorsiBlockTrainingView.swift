@@ -12,7 +12,20 @@ struct CorsiBlockTrainingView: View {
     @State private var countdown = CountdownState()
 
     private let gridSize = 9
-    private let columns = 3
+
+    /// 经典 Corsi 板的不规则方块布局（归一化坐标）。规则网格容易被
+    /// 语言化编码（“左上→中→右下”），打散后才考验真正的空间记忆。
+    private static let blockAnchors: [CGPoint] = [
+        CGPoint(x: 0.07, y: 0.10),
+        CGPoint(x: 0.46, y: 0.02),
+        CGPoint(x: 0.86, y: 0.12),
+        CGPoint(x: 0.22, y: 0.36),
+        CGPoint(x: 0.60, y: 0.30),
+        CGPoint(x: 0.93, y: 0.48),
+        CGPoint(x: 0.05, y: 0.68),
+        CGPoint(x: 0.40, y: 0.62),
+        CGPoint(x: 0.72, y: 0.82),
+    ]
 
     var body: some View {
         VStack(spacing: 28) {
@@ -111,16 +124,19 @@ struct CorsiBlockTrainingView: View {
 
     private func blockGrid(engine: CorsiBlockEngine) -> some View {
         #if os(iOS)
-        let size: CGFloat = max(52, (UIScreen.main.bounds.width - 80) / CGFloat(columns))
+        let boardSide: CGFloat = max(280, UIScreen.main.bounds.width - 80)
         #else
-        let size: CGFloat = 72
+        let boardSide: CGFloat = 320
         #endif
-        return LazyVGrid(columns: Array(repeating: GridItem(.fixed(size), spacing: 14), count: columns), spacing: 14) {
+        let size: CGFloat = boardSide * 0.21
+
+        return ZStack {
             ForEach(0..<gridSize, id: \.self) { idx in
                 let isHighlighted = engine.phase == .presenting
                     && engine.currentTrial?.sequence[safe: engine.presentingBlockIndex] == idx
                 let isSelected = userInput.contains(idx)
                 let feedbackOrder = feedbackOrderLabel(for: idx, engine: engine)
+                let anchor = Self.blockAnchors[idx]
 
                 Button {
                     selectBlock(idx, engine: engine)
@@ -149,8 +165,13 @@ struct CorsiBlockTrainingView: View {
                 }
                 .buttonStyle(BDSpringPressStyle())
                 .disabled(engine.phase != .recalling)
+                .position(
+                    x: anchor.x * (boardSide - size) + size / 2,
+                    y: anchor.y * (boardSide - size) + size / 2
+                )
             }
         }
+        .frame(width: boardSide, height: boardSide)
         .padding(24)
         .bdPanelSurface(.secondary, cornerRadius: 28)
         .task(id: presentationTaskID(for: engine)) {

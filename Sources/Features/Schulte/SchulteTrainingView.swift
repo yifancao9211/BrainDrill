@@ -236,7 +236,7 @@ struct SchulteTrainingView: View {
             spacing: spacing
         ) {
             ForEach(engine.tiles) { tile in
-                SchulteTileButton(tile: tile, engine: engine) {
+                SchulteTileButton(tile: tile, engine: engine, markCompleted: !appModel.settings.schulteHardcoreMode) {
                     appModel.handleSchulteTileTap(tile.number)
                 }
             }
@@ -298,12 +298,16 @@ private struct SchulteTileButton: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let tile: SchulteTile
     let engine: SchulteEngine
+    /// 硬核模式下为 false：已找到的数字不做任何视觉标记，保持满负荷搜索。
+    let markCompleted: Bool
     let onTap: () -> Void
 
     @State private var isPressed = false
     @State private var showCorrect = false
 
     private var isCompleted: Bool { engine.completedNumbers.contains(tile.number) }
+    /// 是否对该格做「已完成」视觉处理。
+    private var showsCompleted: Bool { isCompleted && markCompleted }
     private var numberColorIndex: Int { engine.numberColorMap[tile.number] ?? 0 }
 
     var body: some View {
@@ -319,12 +323,12 @@ private struct SchulteTileButton: View {
             onTap()
         } label: {
             Text("\(tile.number)")
-                .font(.system(size: fontSize, weight: isCompleted ? .semibold : .black, design: .rounded))
-                .strikethrough(isCompleted, color: BDColor.textTertiary)
+                .font(.system(size: fontSize, weight: showsCompleted ? .semibold : .black, design: .rounded))
+                .strikethrough(showsCompleted, color: BDColor.textTertiary)
                 .foregroundStyle(foregroundColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .aspectRatio(1, contentMode: .fit)
-                .scaleEffect(isPressed ? 0.90 : (showCorrect ? 1.08 : (isCompleted ? 0.82 : 1.0)))
+                .scaleEffect(isPressed ? 0.90 : (showCorrect ? 1.08 : (showsCompleted ? 0.82 : 1.0)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(TilePressStyle(isPressed: $isPressed))
@@ -350,7 +354,7 @@ private struct SchulteTileButton: View {
 
     private var foregroundColor: Color {
         let color = BDColor.schulteNumberColors[numberColorIndex % BDColor.schulteNumberColors.count]
-        return isCompleted ? BDColor.textTertiary.opacity(0.48) : color
+        return showsCompleted ? BDColor.textTertiary.opacity(0.48) : color
     }
 }
 

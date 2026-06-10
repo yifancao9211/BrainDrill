@@ -12,6 +12,8 @@ struct QuestionBankSessionView: View {
     @State private var remainingSeconds: Int = 0
     /// 当前题已揭示的提示步数（分步提示）。换题时归零。
     @State private var revealedHints: Int = 0
+    /// 演草纸标记（行-列 → ✓/✗）。换题时清空。
+    @State private var scratchMarks: [String: ScratchMark] = [:]
 
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -50,6 +52,7 @@ struct QuestionBankSessionView: View {
         }
         .onChange(of: coordinator.engine?.index) { _, _ in
             revealedHints = 0
+            scratchMarks = [:]
         }
     }
 
@@ -211,8 +214,21 @@ struct QuestionBankSessionView: View {
 
     @ViewBuilder
     private func hintArea(question: BankQuestion) -> some View {
-        if !question.steps.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            // 演草纸：表格类逻辑题随时可展开，自己点 ✓/✗ 做排除。
+            if let diagram = question.diagram {
+                DisclosureGroup {
+                    ScratchTableView(table: diagram, accent: accent, marks: $scratchMarks)
+                        .padding(.top, 8)
+                } label: {
+                    Label("演草纸：在排除表上标 ✓/✗", systemImage: "squareshape.split.3x3")
+                        .font(.system(.callout, design: .rounded, weight: .medium))
+                        .foregroundStyle(accent)
+                }
+                .tint(accent)
+            }
+
+            if !question.steps.isEmpty {
                 if revealedHints > 0 {
                     SolutionStepsView(steps: question.steps, accent: accent, revealedCount: revealedHints)
                 }
@@ -232,18 +248,8 @@ struct QuestionBankSessionView: View {
                     }
                 }
             }
-            .padding(.top, 4)
-        } else if let diagram = question.diagram {
-            DisclosureGroup {
-                DiagramTableView(table: diagram, accent: accent, scaffold: true)
-                    .padding(.top, 8)
-            } label: {
-                Label("解题提示：用排除表逐项推", systemImage: "tablecells")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(accent)
-            }
-            .tint(accent)
         }
+        .padding(.top, 4)
     }
 
     @ViewBuilder

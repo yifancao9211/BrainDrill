@@ -28,12 +28,15 @@ enum DevilCombo {
 }
 
 /// 结算评级。基于正确率与达到的峰值档位综合评定，跨游戏通用。
+/// `levelWeight`：档位在评级中的占比。魔鬼计算局内 N 固定、起步 N 低，
+/// 档位权重过高会让低 N 玩家无论打多准都拿不到好评级，故 calc 用更低权重。
 enum DevilGrade: String {
     case S, A, B, C, D
 
-    static func evaluate(accuracy: Double, peakLevel: Int, maxLevel: Int) -> DevilGrade {
+    static func evaluate(accuracy: Double, peakLevel: Int, maxLevel: Int, levelWeight: Double = 0.4) -> DevilGrade {
+        let w = min(max(levelWeight, 0), 1)
         let levelNorm = maxLevel > 1 ? Double(peakLevel - 1) / Double(maxLevel - 1) : 0
-        let perf = accuracy * 0.6 + min(max(levelNorm, 0), 1) * 0.4
+        let perf = accuracy * (1 - w) + min(max(levelNorm, 0), 1) * w
         switch perf {
         case 0.9...:   return .S
         case 0.75..<0.9: return .A
@@ -229,6 +232,11 @@ enum DevilGameKind: String, Codable, CaseIterable, Identifiable, Hashable {
         case .flip:  6
         case .mouse: 6
         }
+    }
+
+    /// 评级中档位的权重：calc 局内 N 固定，主要看正确率；其余游戏局内升档本身就是表现。
+    var gradeLevelWeight: Double {
+        self == .calc ? 0.2 : 0.4
     }
 }
 

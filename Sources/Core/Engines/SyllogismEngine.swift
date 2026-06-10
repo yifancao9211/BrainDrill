@@ -240,6 +240,8 @@ final class SyllogismEngine {
             return buildBiconditionalTrial(forward: true, bank: bank)
         case .biconditionalValid:
             return buildBiconditionalTrial(forward: false, bank: bank)
+        case .conditionalToBiconditional:
+            return buildConditionalToBiconditionalTrial(bank: bank)
         // B. Categorical
         case .categoricalValid:
             return buildCategoricalTrial(valid: true, bank: bank)
@@ -264,6 +266,8 @@ final class SyllogismEngine {
             return buildExistentialFallacyTrial(bank: bank)
         case .quantifierNegation:
             return buildQuantifierNegationTrial(bank: bank)
+        case .quantifierNegationFallacy:
+            return buildQuantifierNegationFallacyTrial(bank: bank)
         case .scopeAmbiguity:
             return buildScopeAmbiguityTrial()
         // D. Chain & Compound
@@ -271,8 +275,12 @@ final class SyllogismEngine {
             return buildChainReasoningTrial(bank: bank)
         case .contraposition:
             return buildContrapositionTrial(bank: bank)
+        case .converseFallacy:
+            return buildConverseFallacyTrial(bank: bank)
         case .deMorgan:
             return buildDeMorganTrial(bank: bank)
+        case .deMorganFallacy:
+            return buildDeMorganFallacyTrial(bank: bank)
         case .absorption:
             return buildAbsorptionTrial(bank: bank)
         // E. Causal & Statistical
@@ -288,6 +296,8 @@ final class SyllogismEngine {
             return buildCausalFallacyTrial(type: .conjunctionFallacy)
         case .slipperySlope:
             return buildCausalFallacyTrial(type: .slipperySlope)
+        case .soundCausalInference:
+            return buildSoundCausalTrial()
         // F. Argument Structure
         case .falseDilemma:
             return buildArgumentFallacyTrial(type: .falseDilemma)
@@ -299,6 +309,8 @@ final class SyllogismEngine {
             return buildArgumentFallacyTrial(type: .hastyGeneralization)
         case .compositionDivision:
             return buildArgumentFallacyTrial(type: .compositionDivision)
+        case .soundArgument:
+            return buildSoundArgumentTrial()
         }
     }
 
@@ -384,8 +396,8 @@ final class SyllogismEngine {
         switch form {
         case .modusPonens:
             return SyllogismTrial(
-                premises: ["如果\(pClause)，那么\(qClause)", "\(member)确实\(r.relationVerb)\(member)"],
-                conclusion: "所以，\(member)\(r.relationVerb)\(r.category)的一种",
+                premises: ["如果\(pClause)，那么\(qClause)", "眼前这个事物确实\(r.relationVerb)\(member)"],
+                conclusion: "所以，这个事物\(r.relationVerb)\(r.category)的一种",
                 isValid: true,
                 type: .modusPonens,
                 abstractForm: "如果P则Q，P ∴ Q (肯定前件，有效)",
@@ -518,12 +530,12 @@ final class SyllogismEngine {
     }
 
     func buildDariiTrial(bank: [ContentRelation]) -> SyllogismTrial {
-        let r = bank.filter { $0.members.count >= 2 }.randomElement() ?? bank[0]
-        let m = r.category
-        let _ = r.members.randomElement()!
+        let r = bank.randomElement()!
+        let m = r.members.randomElement()!
+        let p = r.category
         return SyllogismTrial(
-            premises: ["所有\(m)都需要能量", "有些生物是\(m)"],
-            conclusion: "所以，有些生物需要能量",
+            premises: ["所有\(m)都\(r.relationVerb)\(p)的一种", "有些研究对象是\(m)"],
+            conclusion: "所以，有些研究对象\(r.relationVerb)\(p)的一种",
             isValid: true, type: .darii,
             abstractForm: "所有M是P, 有些S是M ∴ 有些S是P (AII-1, 有效)",
             explanation: "Darii式：所有M是P，部分S是M，所以部分S也是P。",
@@ -552,9 +564,9 @@ final class SyllogismEngine {
             premises: ["所有\(m)都有共同特征X", "有些事物是\(m)"],
             conclusion: "所以，所有事物都有共同特征X",
             isValid: false, type: .illicitMajor,
-            abstractForm: "所有M是P, 有些S是M ∴ 所有S是P (无效：大项不当周延)",
-            explanation: "大项不当周延：前提只说「有些S是M」，结论却跳到「所有S是P」。",
-            detailedExplanation: "和Darii对比：Darii的结论是「有些S是P」（有效），这里改成「所有」就无效了。量词从「有些」偷换成「所有」。"
+            abstractForm: "所有M是P, 有些S是M ∴ 所有S是P (无效：小项不当周延)",
+            explanation: "小项不当周延：小项S在前提中只是「有些」，结论却对「所有S」下断言。",
+            detailedExplanation: "和Darii对比：Darii的结论是「有些S是P」（有效），这里改成「所有」就无效了。小项S在小前提中未被周延（只涉及部分），结论却让它周延（涉及全部）。"
         )
     }
 
@@ -666,6 +678,23 @@ final class SyllogismEngine {
         )
     }
 
+    func buildQuantifierNegationFallacyTrial(bank: [ContentRelation]) -> SyllogismTrial {
+        let r = bank.randomElement()!
+        let examples: [(premise: String, conclusion: String, correct: String)] = [
+            ("并非所有\(r.category)都具有特性Y", "所有\(r.category)都不具有特性Y", "存在某些\(r.category)不具有特性Y"),
+            ("并非所有\(r.category)都缺乏特性Z", "所有\(r.category)都具有特性Z", "存在某些\(r.category)具有特性Z"),
+        ]
+        let ex = examples.randomElement()!
+        return SyllogismTrial(
+            premises: [ex.premise],
+            conclusion: "等价于：\(ex.conclusion)",
+            isValid: false, type: .quantifierNegationFallacy,
+            abstractForm: "¬∀x P(x) ≡ ∀x ¬P(x) (量词否定偷换, 无效)",
+            explanation: "「不是所有都…」只等价于「存在某些不…」（\(ex.correct)），不等价于「所有都不…」。",
+            detailedExplanation: "¬∀x P(x) 正确等价于 ∃x ¬P(x)。把全称的否定强化成「全部否定」是常见的量词偷换：「不是所有人都迟到」≠「所有人都没迟到」。"
+        )
+    }
+
     func buildQuantifierNegationTrial(bank: [ContentRelation]) -> SyllogismTrial {
         let r = bank.randomElement()!
         let examples: [(premise: String, conclusion: String)] = [
@@ -683,21 +712,64 @@ final class SyllogismEngine {
     }
 
     func buildScopeAmbiguityTrial() -> SyllogismTrial {
-        let examples: [(text: String, reading1: String, reading2: String)] = [
-            ("每个学生都交了一篇论文", "每个学生各交了一篇(不同的)论文", "所有学生交了同一篇论文"),
-            ("每个人都爱某个人", "每个人各爱不同的人", "所有人爱同一个人"),
+        let examples: [(text: String, forced: String, other: String)] = [
+            ("每个学生都交了一篇论文", "所有学生交的是同一篇论文", "每个学生各交了一篇（可能不同的）论文"),
+            ("每个人都爱某个人", "所有人爱的是同一个人", "每个人各有所爱、对象可以不同"),
         ]
         let ex = examples.randomElement()!
         return SyllogismTrial(
             premises: [ex.text],
-            conclusion: "这句话有歧义：可能是\"\(ex.reading1)\"或\"\(ex.reading2)\"",
+            conclusion: "所以，必然是：\(ex.forced)",
             isValid: false, type: .scopeAmbiguity,
-            abstractForm: "∀x∃y P(x,y) vs ∃y∀x P(x,y) (量词辖域歧义)",
-            explanation: "量词辖域歧义：量词的先后顺序影响语义，∀x∃y ≠ ∃y∀x。"
+            abstractForm: "∀x∃y P(x,y) ∴ ∃y∀x P(x,y) (量词辖域偷换，无效)",
+            explanation: "量词辖域歧义：这句话也可以理解为「\(ex.other)」，∀x∃y 推不出 ∃y∀x。",
+            detailedExplanation: "「每个…都…某个」的自然语言表述存在辖域歧义。从弱读法（每人各有对象）推不出强读法（所有人共享同一对象），结论把歧义句强行锁定为强读法，推理无效。"
         )
     }
 
     // MARK: - D. Compound extensions
+
+    func buildConverseFallacyTrial(bank: [ContentRelation]) -> SyllogismTrial {
+        let r = bank.randomElement()!
+        let a = r.members.randomElement()!
+        let b = r.category
+        return SyllogismTrial(
+            premises: ["如果是\(a)，则属于\(b)"],
+            conclusion: "等价于：如果属于\(b)，则是\(a)",
+            isValid: false, type: .converseFallacy,
+            abstractForm: "P→Q ≡ Q→P (逆命题谬误, 无效)",
+            explanation: "逆命题不等价于原命题：属于\(b)的不一定是\(a)，还可能是别的成员。",
+            detailedExplanation: "和逆否命题对比：P→Q 等价的是 ¬Q→¬P（逆否），而不是 Q→P（逆命题）。「是苹果就是水果」推不出「是水果就是苹果」。"
+        )
+    }
+
+    func buildDeMorganFallacyTrial(bank: [ContentRelation]) -> SyllogismTrial {
+        let r = bank.filter { $0.members.count >= 2 }.randomElement() ?? bank[0]
+        let a = r.members[0]
+        let b = r.members[1]
+        return SyllogismTrial(
+            premises: ["某事物不是既属于\(a)又属于\(b)"],
+            conclusion: "等价于：该事物既不属于\(a)也不属于\(b)",
+            isValid: false, type: .deMorganFallacy,
+            abstractForm: "¬(P∧Q) ≡ ¬P∧¬Q (德摩根误用, 无效)",
+            explanation: "否定合取应得到析取否定（至少一个不属于），不是两个都不属于。",
+            detailedExplanation: "¬(P∧Q) 正确展开是 ¬P∨¬Q：「不是两者兼属」只排除了同时成立，它仍允许恰好属于其中一个。强行展开成 ¬P∧¬Q 是常见误用。"
+        )
+    }
+
+    func buildConditionalToBiconditionalTrial(bank: [ContentRelation]) -> SyllogismTrial {
+        let r = bank.randomElement()!
+        let a = r.members.randomElement()!
+        let b = r.category
+        return SyllogismTrial(
+            premises: ["如果一个事物属于\(a)，那么它属于\(b)的子类"],
+            conclusion: "所以，一个事物属于\(a)当且仅当它属于\(b)的子类",
+            isValid: false, type: .conditionalToBiconditional,
+            abstractForm: "P→Q ∴ P↔Q (单向条件当双条件, 无效)",
+            explanation: "单向条件推不出双条件：属于\(b)子类的事物未必属于\(a)。",
+            detailedExplanation: "P→Q 只保证一个方向。「当且仅当」额外要求 Q→P，而这并没有前提支持。和双条件推理对比：那里前提明确给了 P↔Q，所以双向都能推。"
+        )
+    }
 
     func buildContrapositionTrial(bank: [ContentRelation]) -> SyllogismTrial {
         let r = bank.randomElement()!
@@ -807,6 +879,70 @@ final class SyllogismEngine {
         default:
             return fallbackCategoricalTrial(valid: false)
         }
+    }
+
+    /// E 类配重：可靠的因果/统计推理（有效）。没有它，「统计场景=无效」会被玩家背出来。
+    func buildSoundCausalTrial() -> SyllogismTrial {
+        let examples: [(p: [String], c: String, form: String, explain: String, detail: String)] = [
+            (
+                ["在随机对照实验中，服药组的康复率显著高于安慰剂组", "分组随机且样本量足够，已排除已知混杂因素"],
+                "所以，该药物很可能促进了康复",
+                "随机对照 + 显著差异 ∴ 因果成立（可靠）",
+                "随机分组加对照排除了混杂与反向因果，结论又用「很可能」恰当限定，推断可靠。",
+                "和「相关≠因果」对比：那里只有观察到的相关；这里随机分组主动切断了混杂路径，是因果推断的金标准。"
+            ),
+            (
+                ["硬币每次抛掷相互独立", "前 5 次都是正面"],
+                "所以，第 6 次正面的概率仍约为一半",
+                "独立事件 ∴ 概率不受历史影响（可靠）",
+                "独立事件的概率不随历史结果改变——这正是对赌徒谬误的正确回应。",
+                "赌徒谬误是认为「连续正面后反面更可能」。承认每次独立、概率不变，才是正确结论。"
+            ),
+            (
+                ["某疾病患病率约 1/10000", "检测的准确率为 99%", "某人检测呈阳性"],
+                "所以，此人实际患病的概率仍然很低",
+                "低基率 + 高准确率 ∴ 阳性多为假阳性（可靠）",
+                "按贝叶斯定理：基率极低时，绝大多数阳性是假阳性，结论正确地考虑了基率。",
+                "对比基率忽略谬误（认为阳性≈99% 患病）：1 万人里约 1 个真阳性，却有约 100 个假阳性，阳性后患病概率不足 1%。"
+            ),
+        ]
+        let ex = examples.randomElement()!
+        return SyllogismTrial(
+            premises: ex.p, conclusion: ex.c, isValid: true, type: .soundCausalInference,
+            abstractForm: ex.form, explanation: ex.explain, detailedExplanation: ex.detail
+        )
+    }
+
+    /// F 类配重：可靠论证（有效）。让「故事化场景」不再天然等于谬误。
+    func buildSoundArgumentTrial() -> SyllogismTrial {
+        let examples: [(p: [String], c: String, form: String, explain: String, detail: String)] = [
+            (
+                ["调查按区域和年龄分层随机抽取了该市 2000 名居民", "其中 85% 表示支持该政策"],
+                "所以，该市多数居民很可能支持该政策",
+                "大样本 + 随机分层抽样 ∴ 总体倾向（归纳可靠）",
+                "样本量大、抽样随机且有代表性，结论又用「很可能」限定，这是可靠的归纳。",
+                "对比以偏概全：那里只凭两三个非随机样本就下全称断言。归纳是否可靠，看样本量、代表性与结论强度。"
+            ),
+            (
+                ["这支球队每名球员的体重都超过 80 公斤"],
+                "所以，全队的总体重超过 80 公斤",
+                "可加属性：部分成立 ∴ 整体成立（有效）",
+                "重量是可加属性，任何一名球员的体重已超过 80 公斤，总和只会更大。",
+                "对比合成谬误：「每个球员都优秀 ∴ 球队优秀」无效，因为「优秀」不可加；而重量可加，这个推理成立。"
+            ),
+            (
+                ["按规定必须参加笔试或提交论文，二者至少其一", "他没有参加笔试"],
+                "所以，他必须提交论文",
+                "P∨Q, ¬P ∴ Q（排除选项，有效）",
+                "前提明确限定了选项范围，排除其一后另一项必然成立，这不是虚假二分。",
+                "虚假二分的问题在于人为捏造「只有两个选项」；这里「二选一」是规则明文给定的前提，析取三段论成立。"
+            ),
+        ]
+        let ex = examples.randomElement()!
+        return SyllogismTrial(
+            premises: ex.p, conclusion: ex.c, isValid: true, type: .soundArgument,
+            abstractForm: ex.form, explanation: ex.explain, detailedExplanation: ex.detail
+        )
     }
 
     // MARK: - F. Argument Structure

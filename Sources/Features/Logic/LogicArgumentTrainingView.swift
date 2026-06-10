@@ -153,6 +153,7 @@ struct LogicArgumentTrainingView: View {
             Text(engine.currentPhaseSubtitle)
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(BDColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(engine.passage.title)
                 .font(.system(.title3, design: .rounded, weight: .semibold))
@@ -162,6 +163,7 @@ struct LogicArgumentTrainingView: View {
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(BDColor.textPrimary)
                 .lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -195,12 +197,14 @@ struct LogicArgumentTrainingView: View {
             Text(engine.currentPhaseSubtitle)
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(BDColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             ForEach(engine.passage.argumentComponents) { component in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(component.text)
                         .font(.system(.body, design: .rounded))
                         .foregroundStyle(BDColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 10)
@@ -247,12 +251,14 @@ struct LogicArgumentTrainingView: View {
             Text(engine.currentPhaseSubtitle)
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(BDColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             ForEach(engine.passage.fallacyItems) { item in
                 VStack(alignment: .leading, spacing: 12) {
                     Text(item.argumentText)
                         .font(.system(.body, design: .rounded))
                         .foregroundStyle(BDColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 10).fill(BDColor.panelSecondaryFill))
@@ -270,6 +276,7 @@ struct LogicArgumentTrainingView: View {
                                     Text(fallacy.description)
                                         .font(.system(.caption2, design: .rounded))
                                         .foregroundStyle(selected ? .white.opacity(0.8) : BDColor.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .foregroundStyle(selected ? .white : BDColor.textPrimary)
                             }
@@ -314,6 +321,7 @@ struct LogicArgumentTrainingView: View {
             Text(engine.currentPhaseSubtitle)
                 .font(.system(.callout, design: .rounded))
                 .foregroundStyle(BDColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let eval = engine.passage.evaluationItems.first {
                 // Hidden assumption
@@ -333,6 +341,7 @@ struct LogicArgumentTrainingView: View {
                                 Text(option)
                                     .font(.system(.body, design: .rounded))
                                     .foregroundStyle(BDColor.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Spacer()
                             }
                         }
@@ -352,6 +361,7 @@ struct LogicArgumentTrainingView: View {
                             Text(modifier.text)
                                 .font(.system(.body, design: .rounded))
                                 .foregroundStyle(BDColor.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(RoundedRectangle(cornerRadius: 8).fill(BDColor.panelSecondaryFill))

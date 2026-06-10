@@ -141,10 +141,12 @@ final class NBackEngine {
                 return
             }
 
+            // 准确率把「非目标不按」也算对，30% 目标比例下全程不按手就有 70% 准确率，
+            // 永远跌不破降档线——所以降档还要看命中率：目标漏掉一半以上同样降 N。
             var nextN = currentN
             if blockAccuracy >= config.promoteThreshold && currentN < config.maxN {
                 nextN = currentN + 1
-            } else if blockAccuracy < config.demoteThreshold && currentN > 1 {
+            } else if (blockAccuracy < config.demoteThreshold || blockHitRate < 0.5) && currentN > 1 {
                 nextN = currentN - 1
             }
 

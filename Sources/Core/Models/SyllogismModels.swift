@@ -176,6 +176,7 @@ enum SyllogismType: String, Codable, CaseIterable {
     case constructiveDilemma    // 构造性两难 ✓
     case biconditional          // 双条件推理 ✓
     case biconditionalValid     // 双条件逆向 ✓ (P↔Q, Q ∴ P)
+    case conditionalToBiconditional // 单条件当双条件 ✗ (P→Q ∴ P↔Q)
 
     // ── B. 直言三段论 (Categorical Syllogisms) ──
     case categoricalValid       // Barbara AAA-1 ✓
@@ -183,7 +184,7 @@ enum SyllogismType: String, Codable, CaseIterable {
     case celarent               // Celarent EAE-1 ✓
     case darii                  // Darii AII-1 ✓
     case ferio                  // Ferio EIO-1 ✓
-    case illicitMajor           // 大项不当周延 ✗
+    case illicitMajor           // 小项不当周延 ✗（历史命名保留 rawValue，语义见 displayName）
     case fourTerms              // 四项谬误 ✗
 
     // ── C. 量词逻辑 (Quantifier Logic) ──
@@ -191,12 +192,15 @@ enum SyllogismType: String, Codable, CaseIterable {
     case universalInstantiation // 全称实例化 ✓
     case existentialFallacy     // 存在泛化谬误 ✗
     case quantifierNegation     // 量词否定 ✓
+    case quantifierNegationFallacy // 量词否定偷换 ✗ (¬∀ ≢ ∀¬)
     case scopeAmbiguity         // 量词辖域歧义 (判断歧义)
 
     // ── D. 链式与复合推理 (Chain & Compound) ──
     case chainReasoning         // 假言连锁 ✓
     case contraposition         // 逆否命题 ✓
+    case converseFallacy        // 逆命题谬误 ✗ (P→Q ≢ Q→P)
     case deMorgan               // 德摩根定律 ✓
+    case deMorganFallacy        // 德摩根误用 ✗ (¬(P∧Q) ≢ ¬P∧¬Q)
     case absorption             // 吸收律 ✓
 
     // ── E. 因果与统计推理 (Causal & Statistical) ──
@@ -206,6 +210,7 @@ enum SyllogismType: String, Codable, CaseIterable {
     case gamblerFallacy         // 赌徒谬误 ✗
     case conjunctionFallacy     // 合取谬误 ✗
     case slipperySlope          // 滑坡谬误 ✗
+    case soundCausalInference   // 可靠因果/统计推理 ✓（E 类配重，防止「统计场景=无效」被背出来）
 
     // ── F. 论证结构谬误 (Argument Structure) ──
     case falseDilemma           // 虚假二分 ✗
@@ -213,6 +218,7 @@ enum SyllogismType: String, Codable, CaseIterable {
     case equivocation           // 歧义谬误 ✗
     case hastyGeneralization    // 以偏概全 ✗
     case compositionDivision    // 合成/分割谬误 ✗
+    case soundArgument          // 可靠论证 ✓（F 类配重，防止「故事化场景=无效」被背出来）
 
     // MARK: - Properties
 
@@ -223,12 +229,15 @@ enum SyllogismType: String, Codable, CaseIterable {
              .constructiveDilemma, .biconditional, .biconditionalValid,
              .categoricalValid, .celarent, .darii, .ferio,
              .universalInstantiation, .quantifierNegation,
-             .chainReasoning, .contraposition, .deMorgan, .absorption:
+             .chainReasoning, .contraposition, .deMorgan, .absorption,
+             .soundCausalInference, .soundArgument:
             return true
         // Invalid / Fallacy
         case .affirmConsequent, .denyAntecedent, .disjunctiveFallacy,
+             .conditionalToBiconditional,
              .categoricalInvalid, .illicitMajor, .fourTerms,
-             .quantifierTrap, .existentialFallacy,
+             .quantifierTrap, .existentialFallacy, .quantifierNegationFallacy,
+             .converseFallacy, .deMorganFallacy,
              .correlationCausation, .reverseCausation, .baseRateNeglect,
              .gamblerFallacy, .conjunctionFallacy, .slipperySlope,
              .falseDilemma, .circularReasoning, .equivocation,
@@ -244,21 +253,23 @@ enum SyllogismType: String, Codable, CaseIterable {
         switch self {
         case .modusPonens, .modusTollens, .affirmConsequent, .denyAntecedent,
              .disjunctiveSyllogism, .disjunctiveFallacy, .constructiveDilemma,
-             .biconditional, .biconditionalValid:
+             .biconditional, .biconditionalValid, .conditionalToBiconditional:
             return .propositional
         case .categoricalValid, .categoricalInvalid, .celarent, .darii,
              .ferio, .illicitMajor, .fourTerms:
             return .categorical
         case .quantifierTrap, .universalInstantiation, .existentialFallacy,
-             .quantifierNegation, .scopeAmbiguity:
+             .quantifierNegation, .quantifierNegationFallacy, .scopeAmbiguity:
             return .quantifier
-        case .chainReasoning, .contraposition, .deMorgan, .absorption:
+        case .chainReasoning, .contraposition, .converseFallacy,
+             .deMorgan, .deMorganFallacy, .absorption:
             return .compound
         case .correlationCausation, .reverseCausation, .baseRateNeglect,
-             .gamblerFallacy, .conjunctionFallacy, .slipperySlope:
+             .gamblerFallacy, .conjunctionFallacy, .slipperySlope,
+             .soundCausalInference:
             return .causalStatistical
         case .falseDilemma, .circularReasoning, .equivocation,
-             .hastyGeneralization, .compositionDivision:
+             .hastyGeneralization, .compositionDivision, .soundArgument:
             return .argumentStructure
         }
     }
@@ -274,21 +285,25 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .constructiveDilemma:    "构造性两难"
         case .biconditional:          "双条件推理"
         case .biconditionalValid:     "双条件逆向"
+        case .conditionalToBiconditional: "单条件当双条件"
         case .categoricalValid:       "有效三段论"
         case .categoricalInvalid:     "未分配中项"
         case .celarent:               "Celarent 否定"
         case .darii:                  "Darii 特称"
         case .ferio:                  "Ferio 特称否定"
-        case .illicitMajor:           "大项不当周延"
+        case .illicitMajor:           "小项不当周延"
         case .fourTerms:              "四项谬误"
         case .quantifierTrap:         "量词偷换"
         case .universalInstantiation: "全称实例化"
         case .existentialFallacy:     "存在泛化谬误"
         case .quantifierNegation:     "量词否定"
+        case .quantifierNegationFallacy: "量词否定偷换"
         case .scopeAmbiguity:         "量词辖域歧义"
         case .chainReasoning:         "假言连锁"
         case .contraposition:         "逆否命题"
+        case .converseFallacy:        "逆命题谬误"
         case .deMorgan:               "德摩根定律"
+        case .deMorganFallacy:        "德摩根误用"
         case .absorption:             "吸收律"
         case .correlationCausation:   "相关≠因果"
         case .reverseCausation:       "倒果为因"
@@ -301,6 +316,8 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .equivocation:           "歧义谬误"
         case .hastyGeneralization:    "以偏概全"
         case .compositionDivision:    "合成/分割谬误"
+        case .soundCausalInference:   "可靠因果推断"
+        case .soundArgument:          "可靠论证"
         }
     }
 
@@ -310,14 +327,16 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .modusPonens, .affirmConsequent:                                    return 1
         case .categoricalValid, .categoricalInvalid:                             return 2
         case .disjunctiveSyllogism, .disjunctiveFallacy:                         return 3
-        case .correlationCausation, .falseDilemma, .hastyGeneralization:          return 4
-        case .modusTollens, .denyAntecedent, .contraposition:                    return 5
+        case .correlationCausation, .falseDilemma, .hastyGeneralization,
+             .soundCausalInference, .soundArgument:                              return 4
+        case .modusTollens, .denyAntecedent, .contraposition, .converseFallacy:  return 5
         case .celarent, .darii, .illicitMajor:                                   return 6
         case .quantifierTrap, .existentialFallacy:                               return 7
-        case .chainReasoning, .biconditional, .biconditionalValid:               return 8
+        case .chainReasoning, .biconditional, .biconditionalValid,
+             .conditionalToBiconditional:                                        return 8
         case .reverseCausation, .gamblerFallacy, .slipperySlope:                 return 9
-        case .ferio, .constructiveDilemma, .deMorgan:                            return 10
-        case .quantifierNegation, .scopeAmbiguity, .fourTerms:                   return 11
+        case .ferio, .constructiveDilemma, .deMorgan, .deMorganFallacy:          return 10
+        case .quantifierNegation, .quantifierNegationFallacy, .scopeAmbiguity, .fourTerms: return 11
         case .baseRateNeglect, .conjunctionFallacy:                              return 12
         case .circularReasoning, .equivocation, .compositionDivision, .absorption: return 13
         case .universalInstantiation:                                            return 7
@@ -340,7 +359,15 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .affirmConsequent:       return [.modusPonens]
         case .modusTollens:           return [.denyAntecedent]
         case .denyAntecedent:         return [.modusTollens]
-        case .contraposition:         return [.modusTollens, .affirmConsequent]
+        case .contraposition:         return [.modusTollens, .affirmConsequent, .converseFallacy]
+        case .converseFallacy:        return [.contraposition]
+        case .deMorgan:               return [.deMorganFallacy]
+        case .deMorganFallacy:        return [.deMorgan]
+        case .quantifierNegation:     return [.quantifierNegationFallacy]
+        case .quantifierNegationFallacy: return [.quantifierNegation]
+        case .conditionalToBiconditional: return [.biconditional]
+        case .soundCausalInference:   return [.correlationCausation, .gamblerFallacy, .baseRateNeglect]
+        case .soundArgument:          return [.hastyGeneralization, .compositionDivision, .falseDilemma]
         case .disjunctiveSyllogism:   return [.disjunctiveFallacy]
         case .disjunctiveFallacy:     return [.disjunctiveSyllogism]
         case .categoricalValid:       return [.categoricalInvalid]

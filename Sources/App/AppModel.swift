@@ -543,6 +543,11 @@ final class AppModel {
         persistSettings()
     }
 
+    func updateSchulteHardcoreMode(_ on: Bool) {
+        settings.schulteHardcoreMode = on
+        persistSettings()
+    }
+
     // MARK: - Materials
 
     func reloadApprovedMaterialsFromStore() {

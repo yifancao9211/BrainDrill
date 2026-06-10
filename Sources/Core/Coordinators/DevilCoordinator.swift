@@ -46,6 +46,17 @@ final class DevilCoordinator: TrainingModuleCoordinator {
         UserDefaults.standard.integer(forKey: "devil_bestN_\(kind.rawValue)")
     }
 
+    /// 各游戏独立的下局起始档（三个游戏难度刻度不同，共用一条推荐线会互相污染）。
+    /// 未玩过该游戏时回退到模块级推荐。
+    func startLevel(for kind: DevilGameKind, fallback: Int) -> Int {
+        let stored = UserDefaults.standard.integer(forKey: "devil_startN_\(kind.rawValue)")
+        return stored > 0 ? stored : fallback
+    }
+
+    private func saveStartLevel(_ level: Int, for kind: DevilGameKind) {
+        UserDefaults.standard.set(min(max(level, 1), kind.maxLevel), forKey: "devil_startN_\(kind.rawValue)")
+    }
+
     init() { loadProgress() }
 
     /// 某游戏的历史最佳分（UserDefaults 持久化）。
@@ -81,7 +92,7 @@ final class DevilCoordinator: TrainingModuleCoordinator {
         clearEngines()
         lastResult = nil
         activeGame = kind
-        let start = adaptiveState.recommendedStartLevel
+        let start = startLevel(for: kind, fallback: adaptiveState.recommendedStartLevel)
         // 档位上限随 θ 提升：θ0 约半程，θ100 解锁满档；至少 3 档保证可玩。
         let frac = min(max(memoryTheta / 100, 0), 1)
         let cap = min(max(Int((Double(kind.maxLevel) * (0.5 + 0.5 * frac)).rounded()), 3), kind.maxLevel)
@@ -111,13 +122,28 @@ final class DevilCoordinator: TrainingModuleCoordinator {
             score: engine.score
         )
         let now = Date()
+        var custom = ["finalLevel": "\(engine.peakLevel)"]
+        // 局间难度：各游戏独立推荐下一局起始档（刻度不同，不能共用一条线）。
+        let nextStart: Int
+        if let calc = calcEngine {
+            // 计算局内 N 固定，按本局正确率推荐下一局的 N。
+            nextStart = DevilCalcEngine.nextStartLevel(level: calc.level, accuracy: calc.accuracy, attempted: calc.attempted)
+            custom["recommendedStartLevel"] = "\(nextStart)"
+        } else if let flip = flipEngine {
+            // 翻牌局内只升不降：打崩了（配对成功率过低）下局退一档，避免棘轮式只增不减。
+            nextStart = flip.accuracy >= 0.5 ? flip.level : max(1, flip.level - 1)
+        } else {
+            // 抓鼠局内有升有降，终局档位即能力位置。
+            nextStart = mouseEngine?.level ?? metrics.peakLevel
+        }
+        saveStartLevel(nextStart, for: kind)
         let result = SessionResult(
             module: .devilTraining,
             startedAt: engine.startedAt,
             endedAt: now,
             duration: now.timeIntervalSince(engine.startedAt),
             metrics: .devilGame(metrics),
-            conditions: SessionConditions(adaptiveEnabled: true, customParameters: ["finalLevel": "\(engine.peakLevel)"])
+            conditions: SessionConditions(adaptiveEnabled: true, customParameters: custom)
         )
         // 个人最佳与破纪录判定。
         lastWasRecord = metrics.score > bestScore(for: kind)
@@ -142,7 +168,7 @@ final class DevilCoordinator: TrainingModuleCoordinator {
     // MARK: - Progression
 
     private func applyProgress(kind: DevilGameKind, metrics: DevilGameMetrics) {
-        let grade = DevilGrade.evaluate(accuracy: metrics.accuracy, peakLevel: metrics.peakLevel, maxLevel: kind.maxLevel)
+        let grade = DevilGrade.evaluate(accuracy: metrics.accuracy, peakLevel: metrics.peakLevel, maxLevel: kind.maxLevel, levelWeight: kind.gradeLevelWeight)
 
         // 星级
         lastRunStars = grade.stars

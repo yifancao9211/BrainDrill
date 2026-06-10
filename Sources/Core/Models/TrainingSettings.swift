@@ -8,6 +8,8 @@ struct TrainingSettings: Codable, Equatable {
     var adaptiveConfig: AdaptiveDifficulty.Config
     var schulteSetRep: SchulteSetRepConfig
     var showFixationDot: Bool
+    /// 硬核模式：已找到的数字不变灰不划线，全程保持满负荷视觉搜索（经典舒尔特规则）。
+    var schulteHardcoreMode: Bool
 
     // N-Back
     var nBackStartingN: Int
@@ -36,6 +38,7 @@ struct TrainingSettings: Codable, Equatable {
         self.adaptiveConfig = .init()
         self.schulteSetRep = .init()
         self.showFixationDot = true
+        self.schulteHardcoreMode = false
         self.nBackStartingN = 1
         self.nBackStimulusDurationMs = 800
         self.nBackISIMs = 1400
@@ -56,6 +59,7 @@ struct TrainingSettings: Codable, Equatable {
         adaptiveConfig = try c.decodeIfPresent(AdaptiveDifficulty.Config.self, forKey: .adaptiveConfig) ?? .init()
         schulteSetRep = try c.decodeIfPresent(SchulteSetRepConfig.self, forKey: .schulteSetRep) ?? .init()
         showFixationDot = try c.decodeIfPresent(Bool.self, forKey: .showFixationDot) ?? true
+        schulteHardcoreMode = try c.decodeIfPresent(Bool.self, forKey: .schulteHardcoreMode) ?? false
         nBackStartingN = try c.decodeIfPresent(Int.self, forKey: .nBackStartingN) ?? 1
         nBackStimulusDurationMs = try c.decodeIfPresent(Int.self, forKey: .nBackStimulusDurationMs) ?? 800
         nBackISIMs = try c.decodeIfPresent(Int.self, forKey: .nBackISIMs) ?? 1400

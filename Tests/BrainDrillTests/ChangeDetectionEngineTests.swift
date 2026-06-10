@@ -37,6 +37,22 @@ struct ChangeDetectionEngineTests {
         #expect(diffs == 1)
     }
 
+    /// 变化后的颜色不能与场上任何方块撞色——否则「看到两个同色=一定变了」
+    /// 就成了不需要记忆的作弊判据。
+    @Test func changedColorNeverDuplicatesDisplayedColors() {
+        let config = ChangeDetectionSessionConfig(initialSetSize: 8, maxSetSize: 8, trialsPerBlock: 30, blockCount: 1, changeRatio: 1.0)
+        let engine = ChangeDetectionEngine(config: config)
+        for _ in 0..<30 {
+            engine.beginTrial()
+            let trial = engine.currentTrial!
+            let newColor = trial.changedColor!
+            #expect(!trial.originalColors.contains(newColor))
+            // 探测阵列中也不该出现重复颜色
+            #expect(Set(trial.probeColors).count == trial.probeColors.count)
+            engine.advanceToNext()
+        }
+    }
+
     @Test func noChangeTrialKeepsColors() {
         let config = ChangeDetectionSessionConfig(initialSetSize: 3, trialsPerBlock: 20, blockCount: 1, changeRatio: 0.0)
         let engine = ChangeDetectionEngine(config: config)

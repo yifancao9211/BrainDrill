@@ -3,7 +3,9 @@ import Observation
 
 /// 魔鬼计算（视觉 N-back 算术，鬼トレ 内核）：
 /// 屏幕不断出现简单算式，你要作答的是 **N 题之前**那一道的答案。`level` 即回溯深度 N。
-/// 难点在记忆负荷而非计算——算式始终是个位加减。连续 3 次答对升 N、答错降 N。
+/// 难点在记忆负荷而非计算——算式始终是个位加减。
+/// N 在一局内固定（局中变 N 会打乱脑中正在维持的题目队列）；
+/// 局间由 `nextStartLevel` 按本局正确率推荐下一局的起始 N。
 @Observable
 final class DevilCalcEngine: DevilGameEngine {
     struct Problem: Equatable {
@@ -16,8 +18,8 @@ final class DevilCalcEngine: DevilGameEngine {
     let totalSeconds: Int
     let startedAt: Date
 
-    private(set) var level: Int        // 回溯深度 N
-    private(set) var peakLevel: Int
+    let level: Int                     // 回溯深度 N（一局内固定）
+    var peakLevel: Int { level }
     private(set) var score: Int = 0
     private(set) var combo: Int = 0
     private(set) var maxCombo: Int = 0
@@ -35,9 +37,7 @@ final class DevilCalcEngine: DevilGameEngine {
     init(startLevel: Int, totalSeconds: Int = 90, levelCap: Int = .max, now: Date = Date()) {
         let cap = min(max(levelCap, 1), Self.maxLevel)
         self.levelCap = cap
-        let lvl = min(max(startLevel, 1), cap)
-        self.level = lvl
-        self.peakLevel = lvl
+        self.level = min(max(startLevel, 1), cap)
         self.totalSeconds = totalSeconds
         self.startedAt = now
         self.pending = [Self.makeProblem()]
@@ -54,7 +54,7 @@ final class DevilCalcEngine: DevilGameEngine {
 
     // MARK: - Actions
 
-    /// 热身/升档补记：当前没有应答题时，再展示一道新题压入队尾。
+    /// 开局热身：队列还没攒满 N+1、暂无应答题时，再展示一道新题压入队尾。
     func advanceWarmup() {
         guard !finished, !isAnswerDue else { return }
         pending.append(Self.makeProblem())
@@ -72,21 +72,24 @@ final class DevilCalcEngine: DevilGameEngine {
             lastGain = 10 * level * DevilCombo.multiplier(combo)
             score += lastGain
             lastAnsweredCorrectly = true
-            if combo % 3 == 0 {
-                level = min(level + 1, levelCap)
-                peakLevel = max(peakLevel, level)
-            }
         } else {
             combo = 0
-            level = max(1, level - 1)
             lastGain = 0
             lastAnsweredCorrectly = false
         }
-        // 弹出已答题，压入新题；降档后裁掉过量积压，保持队列至多 N+1。
+        // 弹出已答题，压入新题；队列稳定保持 N+1。
         if !pending.isEmpty { pending.removeFirst() }
         pending.append(Self.makeProblem())
-        while pending.count > level + 1 { pending.removeFirst() }
         recomputeOptions()
+    }
+
+    /// 局间自适应：本局打得稳就推荐下一局加深一层，打崩了就退一层。
+    /// 样本太少（不足 6 答）不调整，避免一两道题的波动来回横跳。
+    static func nextStartLevel(level: Int, accuracy: Double, attempted: Int) -> Int {
+        guard attempted >= 6 else { return level }
+        if accuracy >= 0.85 { return min(level + 1, maxLevel) }
+        if accuracy < 0.5 { return max(1, level - 1) }
+        return level
     }
 
     func finish() { finished = true }

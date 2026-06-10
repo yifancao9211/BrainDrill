@@ -180,6 +180,14 @@ enum SyllogismLessonBank {
                 confusion: "这在单向条件P→Q中是「肯定后件」谬误，但在双条件P↔Q中是有效的！"
             )
 
+        case .conditionalToBiconditional:
+            return CardContent(
+                logicForm: "P→Q ∴ P↔Q",
+                example: .init(premises: ["如果下雨，地面就会湿"], conclusion: "所以，下雨当且仅当地面湿", isValid: false),
+                why: "单向条件推不出双条件：地面湿不一定是下雨（洒水车也行），缺少Q→P方向的支持。",
+                confusion: "和「双条件推理」区分：那里前提明确给了「当且仅当」，这里只有单向「如果…那么」。"
+            )
+
         // ── B. 直言三段论 ──
 
         case .categoricalValid:
@@ -226,7 +234,7 @@ enum SyllogismLessonBank {
             return CardContent(
                 logicForm: "所有M是P, 有些S是M ∴ 所有S是P",
                 example: .init(premises: ["所有金属都是导体", "有些材料是金属"], conclusion: "所以，所有材料都是导体", isValid: false),
-                why: "大项不当周延：前提只说「有些S是M」，结论却跳到「所有S是P」。",
+                why: "小项不当周延：小项S在前提中只是「有些」，结论却对「所有S」下断言。",
                 confusion: "和Darii对比：Darii的结论是「有些S是P」（有效），这里改成「所有」就无效了。"
             )
 
@@ -272,6 +280,14 @@ enum SyllogismLessonBank {
                 confusion: "常见错误：把「并非所有A是B」理解为「所有A都不是B」。"
             )
 
+        case .quantifierNegationFallacy:
+            return CardContent(
+                logicForm: "¬∀x P(x) ≡ ∀x ¬P(x)",
+                example: .init(premises: ["并非所有鸟都会飞"], conclusion: "等价于：所有鸟都不会飞", isValid: false),
+                why: "「不是所有都…」只能推出「存在某些不…」，强化成「全部都不…」是量词偷换。",
+                confusion: "和「量词否定」对比：¬∀x P(x) 的正确等价形式是 ∃x ¬P(x)，不是 ∀x ¬P(x)。"
+            )
+
         case .scopeAmbiguity:
             return CardContent(
                 logicForm: "∀x∃y vs ∃y∀x",
@@ -298,12 +314,28 @@ enum SyllogismLessonBank {
                 confusion: "注意：逆命题(Q→P)和否命题(¬P→¬Q)都不等价于原命题！"
             )
 
+        case .converseFallacy:
+            return CardContent(
+                logicForm: "P→Q ≡ Q→P",
+                example: .init(premises: ["如果是哺乳动物，则是恒温动物"], conclusion: "等价于：如果是恒温动物，则是哺乳动物", isValid: false),
+                why: "逆命题不等价于原命题：恒温动物还包括鸟类，不一定是哺乳动物。",
+                confusion: "和「逆否命题」对比：P→Q 等价的是 ¬Q→¬P，不是 Q→P。"
+            )
+
         case .deMorgan:
             return CardContent(
                 logicForm: "¬(P∧Q) ≡ ¬P∨¬Q",
                 example: .init(premises: ["小明不是既会游泳又会骑车"], conclusion: "等价于：小明不会游泳或者不会骑车（至少一个不会）", isValid: true),
                 why: "德摩根定律：否定合取等于析取否定，否定析取等于合取否定。",
                 confusion: "¬(P∧Q)不是¬P∧¬Q（那意味着两个都不会，太强了）。"
+            )
+
+        case .deMorganFallacy:
+            return CardContent(
+                logicForm: "¬(P∧Q) ≡ ¬P∧¬Q",
+                example: .init(premises: ["小明不是既会游泳又会骑车"], conclusion: "等价于：小明既不会游泳也不会骑车", isValid: false),
+                why: "否定合取只排除「两者兼会」，小明仍可能恰好会其中一项。正确展开是「至少一个不会」。",
+                confusion: "和「德摩根定律」对比：¬(P∧Q) 的正确等价是 ¬P∨¬Q，把「或」写成「且」就错了。"
             )
 
         case .absorption:
@@ -364,6 +396,14 @@ enum SyllogismLessonBank {
                 confusion: "有些滑坡论证有数据支持（如上瘾机制），关键看每个环节是否有证据。"
             )
 
+        case .soundCausalInference:
+            return CardContent(
+                logicForm: "随机对照 + 显著差异 ∴ 因果成立",
+                example: .init(premises: ["随机对照实验中，服药组康复率显著高于安慰剂组", "分组随机、样本充足"], conclusion: "所以，该药物很可能促进康复", isValid: true),
+                why: "随机分组切断了混杂因素和反向因果的路径，加上恰当限定的结论，这是可靠的因果推断。",
+                confusion: "不是所有统计场景都是谬误！判断的关键在研究设计（随机？对照？）和结论强度（「很可能」vs「一定」）。"
+            )
+
         // ── F. 论证结构谬误 ──
 
         case .falseDilemma:
@@ -404,6 +444,14 @@ enum SyllogismLessonBank {
                 example: .init(premises: ["这支球队的每个球员都很优秀"], conclusion: "所以，这支球队一定很强", isValid: false),
                 why: "合成谬误：部分的性质不一定适用于整体。优秀球员组合不一定配合默契。",
                 confusion: "分割谬误是反过来：整体性质不一定适用于部分（富国的每个人不一定富）。"
+            )
+
+        case .soundArgument:
+            return CardContent(
+                logicForm: "大样本 + 随机代表性抽样 ∴ 总体倾向",
+                example: .init(premises: ["按区域和年龄分层随机抽取 2000 名居民", "85% 表示支持"], conclusion: "所以，该市多数居民很可能支持", isValid: true),
+                why: "样本量大、抽样随机有代表性、结论用「很可能」限定——这是可靠的归纳论证。",
+                confusion: "和「以偏概全」对比：那里是两三个非随机样本下全称断言。日常论证不都是谬误，要看证据质量。"
             )
         }
     }
