@@ -6,14 +6,13 @@ struct IOSRootView: View {
     @State private var selectedTab: IOSTab = .dashboard
 
     enum IOSTab: String, CaseIterable {
-        case dashboard, library, materials, analysis, settings
+        case dashboard, library, materials, settings
 
         var title: String {
             switch self {
             case .dashboard: "控制台"
             case .library: "训练库"
             case .materials: "素材"
-            case .analysis: "分析"
             case .settings: "设置"
             }
         }
@@ -23,7 +22,6 @@ struct IOSRootView: View {
             case .dashboard: "rectangle.stack.fill"
             case .library: "square.grid.2x2.fill"
             case .materials: "tray.full.fill"
-            case .analysis: "chart.xyaxis.line"
             case .settings: "slider.horizontal.3"
             }
         }
@@ -55,15 +53,6 @@ struct IOSRootView: View {
                 NavigationStack {
                     MaterialsManageView()
                         .navigationTitle("素材")
-                }
-            }
-
-            Tab(IOSTab.analysis.title,
-                systemImage: IOSTab.analysis.icon,
-                value: .analysis) {
-                NavigationStack {
-                    AnalysisHubView()
-                        .navigationTitle("分析")
                 }
             }
 
