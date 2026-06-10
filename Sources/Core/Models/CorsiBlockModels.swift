@@ -65,7 +65,8 @@ struct CorsiBlockSessionConfig: Equatable {
 
     init(
         startingLength: Int = 3,
-        maxLength: Int = 9,
+        // 上限必须小于格子总数：长度=格子数时最后一格是必然剩下的那个，等于白送。
+        maxLength: Int = 8,
         gridSize: Int = 9,
         presentationMs: Int = 800,
         mode: CorsiBlockMode = .forward,

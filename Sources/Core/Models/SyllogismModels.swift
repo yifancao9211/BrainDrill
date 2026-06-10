@@ -197,6 +197,7 @@ enum SyllogismType: String, Codable, CaseIterable {
 
     // ── D. 链式与复合推理 (Chain & Compound) ──
     case chainReasoning         // 假言连锁 ✓
+    case chainBroken            // 断链推理 ✗ (A→B, C→B, C→D ∴ A→D)
     case contraposition         // 逆否命题 ✓
     case converseFallacy        // 逆命题谬误 ✗ (P→Q ≢ Q→P)
     case deMorgan               // 德摩根定律 ✓
@@ -237,7 +238,7 @@ enum SyllogismType: String, Codable, CaseIterable {
              .conditionalToBiconditional,
              .categoricalInvalid, .illicitMajor, .fourTerms,
              .quantifierTrap, .existentialFallacy, .quantifierNegationFallacy,
-             .converseFallacy, .deMorganFallacy,
+             .chainBroken, .converseFallacy, .deMorganFallacy,
              .correlationCausation, .reverseCausation, .baseRateNeglect,
              .gamblerFallacy, .conjunctionFallacy, .slipperySlope,
              .falseDilemma, .circularReasoning, .equivocation,
@@ -261,7 +262,7 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .quantifierTrap, .universalInstantiation, .existentialFallacy,
              .quantifierNegation, .quantifierNegationFallacy, .scopeAmbiguity:
             return .quantifier
-        case .chainReasoning, .contraposition, .converseFallacy,
+        case .chainReasoning, .chainBroken, .contraposition, .converseFallacy,
              .deMorgan, .deMorganFallacy, .absorption:
             return .compound
         case .correlationCausation, .reverseCausation, .baseRateNeglect,
@@ -300,6 +301,7 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .quantifierNegationFallacy: "量词否定偷换"
         case .scopeAmbiguity:         "量词辖域歧义"
         case .chainReasoning:         "假言连锁"
+        case .chainBroken:            "断链推理"
         case .contraposition:         "逆否命题"
         case .converseFallacy:        "逆命题谬误"
         case .deMorgan:               "德摩根定律"
@@ -332,7 +334,7 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .modusTollens, .denyAntecedent, .contraposition, .converseFallacy:  return 5
         case .celarent, .darii, .illicitMajor:                                   return 6
         case .quantifierTrap, .existentialFallacy:                               return 7
-        case .chainReasoning, .biconditional, .biconditionalValid,
+        case .chainReasoning, .chainBroken, .biconditional, .biconditionalValid,
              .conditionalToBiconditional:                                        return 8
         case .reverseCausation, .gamblerFallacy, .slipperySlope:                 return 9
         case .ferio, .constructiveDilemma, .deMorgan, .deMorganFallacy:          return 10
@@ -366,6 +368,8 @@ enum SyllogismType: String, Codable, CaseIterable {
         case .quantifierNegation:     return [.quantifierNegationFallacy]
         case .quantifierNegationFallacy: return [.quantifierNegation]
         case .conditionalToBiconditional: return [.biconditional]
+        case .chainReasoning:         return [.chainBroken]
+        case .chainBroken:            return [.chainReasoning]
         case .soundCausalInference:   return [.correlationCausation, .gamblerFallacy, .baseRateNeglect]
         case .soundArgument:          return [.hastyGeneralization, .compositionDivision, .falseDilemma]
         case .disjunctiveSyllogism:   return [.disjunctiveFallacy]

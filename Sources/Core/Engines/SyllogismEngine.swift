@@ -272,7 +272,9 @@ final class SyllogismEngine {
             return buildScopeAmbiguityTrial()
         // D. Chain & Compound
         case .chainReasoning:
-            return buildChainReasoningTrial(bank: bank)
+            return buildChainTrial(valid: true, bank: bank)
+        case .chainBroken:
+            return buildChainTrial(valid: false, bank: bank)
         case .contraposition:
             return buildContrapositionTrial(bank: bank)
         case .converseFallacy:
@@ -462,11 +464,11 @@ final class SyllogismEngine {
 
     // MARK: - Chain Reasoning
 
-    private func buildChainReasoningTrial(bank: [ContentRelation]) -> SyllogismTrial {
-        // A→B, B→C, C→D ∴ A→D (valid chain)
+    private func buildChainTrial(valid: Bool, bank: [ContentRelation]) -> SyllogismTrial {
+        // 有效：A→B, B→C, C→D ∴ A→D；断链：A→B, C→B, C→D ∴ A→D
         let shuffled = bank.shuffled()
         guard shuffled.count >= 3 else {
-            return fallbackCategoricalTrial(valid: true)
+            return fallbackCategoricalTrial(valid: valid)
         }
 
         let r1 = shuffled[0]
@@ -476,8 +478,6 @@ final class SyllogismEngine {
         let b = r1.category
         let c = r2.category
         let d = r3.category
-
-        let valid = Bool.random()
 
         if valid {
             return SyllogismTrial(
@@ -502,7 +502,7 @@ final class SyllogismEngine {
                 ],
                 conclusion: "所以，如果一个事物属于\(a)，那么它属于\(d)",
                 isValid: false,
-                type: .chainReasoning,
+                type: .chainBroken,
                 abstractForm: "A→B, C→B, C→D ∴ A→D (链条断裂，无效)",
                 explanation: "链条断裂：A→B和C→B共享B，但A和C没有连接关系，不能推出A→D。",
                 detailedExplanation: "看起来像连锁推理，但链条在中间断了。A→B和C→B都指向B，但这不意味着A和C有任何关系。就像两条路都通往同一个城市，但不代表这两条路的起点之间有直达路线。"

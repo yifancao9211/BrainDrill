@@ -47,10 +47,9 @@ struct SyllogismEngineTests {
 
     /// 每个题型构建出的题目，其有效性必须与题型声明一致——否则按 type.isValid
     /// 分桶的「有效/无效配比控制」会被悄悄破坏。
-    /// （chainReasoning 例外：它在同一题型下故意混出有效/断裂两种变体。）
     @Test func builtTrialValidityMatchesTypeDeclaration() {
         let engine = SyllogismEngine(difficulty: 3)
-        for type in SyllogismType.allCases where type != .chainReasoning {
+        for type in SyllogismType.allCases {
             for _ in 0..<8 {
                 let trial = engine.buildTrial(type: type)
                 #expect(trial.isValid == type.isValid, "\(type) 构建出的题目有效性与类型声明不一致")

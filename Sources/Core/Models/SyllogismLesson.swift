@@ -306,6 +306,14 @@ enum SyllogismLessonBank {
                 confusion: "链条必须首尾相连（A→B, B→C），如果是A→B, C→B则链条断裂。"
             )
 
+        case .chainBroken:
+            return CardContent(
+                logicForm: "A→B, C→B, C→D ∴ A→D",
+                example: .init(premises: ["如果努力学习就能考上大学", "如果家境优渥也能考上大学", "如果家境优渥就能出国旅行"], conclusion: "所以，如果努力学习就能出国旅行", isValid: false),
+                why: "断链推理：A→B 和 C→B 只是共享同一个终点B，A 和 C 之间没有任何连接，推不出 A→D。",
+                confusion: "和「假言连锁」对比：连锁要求前一句的后件正好是后一句的前件，首尾相连；两条路通向同一城市，不代表两条路的起点相通。"
+            )
+
         case .contraposition:
             return CardContent(
                 logicForm: "P→Q ≡ ¬Q→¬P",
