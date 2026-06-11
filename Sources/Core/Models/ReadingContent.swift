@@ -119,7 +119,9 @@ struct ReadingPassage: Codable, Identifiable, Equatable {
         }
     }
 
-    var requiresClaimMapping: Bool { difficulty >= 2 }
+    /// 是否出「证据连线到结论」小题：除了难度门槛，候选结论必须至少 2 条——
+    /// 只有 1 条时连线题退化成单选项的废操作（点唯一按钮必对）。
+    var requiresClaimMapping: Bool { difficulty >= 2 && claimAnchors.count >= 2 }
 
     var mapsLimitationsToClaims: Bool { difficulty >= 3 }
 
@@ -157,7 +159,8 @@ struct ReadingPassage: Codable, Identifiable, Equatable {
     }
 
     var evidenceItemsNeedingMapping: [EvidenceClassificationItem] {
-        evidenceItems.filter {
+        guard requiresClaimMapping else { return [] }
+        return evidenceItems.filter {
             guard $0.supportsClaimID != nil else { return false }
             switch $0.role {
             case .evidence:
@@ -270,7 +273,9 @@ enum ReadingDifficultyPlanner {
 }
 
 enum ReadingPassageLibrary {
-    private static let bundled: [ReadingPassage] = loadPassages()
+    /// 仅内置种子库（不含本地素材）。测试种子库质量时用它——
+    /// `all` 会合并运行环境的本地素材，结果不可复现。
+    static let bundled: [ReadingPassage] = loadPassages()
 
     static var all: [ReadingPassage] {
         ReadingPassageRepository.mergedPassages(bundled: bundled)

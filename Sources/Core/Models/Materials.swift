@@ -893,6 +893,13 @@ extension ReadingPassage {
         if claimAnchors.isEmpty {
             issues.append("至少需要 1 条结论锚点。")
         }
+        // 难度 ≥2 会出「证据连线到结论」小题，候选结论必须 ≥2 条（总论点+局部结论），
+        // 否则连线题只有一个选项、形同虚设。
+        if difficulty >= 2,
+           evidenceItems.contains(where: { $0.supportsClaimID != nil }),
+           claimAnchors.count < 2 {
+            issues.append("难度 ≥2 且需要证据连线的材料，结论锚点至少要 2 条（总论点+局部结论）。")
+        }
         if evidenceItems.count < 4 {
             issues.append("证据分类项至少需要 4 条。")
         }
