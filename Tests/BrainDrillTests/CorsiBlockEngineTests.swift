@@ -85,6 +85,21 @@ struct CorsiBlockEngineTests {
         #expect(engine.isComplete)
     }
 
+    /// 全对也要在回合上限处收官——不能打得好就没完没了。
+    @Test func sessionEndsAtTrialCap() {
+        let config = CorsiBlockSessionConfig(startingLength: 2, maxTrials: 5)
+        let engine = CorsiBlockEngine(config: config)
+
+        engine.beginNextTrial()
+        for _ in 0..<5 {
+            _ = engine.submitResponse(engine.currentTrial!.expectedResponse)
+            engine.advanceAfterFeedback()
+        }
+
+        #expect(engine.isComplete)
+        #expect(engine.results.count == 5)
+    }
+
     @Test func metricsComputed() {
         let config = CorsiBlockSessionConfig(startingLength: 3, consecutiveWrongToDemote: 1)
         let engine = CorsiBlockEngine(config: config)

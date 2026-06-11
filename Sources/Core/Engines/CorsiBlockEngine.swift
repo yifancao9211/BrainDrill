@@ -89,7 +89,8 @@ final class CorsiBlockEngine {
             }
         }
 
-        if consecutiveWrong >= config.consecutiveWrongToDemote {
+        // 连错触顶提前结束；否则打满回合数收官，不让一局没完没了。
+        if consecutiveWrong >= config.consecutiveWrongToDemote || trialIndex >= config.maxTrials {
             phase = .completed
             return
         }

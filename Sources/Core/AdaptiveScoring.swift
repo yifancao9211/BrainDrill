@@ -126,7 +126,9 @@ enum AdaptiveScoring {
         case let .digitSpan(metrics):
             return min(max(max(metrics.maxSpanForward, metrics.maxSpanBackward), 1), 6)
         case let .corsiBlock(metrics):
-            return min(max(metrics.maxSpan, 1), 6)
+            // 从「上次最大广度」起步等于每局都从天花板开局，错俩就崩。
+            // 退一格起步，留出热身爬坡的空间。
+            return min(max(metrics.maxSpan - 1, 2), 8)
         case let .nBack(metrics):
             return min(max(metrics.nLevel, 1), 6)
         case let .changeDetection(metrics):

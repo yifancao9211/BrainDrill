@@ -13,18 +13,19 @@ struct CorsiBlockTrainingView: View {
 
     private let gridSize = 9
 
-    /// 经典 Corsi 板的不规则方块布局（归一化坐标）。规则网格容易被
-    /// 语言化编码（“左上→中→右下”），打散后才考验真正的空间记忆。
+    /// 经典 Corsi 板的不规则方块布局（归一化坐标，0/1 会贴到板边）。
+    /// 规则网格容易被语言化编码（“左上→中→右下”），打散后才考验真正的空间记忆。
+    /// 取“抖动过的 3×3”：每块占一个九宫格胞但带随机偏移——既铺满整板又不重叠。
     private static let blockAnchors: [CGPoint] = [
-        CGPoint(x: 0.07, y: 0.10),
-        CGPoint(x: 0.46, y: 0.02),
-        CGPoint(x: 0.86, y: 0.12),
-        CGPoint(x: 0.22, y: 0.36),
-        CGPoint(x: 0.60, y: 0.30),
-        CGPoint(x: 0.93, y: 0.48),
-        CGPoint(x: 0.05, y: 0.68),
-        CGPoint(x: 0.40, y: 0.62),
-        CGPoint(x: 0.72, y: 0.82),
+        CGPoint(x: 0.02, y: 0.05),
+        CGPoint(x: 0.40, y: 0.12),
+        CGPoint(x: 0.82, y: 0.00),
+        CGPoint(x: 0.10, y: 0.45),
+        CGPoint(x: 0.55, y: 0.40),
+        CGPoint(x: 0.95, y: 0.48),
+        CGPoint(x: 0.00, y: 0.93),
+        CGPoint(x: 0.45, y: 0.80),
+        CGPoint(x: 0.87, y: 0.97),
     ]
 
     var body: some View {
@@ -71,7 +72,7 @@ struct CorsiBlockTrainingView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 220)
 
-            Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+            Text("连对 2 轮升一级；连错 2 轮或打满 10 轮结束本局。")
                 .font(.system(.caption))
                 .foregroundStyle(BDColor.textSecondary)
         }
@@ -80,7 +81,7 @@ struct CorsiBlockTrainingView: View {
     private func activeView(engine: CorsiBlockEngine) -> some View {
         BDTrainingShell(accent: BDColor.corsiBlockAccent) {
             VStack(spacing: 8) {
-                Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
+                Text("广度 \(engine.currentLength)  •  第 \(min(engine.trialIndex + 1, engine.config.maxTrials))/\(engine.config.maxTrials) 轮")
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
 
@@ -126,9 +127,9 @@ struct CorsiBlockTrainingView: View {
         #if os(iOS)
         let boardSide: CGFloat = max(280, UIScreen.main.bounds.width - 80)
         #else
-        let boardSide: CGFloat = 320
+        let boardSide: CGFloat = 340
         #endif
-        let size: CGFloat = boardSide * 0.21
+        let size: CGFloat = boardSide * 0.22
 
         return ZStack {
             ForEach(0..<gridSize, id: \.self) { idx in

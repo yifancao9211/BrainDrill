@@ -82,14 +82,17 @@ struct DailyPlanView: View {
     private var todayTasksCard: some View {
         SurfaceCard(title: "今日任务", subtitle: "完成每日挑战与系统推荐，喂养你的连续打卡。", accent: BDColor.teal) {
             VStack(spacing: 10) {
-                if appModel.dueReviewCount > 0 {
+                let hasReview = appModel.dueReviewCount > 0
+                if hasReview {
                     reviewRow
                 }
                 dailyChallengeRow
                 if recommendedRoutes.isEmpty {
                     BDInsightCard(title: "还没有训练记录", bodyText: "先从训练库任意开始一个模块，系统才会根据表现推荐下一步。", accent: BDColor.primaryBlue)
                 } else {
-                    ForEach(Array(recommendedRoutes.prefix(3).enumerated()), id: \.offset) { index, route in
+                    // 整卡最多 4 行任务：错题复习/每日挑战占掉的行数从推荐里扣。
+                    let recBudget = 4 - 1 - (hasReview ? 1 : 0)
+                    ForEach(Array(recommendedRoutes.prefix(recBudget).enumerated()), id: \.offset) { index, route in
                         recommendationRow(route, index: index)
                     }
                 }

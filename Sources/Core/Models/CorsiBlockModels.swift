@@ -62,6 +62,8 @@ struct CorsiBlockSessionConfig: Equatable {
     var mode: CorsiBlockMode
     var consecutiveCorrectToAdvance: Int
     var consecutiveWrongToDemote: Int
+    /// 单局回合上限：到数即收，避免打得好就「没完没了」。
+    var maxTrials: Int
 
     init(
         startingLength: Int = 3,
@@ -71,7 +73,8 @@ struct CorsiBlockSessionConfig: Equatable {
         presentationMs: Int = 800,
         mode: CorsiBlockMode = .forward,
         consecutiveCorrectToAdvance: Int = 2,
-        consecutiveWrongToDemote: Int = 2
+        consecutiveWrongToDemote: Int = 2,
+        maxTrials: Int = 10
     ) {
         self.startingLength = startingLength
         self.maxLength = maxLength
@@ -80,5 +83,6 @@ struct CorsiBlockSessionConfig: Equatable {
         self.mode = mode
         self.consecutiveCorrectToAdvance = consecutiveCorrectToAdvance
         self.consecutiveWrongToDemote = consecutiveWrongToDemote
+        self.maxTrials = maxTrials
     }
 }
