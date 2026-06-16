@@ -33,6 +33,19 @@ enum BankSection: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    /// 综合出题(考公)时的目标占比权重，近似真实国考行测各板块题量比
+    /// （言语40·判断40·资料20·数量15，本题库无常识板块，故在四板块上归一化）。
+    /// 仅在多板块综合会话里用于跨板块配额；单板块模块不受影响。
+    var examWeight: Double {
+        switch self {
+        case .logicReasoning: 1      // 独立模块，单板块会话，权重不参与
+        case .judgment:       40
+        case .verbal:         40
+        case .dataAnalysis:   20
+        case .quantitative:   15
+        }
+    }
+
     /// 对应 `Resources/QuestionBank/<file>.json` 的文件名（不含扩展名）。
     var resourceFileName: String {
         switch self {

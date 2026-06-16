@@ -133,6 +133,7 @@ final class QuestionBankCoordinator: TrainingModuleCoordinator {
             startDifficulty: startDifficulty,
             weakTypes: Set(weakTypes(in: scope)),
             difficultyOverrides: effectiveDifficulties(for: pool),
+            sectionWeights: Dictionary(uniqueKeysWithValues: scope.map { ($0, $0.examWeight) }),
             timed: timed,
             totalSeconds: totalSeconds
         )

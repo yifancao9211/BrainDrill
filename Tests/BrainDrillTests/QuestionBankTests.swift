@@ -110,6 +110,41 @@ struct QuestionBankTests {
         #expect(engine.currentDifficulty >= 1)
     }
 
+    private func sectionedQuestion(id: String, section: BankSection, difficulty: Int = 2) -> BankQuestion {
+        BankQuestion(
+            id: id, section: section, type: section.rawValue, difficulty: difficulty,
+            stem: "题干 \(id)", options: ["A", "B", "C", "D"], answerIndex: 0, explanation: "解析"
+        )
+    }
+
+    @Test
+    func comprehensiveSessionBalancesAcrossSectionsNotJustDifficulty() {
+        // 四板块各 8 道、难度同为 2：纯难度选题会被 id 字母序(da<jd<qt<vb)顶成计算题扎堆。
+        let sections: [BankSection] = [.judgment, .verbal, .quantitative, .dataAnalysis]
+        var pool: [BankQuestion] = []
+        for s in sections {
+            for i in 0..<8 { pool.append(sectionedQuestion(id: "\(s.rawValue)-\(i)", section: s)) }
+        }
+        let weights = Dictionary(uniqueKeysWithValues: sections.map { ($0, $0.examWeight) })
+        let engine = QuestionBankEngine(
+            pool: pool, section: .judgment, targetCount: 12,
+            startDifficulty: 2.0, sectionWeights: weights
+        )
+
+        var seen: [BankSection: Int] = [:]
+        while !engine.isComplete, let q = engine.currentQuestion {
+            seen[q.section, default: 0] += 1
+            engine.select(0); engine.advance()
+        }
+        // 计算类(数量+资料)在 12 题里不应过半，且四板块都被覆盖到。
+        let calc = (seen[.quantitative] ?? 0) + (seen[.dataAnalysis] ?? 0)
+        #expect(calc <= 6)
+        #expect(seen.keys.count == 4)
+        // 言语/判断(高占比)各自不少于数量(低占比)。
+        #expect((seen[.verbal] ?? 0) >= (seen[.quantitative] ?? 0))
+        #expect((seen[.judgment] ?? 0) >= (seen[.quantitative] ?? 0))
+    }
+
     @Test
     func bundledCivilExamBanksLoadAndAreValid() {
         let examSections: [BankSection] = [.judgment, .verbal, .quantitative, .dataAnalysis]

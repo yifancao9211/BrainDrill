@@ -4,14 +4,9 @@ import SwiftUI
 struct DailyPlanView: View {
     @Environment(AppModel.self) private var appModel
 
-    private var recommendedRoutes: [AppRoute] {
-        TrainingScheduler.recommend(
-            sessions: appModel.sessions.filter { TrainingModule.allCases.contains($0.module) },
-            allModules: TrainingModule.allCases,
-            maxCount: 4
-        ).compactMap { recommendation in
-            route(for: recommendation.module)
-        }
+    /// 今日固定任务对应的路由（每天快照一次，整天不变）。
+    private var todayTaskRoutes: [AppRoute] {
+        appModel.todayTaskModules.compactMap { route(for: $0) }
     }
 
     private var recentSessions: [SessionResult] {
@@ -80,19 +75,17 @@ struct DailyPlanView: View {
     // MARK: - 今日任务（每日挑战 + 推荐）
 
     private var todayTasksCard: some View {
-        SurfaceCard(title: "今日任务", subtitle: "完成每日挑战与系统推荐，喂养你的连续打卡。", accent: BDColor.teal) {
+        SurfaceCard(title: "今日任务", subtitle: "每天定好的固定清单，完成就打勾——不会边做边换。", accent: BDColor.teal) {
             VStack(spacing: 10) {
-                let hasReview = appModel.dueReviewCount > 0
-                if hasReview {
+                if appModel.dueReviewCount > 0 {
                     reviewRow
                 }
                 dailyChallengeRow
-                if recommendedRoutes.isEmpty {
-                    BDInsightCard(title: "还没有训练记录", bodyText: "先从训练库任意开始一个模块，系统才会根据表现推荐下一步。", accent: BDColor.primaryBlue)
+                if todayTaskRoutes.isEmpty {
+                    BDInsightCard(title: "还没有训练记录", bodyText: "先从训练库任意开始一个模块，系统才会据此排出今天的任务。", accent: BDColor.primaryBlue)
                 } else {
-                    // 整卡最多 4 行任务：错题复习/每日挑战占掉的行数从推荐里扣。
-                    let recBudget = 4 - 1 - (hasReview ? 1 : 0)
-                    ForEach(Array(recommendedRoutes.prefix(recBudget).enumerated()), id: \.offset) { index, route in
+                    // 今日推荐为固定快照：每天 N 项、整天不变，练完的只打勾、不替换。
+                    ForEach(Array(todayTaskRoutes.enumerated()), id: \.offset) { index, route in
                         recommendationRow(route, index: index)
                     }
                 }
@@ -145,27 +138,33 @@ struct DailyPlanView: View {
     }
 
     private func recommendationRow(_ route: AppRoute, index: Int) -> some View {
-        BDInteractiveRow(accent: route.presentationProfile.accent, action: {
+        let done = route.trainingModule.map { appModel.trainedToday($0) } ?? false
+        let accent = route.presentationProfile.accent
+        return BDInteractiveRow(accent: accent, action: {
             if route.trainingModule?.isQuickStartable == true { appModel.quickStartModule(route) }
             else { appModel.selectedRoute = route }
         }) {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(route.presentationProfile.accent.opacity(0.14)).frame(width: 42, height: 42)
-                    .overlay { Image(systemName: route.systemImage).foregroundStyle(route.presentationProfile.accent) }
+                    .fill((done ? BDColor.green : accent).opacity(0.14)).frame(width: 42, height: 42)
+                    .overlay { Image(systemName: route.systemImage).foregroundStyle(done ? BDColor.green : accent) }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(route.title).font(.system(.headline, weight: .semibold)).foregroundStyle(BDColor.textPrimary)
-                    Text(route.presentationProfile.shortDescription).font(.system(.caption)).foregroundStyle(BDColor.textSecondary)
+                    Text(done ? "今天已完成 · 想再练一组也行" : route.presentationProfile.shortDescription)
+                        .font(.system(.caption)).foregroundStyle(BDColor.textSecondary)
                 }
             }
         } trailing: {
             HStack(spacing: 8) {
-                Text(scheduleLabel(for: route)).font(.system(.caption, weight: .semibold)).foregroundStyle(route.presentationProfile.accent)
-                Image(systemName: route.trainingModule?.isQuickStartable == true ? "play.fill" : "chevron.right")
+                Text(done ? "已完成" : scheduleLabel(for: route))
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(done ? BDColor.green : accent)
+                Image(systemName: done ? "checkmark.seal.fill" : (route.trainingModule?.isQuickStartable == true ? "play.fill" : "chevron.right"))
                     .font(.system(.caption2)).foregroundStyle(.white)
-                    .frame(width: 28, height: 28).background(Circle().fill(route.presentationProfile.accent))
+                    .frame(width: 28, height: 28).background(Circle().fill(done ? BDColor.green : accent))
             }
         }
+        .opacity(done ? 0.7 : 1)
     }
 
     // MARK: - 综合实力

@@ -32,6 +32,8 @@ final class QuestionBankEngine {
     private let weakTypes: Set<String>
     /// 逐题经验难度覆盖（轻量 IRT）：题 id → 难度估计（1–3，越大越难）。缺省回退到作者标注难度。
     private let difficultyOverrides: [String: Double]
+    /// 综合出题时各板块的目标占比权重（如国考行测比例）。为空或仅含单板块时退化为纯难度选题。
+    private let sectionWeights: [BankSection: Double]
     private(set) var currentDifficulty: Double
     private(set) var index: Int = 0
     private(set) var phase: Phase = .presenting
@@ -46,6 +48,7 @@ final class QuestionBankEngine {
         startDifficulty: Double,
         weakTypes: Set<String> = [],
         difficultyOverrides: [String: Double] = [:],
+        sectionWeights: [BankSection: Double] = [:],
         timed: Bool = false,
         totalSeconds: Int = 600,
         now: Date = Date()
@@ -54,6 +57,7 @@ final class QuestionBankEngine {
         self.section = section
         self.weakTypes = weakTypes
         self.difficultyOverrides = difficultyOverrides
+        self.sectionWeights = sectionWeights
         self.timed = timed
         self.totalSeconds = totalSeconds
         self.total = min(max(targetCount, 1), pool.count)
@@ -110,11 +114,39 @@ final class QuestionBankEngine {
         currentQuestion = nil
     }
 
-    /// 从题池中挑一道：有效难度最接近当前目标，未做过；并列时优先薄弱题型，再按稳定顺序。
+    /// 从题池中挑一道：综合会话先按目标占比补「最欠配额」的板块，再在该板块内按难度阶梯挑；
+    /// 单板块会话退化为纯难度选题。并列时优先薄弱题型，再按稳定顺序。
     private func pickNext(excluding: Set<String>) -> BankQuestion? {
         let candidates = pool.filter { !excluding.contains($0.id) }
         guard !candidates.isEmpty else { return nil }
-        return candidates.min { a, b in
+
+        // 跨板块配额：仅当本场目标含多个板块、且候选里实际存在多个板块时启用。
+        let presentSections = Set(candidates.map(\.section))
+        let weighted = sectionWeights.filter { presentSections.contains($0.key) && $0.value > 0 }
+        if weighted.count > 1 {
+            let totalWeight = weighted.values.reduce(0, +)
+            var served: [BankSection: Int] = [:]
+            for a in answers { served[a.question.section, default: 0] += 1 }
+            let totalServed = answers.count
+            // 缺额 = 目标占比 ×(已出 +1) − 已出；取缺额最大、仍有候选的板块。
+            let target = weighted.max { lhs, rhs in
+                func deficit(_ s: BankSection, _ w: Double) -> Double {
+                    w / totalWeight * Double(totalServed + 1) - Double(served[s] ?? 0)
+                }
+                let dl = deficit(lhs.key, lhs.value), dr = deficit(rhs.key, rhs.value)
+                if abs(dl - dr) > 0.0001 { return dl < dr }
+                return lhs.value < rhs.value          // 并列时偏向占比更高的板块
+            }?.key
+            if let target {
+                return pickByDifficulty(candidates.filter { $0.section == target })
+            }
+        }
+        return pickByDifficulty(candidates)
+    }
+
+    /// 在给定候选内挑有效难度最接近当前目标者；并列优先薄弱题型，再按稳定顺序。
+    private func pickByDifficulty(_ candidates: [BankQuestion]) -> BankQuestion? {
+        candidates.min { a, b in
             let da = abs(effectiveDifficulty(a) - currentDifficulty)
             let db = abs(effectiveDifficulty(b) - currentDifficulty)
             if abs(da - db) > 0.0001 { return da < db }

@@ -376,6 +376,45 @@ final class AppModel {
     /// 全局待复习错题数（逻辑 + 考公）。
     var dueReviewCount: Int { ReviewStore.dueCount() }
 
+    // MARK: - 今日任务（每天定一次的固定清单）
+
+    /// 今日任务里固定的推荐条数。
+    static let dailyTaskCount = 3
+
+    private static func dayKey(_ now: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: now)
+    }
+
+    /// 今日固定推荐模块：每天首次访问时按当时推荐快照一次并持久化；
+    /// 之后整天不变——练完的在原地打勾，不会被新推荐顶替（避免"练一个换一个"的churn）。
+    var todayTaskModules: [TrainingModule] {
+        let today = Self.dayKey()
+        let d = UserDefaults.standard
+        if d.string(forKey: "daily_plan_date") == today,
+           let raw = d.stringArray(forKey: "daily_plan_modules") {
+            let mods = raw.compactMap(TrainingModule.init(rawValue:))
+            if !mods.isEmpty { return mods }
+        }
+        // 快照：取当时推荐的前 N 个模块，定为今天的固定任务。
+        let picked = TrainingScheduler.recommend(
+            sessions: sessions.filter { TrainingModule.allCases.contains($0.module) },
+            allModules: TrainingModule.allCases,
+            maxCount: Self.dailyTaskCount
+        ).map(\.module)
+        d.set(today, forKey: "daily_plan_date")
+        d.set(picked.map(\.rawValue), forKey: "daily_plan_modules")
+        return picked
+    }
+
+    /// 某模块今天是否已训练（用于今日任务在原地打勾）。
+    func trainedToday(_ module: TrainingModule) -> Bool {
+        sessions.contains { $0.module == module && Calendar.current.isDateInToday($0.endedAt) }
+    }
+
     /// 一键开始错题复习：优先有到期错题的板块，并切到对应模块。
     func startBestReview() {
         if civilExamCoord.dueReviewCount(in: civilExamCoord.availableSections) > 0 {
