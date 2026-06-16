@@ -17,7 +17,7 @@ struct TrainingStatisticsTests {
             ))),
             SessionResult(module: .schulte, startedAt: now, endedAt: now, duration: 29, metrics: .schulte(SchulteMetrics(difficulty: .focus4x4, mistakeCount: 1, setIndex: 0, repIndex: 0))),
             SessionResult(module: .nBack, startedAt: now, endedAt: now, duration: 180, metrics: .nBack(NBackMetrics(nLevel: 2, totalTrials: 60, hitRate: 0.8, falseAlarmRate: 0.1, dPrime: 2.3))),
-            SessionResult(module: .digitSpan, startedAt: now, endedAt: now, duration: 120, metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 2))),
+            SessionResult(module: .digitSpan, startedAt: now, endedAt: now, duration: 120, metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 2))),
         ]
 
         let stats = TrainingStatistics(sessions: sessions)

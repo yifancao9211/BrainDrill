@@ -13,9 +13,11 @@ final class CorsiBlockEngine {
     private(set) var results: [CorsiBlockTrialResult] = []
     private(set) var presentingBlockIndex: Int = 0
     private(set) var maxSpanReached: Int = 0
+    /// 每次方向反转时记录被测的广度（峰/谷），用于阈值估计与结束判定。
+    private(set) var reversals: [Int] = []
 
-    private var consecutiveCorrect: Int = 0
-    private var consecutiveWrong: Int = 0
+    /// 上一步的阶梯方向：+1 升档、-1 降档、0 尚无。
+    private var lastDirection: Int = 0
 
     enum Phase: Equatable, Hashable {
         case idle
@@ -27,18 +29,27 @@ final class CorsiBlockEngine {
 
     var isComplete: Bool { phase == .completed }
 
-    var consecutiveCorrectCount: Int { consecutiveCorrect }
+    var reversalCount: Int { reversals.count }
 
-    var consecutiveWrongCount: Int { consecutiveWrong }
+    var reversalsTarget: Int { config.reversalsToComplete }
 
-    var advanceThreshold: Int { config.consecutiveCorrectToAdvance }
+    /// 实时阶梯阈值估计（反转点均值，丢弃前若干次预热反转）。
+    var thresholdSpanEstimate: Double {
+        Self.threshold(from: reversals, fallback: maxSpanReached)
+    }
 
-    var endThreshold: Int { config.consecutiveWrongToDemote }
+    static func threshold(from reversals: [Int], fallback: Int) -> Double {
+        guard !reversals.isEmpty else { return Double(fallback) }
+        // 反转足够多时丢弃前两次预热反转，降低起步广度带来的偏差。
+        let drop = reversals.count >= 4 ? 2 : 0
+        let used = Array(reversals.dropFirst(drop))
+        return Double(used.reduce(0, +)) / Double(used.count)
+    }
 
     init(config: CorsiBlockSessionConfig, startedAt: Date = Date()) {
         self.config = config
         self.startedAt = startedAt
-        self.currentLength = config.startingLength
+        self.currentLength = min(max(config.startingLength, config.minLength), config.maxLength)
     }
 
     func beginNextTrial() {
@@ -67,12 +78,7 @@ final class CorsiBlockEngine {
         results.append(result)
 
         if result.correct {
-            consecutiveCorrect += 1
-            consecutiveWrong = 0
             maxSpanReached = max(maxSpanReached, currentLength)
-        } else {
-            consecutiveWrong += 1
-            consecutiveCorrect = 0
         }
 
         phase = .feedback(correct: result.correct)
@@ -82,19 +88,27 @@ final class CorsiBlockEngine {
     func advanceAfterFeedback() {
         trialIndex += 1
 
-        if consecutiveCorrect >= config.consecutiveCorrectToAdvance {
-            consecutiveCorrect = 0
-            if currentLength < config.maxLength {
-                currentLength += 1
-            }
+        guard let last = results.last else {
+            beginNextTrial()
+            return
         }
 
-        // 连错触顶提前结束；否则打满回合数收官，不让一局没完没了。
-        if consecutiveWrong >= config.consecutiveWrongToDemote || trialIndex >= config.maxTrials {
+        // 1-up / 1-down 阶梯：答对升一档、答错降一档。
+        let direction = last.correct ? 1 : -1
+
+        // 方向相对上一步发生改变即为一次反转，记录当前（调整前）广度作为峰/谷。
+        if lastDirection != 0 && direction != lastDirection {
+            reversals.append(currentLength)
+        }
+        lastDirection = direction
+
+        // 满反转数或达到安全试次上限则结束本局。
+        if reversals.count >= config.reversalsToComplete || trialIndex >= config.maxTrials {
             phase = .completed
             return
         }
 
+        currentLength = min(max(currentLength + direction, config.minLength), config.maxLength)
         beginNextTrial()
     }
 
@@ -104,6 +118,8 @@ final class CorsiBlockEngine {
 
         return CorsiBlockMetrics(
             maxSpan: maxSpanReached,
+            thresholdSpan: thresholdSpanEstimate,
+            reversalCount: reversals.count,
             totalTrials: results.count,
             correctTrials: correctCount,
             accuracy: results.isEmpty ? 0 : Double(correctCount) / Double(results.count),

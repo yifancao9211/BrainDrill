@@ -26,11 +26,11 @@ struct CognitiveProfileTests {
         let now = Date()
         let good = SessionResult(
             module: .digitSpan, startedAt: now, endedAt: now, duration: 60,
-            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 9, maxSpanBackward: 8, totalTrials: 10, correctTrials: 10, accuracy: 1.0, positionErrors: 0))
+            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 9, maxSpanBackward: 8, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 10, accuracy: 1.0, positionErrors: 0))
         )
         let bad = SessionResult(
             module: .digitSpan, startedAt: now, endedAt: now, duration: 60,
-            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 3, maxSpanBackward: 2, totalTrials: 10, correctTrials: 4, accuracy: 0.4, positionErrors: 6))
+            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 3, maxSpanBackward: 2, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 4, accuracy: 0.4, positionErrors: 6))
         )
 
         let goodProfile = CognitiveProfile.compute(from: [good])
@@ -51,7 +51,7 @@ struct CognitiveProfileTests {
         let now = Date()
         return [
             SessionResult(module: .digitSpan, startedAt: now, endedAt: now, duration: 120,
-                          metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))),
+                          metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))),
             SessionResult(module: .changeDetection, startedAt: now, endedAt: now, duration: 80,
                           metrics: .changeDetection(ChangeDetectionMetrics(totalTrials: 20, accuracy: 0.85, dPrime: 2.0, hitRate: 0.90, falseAlarmRate: 0.15, maxSetSize: 5, averageRT: 0.6))),
         ]

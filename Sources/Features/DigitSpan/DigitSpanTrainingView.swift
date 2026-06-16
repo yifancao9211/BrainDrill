@@ -55,7 +55,7 @@ struct DigitSpanTrainingView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 220)
 
-            Text("连续答对 2 轮升一级，连续答错 2 轮结束本局。")
+            Text("自适应阶梯：答对升一档、答错降一档；累计 6 次方向反转后结束，取反转点均值作为你的广度。")
                 .font(.system(.caption))
                 .foregroundStyle(BDColor.textSecondary)
         }
@@ -252,9 +252,9 @@ struct DigitSpanTrainingView: View {
                 .foregroundStyle(BDColor.digitSpanAccent)
 
             HStack(spacing: 16) {
-                BDResultMetricCard(label: "最大广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.digitSpanAccent)
+                BDResultMetricCard(label: "数字广度", value: String(format: "%.1f", metrics.thresholdSpan), color: BDColor.digitSpanAccent)
+                BDResultMetricCard(label: "峰值广度", value: "\(max(metrics.maxSpanForward, metrics.maxSpanBackward))", color: BDColor.warm)
                 BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                BDResultMetricCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 
@@ -272,14 +272,14 @@ struct DigitSpanTrainingView: View {
     private func staircaseStatus(engine: DigitSpanEngine) -> some View {
         HStack(spacing: 12) {
             staircaseBadge(
-                title: "升级进度",
-                value: "\(engine.consecutiveCorrectCount)/\(engine.advanceThreshold)",
-                color: BDColor.green
+                title: "反转进度",
+                value: "\(engine.reversalCount)/\(engine.reversalsTarget)",
+                color: BDColor.digitSpanAccent
             )
             staircaseBadge(
-                title: "结束计数",
-                value: "\(engine.consecutiveWrongCount)/\(engine.endThreshold)",
-                color: BDColor.error
+                title: "当前估计",
+                value: String(format: "%.1f", engine.thresholdSpanEstimate),
+                color: BDColor.green
             )
         }
     }

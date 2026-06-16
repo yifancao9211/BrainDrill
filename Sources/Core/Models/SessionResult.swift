@@ -246,11 +246,29 @@ struct DelayedRecallMetrics: Codable, Equatable {
 
 struct CorsiBlockMetrics: Codable, Equatable {
     var maxSpan: Int
+    /// 阶梯法阈值估计：反转点均值，核心科学指标（峰值仅作参考）。
+    var thresholdSpan: Double
+    var reversalCount: Int
     var totalTrials: Int
     var correctTrials: Int
     var accuracy: Double
     var positionErrors: Int
     var mode: CorsiBlockMode
+}
+
+extension CorsiBlockMetrics {
+    // 自定义解码，兼容旧存档（无 thresholdSpan / reversalCount 字段）。
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        maxSpan = try c.decode(Int.self, forKey: .maxSpan)
+        thresholdSpan = try c.decodeIfPresent(Double.self, forKey: .thresholdSpan) ?? Double(maxSpan)
+        reversalCount = try c.decodeIfPresent(Int.self, forKey: .reversalCount) ?? 0
+        totalTrials = try c.decode(Int.self, forKey: .totalTrials)
+        correctTrials = try c.decode(Int.self, forKey: .correctTrials)
+        accuracy = try c.decode(Double.self, forKey: .accuracy)
+        positionErrors = try c.decode(Int.self, forKey: .positionErrors)
+        mode = try c.decode(CorsiBlockMode.self, forKey: .mode)
+    }
 }
 
 struct SchulteMetrics: Codable, Equatable {
@@ -316,10 +334,29 @@ struct NBackMetrics: Codable, Equatable {
 struct DigitSpanMetrics: Codable, Equatable {
     var maxSpanForward: Int
     var maxSpanBackward: Int
+    /// 阶梯法阈值估计：反转点均值，核心科学指标（峰值仅作参考）。
+    var thresholdSpan: Double
+    var reversalCount: Int
     var totalTrials: Int
     var correctTrials: Int
     var accuracy: Double
     var positionErrors: Int
+}
+
+extension DigitSpanMetrics {
+    // 自定义解码，兼容旧存档（无 thresholdSpan / reversalCount 字段）。
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        maxSpanForward = try c.decode(Int.self, forKey: .maxSpanForward)
+        maxSpanBackward = try c.decode(Int.self, forKey: .maxSpanBackward)
+        thresholdSpan = try c.decodeIfPresent(Double.self, forKey: .thresholdSpan)
+            ?? Double(max(maxSpanForward, maxSpanBackward))
+        reversalCount = try c.decodeIfPresent(Int.self, forKey: .reversalCount) ?? 0
+        totalTrials = try c.decode(Int.self, forKey: .totalTrials)
+        correctTrials = try c.decode(Int.self, forKey: .correctTrials)
+        accuracy = try c.decode(Double.self, forKey: .accuracy)
+        positionErrors = try c.decode(Int.self, forKey: .positionErrors)
+    }
 }
 
 struct ChangeDetectionMetrics: Codable, Equatable {

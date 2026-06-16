@@ -59,7 +59,7 @@ final class DigitSpanCoordinator: TrainingModuleCoordinator {
         guard let engine else { return nil }
         let metrics = engine.computeMetrics()
         let now = Date()
-        let span = max(metrics.maxSpanForward, metrics.maxSpanBackward)
+        let span = String(format: "%.1f", metrics.thresholdSpan)
         let result = SessionResult(
             module: .digitSpan,
             startedAt: engine.startedAt,
@@ -69,7 +69,7 @@ final class DigitSpanCoordinator: TrainingModuleCoordinator {
             conditions: sessionConditions
         )
         lastResult = result
-        statusMessage = "数字广度完成 — 最大广度 \(span)"
+        statusMessage = "数字广度完成 — 广度 \(span)"
         self.engine = nil
         return result
     }

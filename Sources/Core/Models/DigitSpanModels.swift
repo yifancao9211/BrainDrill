@@ -56,25 +56,30 @@ struct DigitSpanTrialResult: Equatable {
 
 struct DigitSpanSessionConfig: Equatable {
     var startingLength: Int
+    var minLength: Int
     var maxLength: Int
     var presentationMs: Int
     var mode: DigitSpanMode
-    var consecutiveCorrectToAdvance: Int
-    var consecutiveWrongToDemote: Int
+    /// 自适应阶梯法：答对升一档、答错降一档，累计到此反转次数即结束本局。
+    var reversalsToComplete: Int
+    /// 安全上限：即使反转未满，达到此试次数也强制结束，避免极端情况下无限延长。
+    var maxTrials: Int
 
     init(
         startingLength: Int = 3,
+        minLength: Int = 2,
         maxLength: Int = 12,
         presentationMs: Int = 1000,
         mode: DigitSpanMode = .forward,
-        consecutiveCorrectToAdvance: Int = 2,
-        consecutiveWrongToDemote: Int = 2
+        reversalsToComplete: Int = 6,
+        maxTrials: Int = 30
     ) {
         self.startingLength = startingLength
+        self.minLength = minLength
         self.maxLength = maxLength
         self.presentationMs = presentationMs
         self.mode = mode
-        self.consecutiveCorrectToAdvance = consecutiveCorrectToAdvance
-        self.consecutiveWrongToDemote = consecutiveWrongToDemote
+        self.reversalsToComplete = reversalsToComplete
+        self.maxTrials = maxTrials
     }
 }

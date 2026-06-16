@@ -63,6 +63,8 @@ enum TrialExporter {
             ]
         case let .digitSpan(m):
             return [
+                ("thresholdSpan", String(format: "%.2f", m.thresholdSpan)),
+                ("reversalCount", "\(m.reversalCount)"),
                 ("maxSpanForward", "\(m.maxSpanForward)"),
                 ("maxSpanBackward", "\(m.maxSpanBackward)"),
                 ("accuracy", String(format: "%.4f", m.accuracy)),
@@ -77,6 +79,8 @@ enum TrialExporter {
             ]
         case let .corsiBlock(m):
             return [
+                ("thresholdSpan", String(format: "%.2f", m.thresholdSpan)),
+                ("reversalCount", "\(m.reversalCount)"),
                 ("maxSpan", "\(m.maxSpan)"),
                 ("accuracy", String(format: "%.4f", m.accuracy)),
                 ("positionErrors", "\(m.positionErrors)"),

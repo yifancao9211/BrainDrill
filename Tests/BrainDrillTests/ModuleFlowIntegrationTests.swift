@@ -94,7 +94,7 @@ struct NBackFlowTests {
 
 struct DigitSpanFlowTests {
     @Test func presentRecallFlow() {
-        let config = DigitSpanSessionConfig(startingLength: 3, mode: .forward, consecutiveWrongToDemote: 1)
+        let config = DigitSpanSessionConfig(startingLength: 3, mode: .forward)
         let engine = DigitSpanEngine(config: config)
 
         engine.beginNextTrial()
@@ -116,8 +116,8 @@ struct DigitSpanFlowTests {
         engine.advanceAfterFeedback()
     }
 
-    @Test func wrongAnswerEndsSession() {
-        let config = DigitSpanSessionConfig(startingLength: 3, mode: .forward, consecutiveWrongToDemote: 1)
+    @Test func reachingTrialCapEndsSession() {
+        let config = DigitSpanSessionConfig(startingLength: 3, mode: .forward, maxTrials: 1)
         let engine = DigitSpanEngine(config: config)
 
         engine.beginNextTrial()
@@ -133,7 +133,7 @@ struct DigitSpanFlowTests {
 
 struct CorsiBlockFlowTests {
     @Test func presentRecallFlow() {
-        let config = CorsiBlockSessionConfig(startingLength: 3, consecutiveWrongToDemote: 1)
+        let config = CorsiBlockSessionConfig(startingLength: 3)
         let engine = CorsiBlockEngine(config: config)
 
         engine.beginNextTrial()
@@ -148,8 +148,8 @@ struct CorsiBlockFlowTests {
         #expect(result.correct)
     }
 
-    @Test func wrongAnswerEndsSession() {
-        let config = CorsiBlockSessionConfig(startingLength: 3, consecutiveWrongToDemote: 1)
+    @Test func reachingTrialCapEndsSession() {
+        let config = CorsiBlockSessionConfig(startingLength: 3, maxTrials: 1)
         let engine = CorsiBlockEngine(config: config)
 
         engine.beginNextTrial()

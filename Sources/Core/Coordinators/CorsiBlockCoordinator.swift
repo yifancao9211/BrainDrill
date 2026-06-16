@@ -67,7 +67,7 @@ final class CorsiBlockCoordinator: TrainingModuleCoordinator {
             conditions: sessionConditions
         )
         lastResult = result
-        statusMessage = "空间广度完成 — 最大广度 \(metrics.maxSpan)"
+        statusMessage = "空间广度完成 — 广度 \(String(format: "%.1f", metrics.thresholdSpan))"
         self.engine = nil
         return result
     }

@@ -72,7 +72,7 @@ struct CorsiBlockTrainingView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 220)
 
-            Text("连对 2 轮升一级；连错 2 轮或打满 10 轮结束本局。")
+            Text("自适应阶梯：答对升一档、答错降一档；累计 6 次方向反转后结束，取反转点均值作为你的广度。")
                 .font(.system(.caption))
                 .foregroundStyle(BDColor.textSecondary)
         }
@@ -81,7 +81,7 @@ struct CorsiBlockTrainingView: View {
     private func activeView(engine: CorsiBlockEngine) -> some View {
         BDTrainingShell(accent: BDColor.corsiBlockAccent) {
             VStack(spacing: 8) {
-                Text("广度 \(engine.currentLength)  •  第 \(min(engine.trialIndex + 1, engine.config.maxTrials))/\(engine.config.maxTrials) 轮")
+                Text("广度 \(engine.currentLength)  •  第 \(engine.trialIndex + 1) 轮")
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundStyle(.secondary)
 
@@ -183,14 +183,14 @@ struct CorsiBlockTrainingView: View {
     private func staircaseStatus(engine: CorsiBlockEngine) -> some View {
         HStack(spacing: 12) {
             staircaseBadge(
-                title: "升级进度",
-                value: "\(engine.consecutiveCorrectCount)/\(engine.advanceThreshold)",
-                color: BDColor.green
+                title: "反转进度",
+                value: "\(engine.reversalCount)/\(engine.reversalsTarget)",
+                color: BDColor.corsiBlockAccent
             )
             staircaseBadge(
-                title: "结束计数",
-                value: "\(engine.consecutiveWrongCount)/\(engine.endThreshold)",
-                color: BDColor.error
+                title: "当前估计",
+                value: String(format: "%.1f", engine.thresholdSpanEstimate),
+                color: BDColor.green
             )
         }
     }
@@ -284,9 +284,9 @@ struct CorsiBlockTrainingView: View {
                 .foregroundStyle(BDColor.corsiBlockAccent)
 
             HStack(spacing: 16) {
-                BDResultMetricCard(label: "最大广度", value: "\(metrics.maxSpan)", color: BDColor.corsiBlockAccent)
+                BDResultMetricCard(label: "空间广度", value: String(format: "%.1f", metrics.thresholdSpan), color: BDColor.corsiBlockAccent)
+                BDResultMetricCard(label: "峰值广度", value: "\(metrics.maxSpan)", color: BDColor.warm)
                 BDResultMetricCard(label: "正确率", value: "\(Int(metrics.accuracy * 100))%", color: BDColor.green)
-                BDResultMetricCard(label: "位置错误", value: "\(metrics.positionErrors)", color: BDColor.warm)
             }
             .frame(maxWidth: 400)
 

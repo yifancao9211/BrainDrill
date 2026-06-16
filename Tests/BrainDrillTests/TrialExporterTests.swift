@@ -18,7 +18,7 @@ struct TrialExporterTests {
         let now = Date()
         let session = SessionResult(
             module: .digitSpan, startedAt: now, endedAt: now, duration: 60,
-            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))
+            metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))
         )
         let csv = TrialExporter.exportCSV(sessions: [session])
         let lines = csv.components(separatedBy: "\n").filter { !$0.isEmpty }
@@ -30,9 +30,9 @@ struct TrialExporterTests {
         let now = Date()
         let sessions = [
             SessionResult(module: .digitSpan, startedAt: now, endedAt: now, duration: 120,
-                          metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))),
+                          metrics: .digitSpan(DigitSpanMetrics(maxSpanForward: 7, maxSpanBackward: 5, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 3))),
             SessionResult(module: .corsiBlock, startedAt: now, endedAt: now, duration: 90,
-                          metrics: .corsiBlock(CorsiBlockMetrics(maxSpan: 5, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 2, mode: .forward))),
+                          metrics: .corsiBlock(CorsiBlockMetrics(maxSpan: 5, thresholdSpan: 0, reversalCount: 0, totalTrials: 10, correctTrials: 8, accuracy: 0.8, positionErrors: 2, mode: .forward))),
         ]
         let csv = TrialExporter.exportCSV(sessions: sessions)
         #expect(csv.contains("digitSpan"))
