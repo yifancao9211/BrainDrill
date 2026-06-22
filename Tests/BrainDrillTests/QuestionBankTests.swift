@@ -61,8 +61,8 @@ struct QuestionBankTests {
             makeQuestion(id: "a", type: "对应推理", answerIndex: 0),
             makeQuestion(id: "b", type: "排序推理", answerIndex: 1),
         ]
-        // 两题难度相同（默认 1），按 id 升序先 "a" 后 "b"。
-        let engine = QuestionBankEngine(pool: questions, section: .logicReasoning, targetCount: 2, startDifficulty: 1.0)
+        // 两题难度相同（默认 1），按 id 升序先 "a" 后 "b"。恒等打乱以固定选项位置。
+        let engine = QuestionBankEngine(pool: questions, section: .logicReasoning, targetCount: 2, startDifficulty: 1.0, optionShuffle: { $0 })
 
         engine.select(0)            // "a" 正确
         engine.advance()
@@ -76,6 +76,69 @@ struct QuestionBankTests {
         #expect(abs(metrics.accuracy - 0.5) < 0.0001)
         #expect(metrics.perTypeCorrect["对应推理"] == 1)
         #expect(metrics.perTypeTotal["排序推理"] == 1)
+    }
+
+    @Test
+    func servedOptionsAreShuffledAndAnswerIndexRemapped() {
+        // 已知排列：反转 [0,1,2,3] → 新顺序取旧的 [3,2,1,0]。
+        let q = makeQuestion(id: "x", answerIndex: 0) // 正确项文本 "A"
+        let engine = QuestionBankEngine(
+            pool: [q], section: .logicReasoning, targetCount: 1,
+            startDifficulty: 1.0, optionShuffle: { $0.reversed() }
+        )
+        let served = engine.currentQuestion!
+        #expect(served.options == ["D", "C", "B", "A"])
+        #expect(served.answerIndex == 3)                       // 原正确项现位于末位
+        #expect(served.options[served.answerIndex] == "A")     // 仍指向同一文本
+        // 按打乱后的正确下标作答 → 判对。
+        engine.select(served.answerIndex)
+        #expect(engine.computeMetrics().correctCount == 1)
+    }
+
+    @Test
+    func lockedQuestionKeepsOriginalOptionOrder() {
+        let q = BankQuestion(
+            id: "x", section: .logicReasoning, type: "t", difficulty: 1,
+            stem: "s", options: ["A", "B", "C", "D"], answerIndex: 0,
+            explanation: "故选 A", lockOptions: true
+        )
+        let engine = QuestionBankEngine(
+            pool: [q], section: .logicReasoning, targetCount: 1,
+            startDifficulty: 1.0, optionShuffle: { $0.reversed() }
+        )
+        let served = engine.currentQuestion!
+        #expect(served.options == ["A", "B", "C", "D"])
+        #expect(served.answerIndex == 0)
+    }
+
+    @Test
+    func reorderingShufflesFigureOptionsInTandem() {
+        let q = BankQuestion(
+            id: "f", section: .judgment, type: "图形推理", difficulty: 2,
+            stem: "?", options: ["o0", "o1", "o2", "o3"], answerIndex: 1,
+            explanation: "e",
+            figurePrompt: [FigureSpec(shape: .dots, count: 1)],
+            figureOptions: (0..<4).map { FigureSpec(shape: .dots, count: $0) }
+        )
+        let reordered = q.reorderingOptions([2, 1, 3, 0]) // 新顺序取旧的 [2,1,3,0]
+        #expect(reordered.options == ["o2", "o1", "o3", "o0"])
+        #expect(reordered.figureOptions?.map(\.count) == [2, 1, 3, 0])
+        // 原正确项(下标 1)在新排列里仍是下标 1。
+        #expect(reordered.answerIndex == 1)
+        #expect(reordered.options[reordered.answerIndex] == "o1")
+        #expect(reordered.figureOptions?[reordered.answerIndex].count == 1)
+    }
+
+    @Test
+    func bundledLockedQuestionsAreThoseWithLetterReferencingExplanations() {
+        let all = QuestionBankLibrary.mergedQuestions(imported: [])
+        let locked = Set(all.filter(\.lockOptions).map(\.id))
+        let expected: Set<String> = [
+            "jd-weaken-causal-01", "jd-conclusion-01",
+            "lr-cond-02", "lr-cond-04", "lr-cond-06", "lr-cond-08", "lr-cond-10", "lr-water-01",
+            "vb-mainidea-01", "vb-intent-01",
+        ]
+        #expect(locked == expected)
     }
 
     private func mixedPool() -> [BankQuestion] {
@@ -97,7 +160,7 @@ struct QuestionBankTests {
 
     @Test
     func adaptiveDifficultyRisesOnCorrectFallsOnWrong() {
-        let engine = QuestionBankEngine(pool: mixedPool(), section: .logicReasoning, targetCount: 6, startDifficulty: 2.0)
+        let engine = QuestionBankEngine(pool: mixedPool(), section: .logicReasoning, targetCount: 6, startDifficulty: 2.0, optionShuffle: { $0 })
         #expect(engine.currentQuestion?.difficulty == 2)
 
         let before = engine.currentDifficulty

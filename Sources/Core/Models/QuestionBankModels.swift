@@ -88,6 +88,10 @@ struct BankQuestion: Codable, Identifiable, Equatable {
     var figureOptions: [FigureSpec]?
     var tags: [String]
     var source: String?
+    /// 是否锁定选项顺序（不在发题时打乱）。默认 false。
+    /// 仅对「解析按字母/位置引用选项」的题（如「A 项错误」「故选 C」）置 true，
+    /// 否则发题时会随机打乱选项以消除正确答案的位置偏差。
+    var lockOptions: Bool
 
     /// 是否为图形推理题（选项以图形呈现）。
     var isFigureQuestion: Bool { figureOptions != nil }
@@ -107,7 +111,8 @@ struct BankQuestion: Codable, Identifiable, Equatable {
         figurePrompt: [FigureSpec]? = nil,
         figureOptions: [FigureSpec]? = nil,
         tags: [String] = [],
-        source: String? = nil
+        source: String? = nil,
+        lockOptions: Bool = false
     ) {
         self.id = id
         self.section = section
@@ -124,10 +129,11 @@ struct BankQuestion: Codable, Identifiable, Equatable {
         self.figureOptions = figureOptions
         self.tags = tags
         self.source = source
+        self.lockOptions = lockOptions
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, section, type, difficulty, material, stem, options, answerIndex, explanation, diagram, steps, figurePrompt, figureOptions, tags, source
+        case id, section, type, difficulty, material, stem, options, answerIndex, explanation, diagram, steps, figurePrompt, figureOptions, tags, source, lockOptions
     }
 
     init(from decoder: Decoder) throws {
@@ -147,6 +153,36 @@ struct BankQuestion: Codable, Identifiable, Equatable {
         figureOptions = try c.decodeIfPresent([FigureSpec].self, forKey: .figureOptions)
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         source = try c.decodeIfPresent(String.self, forKey: .source)
+        lockOptions = try c.decodeIfPresent(Bool.self, forKey: .lockOptions) ?? false
+    }
+
+    /// 按给定排列重排选项并重映射 `answerIndex`，返回新题。图形题的 `figureOptions` 一并重排。
+    /// `lockOptions` 为真、排列非法或选项不足 2 个时原样返回（不打乱）。
+    /// `permutation` 为 `options.indices` 的一个排列：新第 i 个选项 = 旧第 `permutation[i]` 个。
+    func reorderingOptions(_ permutation: [Int]) -> BankQuestion {
+        guard !lockOptions, options.count > 1,
+              permutation.count == options.count,
+              Set(permutation) == Set(options.indices),
+              let newAnswer = permutation.firstIndex(of: answerIndex)
+        else { return self }
+        return BankQuestion(
+            id: id,
+            section: section,
+            type: type,
+            difficulty: difficulty,
+            material: material,
+            stem: stem,
+            options: permutation.map { options[$0] },
+            answerIndex: newAnswer,
+            explanation: explanation,
+            diagram: diagram,
+            steps: steps,
+            figurePrompt: figurePrompt,
+            figureOptions: figureOptions.map { fo in permutation.map { fo[$0] } },
+            tags: tags,
+            source: source,
+            lockOptions: lockOptions
+        )
     }
 
     /// 同一题在同一会话/最近历史中去重用的指纹。

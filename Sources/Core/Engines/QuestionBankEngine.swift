@@ -34,6 +34,9 @@ final class QuestionBankEngine {
     private let difficultyOverrides: [String: Double]
     /// 综合出题时各板块的目标占比权重（如国考行测比例）。为空或仅含单板块时退化为纯难度选题。
     private let sectionWeights: [BankSection: Double]
+    /// 发题时对选项下标 `[0..<n]` 求一个排列，用于打乱选项、消除正确答案的位置偏差。
+    /// 默认系统随机；测试可注入恒等或已知排列以保证确定性。`lockOptions` 题不受影响。
+    private let optionShuffle: ([Int]) -> [Int]
     private(set) var currentDifficulty: Double
     private(set) var index: Int = 0
     private(set) var phase: Phase = .presenting
@@ -51,6 +54,7 @@ final class QuestionBankEngine {
         sectionWeights: [BankSection: Double] = [:],
         timed: Bool = false,
         totalSeconds: Int = 600,
+        optionShuffle: @escaping ([Int]) -> [Int] = { $0.shuffled() },
         now: Date = Date()
     ) {
         self.pool = pool
@@ -58,6 +62,7 @@ final class QuestionBankEngine {
         self.weakTypes = weakTypes
         self.difficultyOverrides = difficultyOverrides
         self.sectionWeights = sectionWeights
+        self.optionShuffle = optionShuffle
         self.timed = timed
         self.totalSeconds = totalSeconds
         self.total = min(max(targetCount, 1), pool.count)
@@ -65,7 +70,12 @@ final class QuestionBankEngine {
         self.startedAt = now
         self.questionStartedAt = now
         self.currentQuestion = nil
-        self.currentQuestion = pickNext(excluding: [])
+        self.currentQuestion = pickNext(excluding: []).map(presented)
+    }
+
+    /// 发题前打乱选项（除非该题 `lockOptions`）。
+    private func presented(_ q: BankQuestion) -> BankQuestion {
+        q.reorderingOptions(optionShuffle(Array(q.options.indices)))
     }
 
     /// 题目的有效难度：优先经验难度，否则作者标注。
@@ -103,7 +113,7 @@ final class QuestionBankEngine {
             phase = .completed
             currentQuestion = nil
         } else {
-            currentQuestion = next
+            currentQuestion = next.map(presented)
             phase = .presenting
             questionStartedAt = date
         }

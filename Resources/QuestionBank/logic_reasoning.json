@@ -748,6 +748,7 @@
   },
   {
     "id": "lr-cond-02",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "翻译推理",
     "difficulty": 2,
@@ -822,6 +823,7 @@
   },
   {
     "id": "lr-cond-04",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "翻译推理",
     "difficulty": 3,
@@ -1406,6 +1408,7 @@
   },
   {
     "id": "lr-cond-06",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "翻译推理",
     "difficulty": 3,
@@ -1733,6 +1736,7 @@
   },
   {
     "id": "lr-cond-08",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "翻译推理",
     "difficulty": 2,
@@ -1807,6 +1811,7 @@
   },
   {
     "id": "lr-cond-10",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "翻译推理",
     "difficulty": 2,
@@ -2204,6 +2209,7 @@
   },
   {
     "id": "lr-water-01",
+    "lockOptions": true,
     "section": "logicReasoning",
     "type": "策略推理",
     "difficulty": 2,

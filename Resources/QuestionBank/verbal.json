@@ -13,6 +13,7 @@
   },
   {
     "id": "vb-mainidea-01",
+    "lockOptions": true,
     "section": "verbal",
     "type": "片段阅读·主旨",
     "difficulty": 2,
@@ -36,6 +37,7 @@
   },
   {
     "id": "vb-intent-01",
+    "lockOptions": true,
     "section": "verbal",
     "type": "片段阅读·意图",
     "difficulty": 1,
