@@ -261,6 +261,9 @@ final class DevilCoordinator: TrainingModuleCoordinator {
             dailyKind = DevilDailyKind.forDateKey(today)
             dailyProgress = 0
             dailyDone = false
+            // 跨天清零必须落盘，否则 loadProgress 会把昨天的旧值读回来覆盖。
+            UserDefaults.standard.set(0, forKey: "devil_daily_progress")
+            UserDefaults.standard.set(false, forKey: "devil_daily_done")
         } else {
             dailyKind = DevilDailyKind.forDateKey(today)
         }
@@ -276,7 +279,8 @@ final class DevilCoordinator: TrainingModuleCoordinator {
         }
         refreshDailyIfNeeded()
         dailyProgress = d.integer(forKey: "devil_daily_progress")
-        dailyDone = d.bool(forKey: "devil_daily_done")
+        // 完成与否现算，别信单独存的旧标志：跨天错位或旧版本缺写都会让它与进度脱钩。
+        dailyDone = dailyProgress >= dailyKind.target
         currentStreak = d.integer(forKey: "devil_streak")
         bestStreak = d.integer(forKey: "devil_best_streak")
         totalSessions = d.integer(forKey: "devil_total_sessions")
